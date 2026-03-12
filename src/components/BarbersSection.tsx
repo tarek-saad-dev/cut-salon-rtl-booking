@@ -1,7 +1,9 @@
+import { useState } from "react";
 import barberMohamed from "@/assets/barber-mohamed.jpg";
 import barberBassem from "@/assets/barber-bassem.jpg";
 import barberKareem from "@/assets/barber-kareem.jpg";
 import barberZiad from "@/assets/barber-ziad.jpg";
+import CalendlyModal from "./CalendlyModal";
 
 const barbers = [
   {
@@ -35,6 +37,8 @@ const barbers = [
 ];
 
 const BarbersSection = () => {
+  const [selectedBarber, setSelectedBarber] = useState<typeof barbers[0] | null>(null);
+
   return (
     <section id="barbers" className="py-20 md:py-28 bg-background">
       <div className="container px-4">
@@ -59,19 +63,26 @@ const BarbersSection = () => {
               <div className="p-5 text-center">
                 <h3 className="font-heading text-xl font-bold mb-1">{barber.name}</h3>
                 <p className="text-muted-foreground text-sm mb-5">{barber.desc}</p>
-                <a
-                  href={barber.link}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="gold-shimmer block w-full py-3 rounded-lg font-heading font-bold text-primary-foreground transition-all hover:scale-[1.02]"
+                <button
+                  onClick={() => setSelectedBarber(barber)}
+                  className="gold-shimmer block w-full py-3 rounded-lg font-heading font-bold text-primary-foreground transition-all hover:scale-[1.02] cursor-pointer"
                 >
                   {barber.buttonText}
-                </a>
+                </button>
               </div>
             </div>
           ))}
         </div>
       </div>
+
+      {selectedBarber && (
+        <CalendlyModal
+          open={!!selectedBarber}
+          onOpenChange={(open) => !open && setSelectedBarber(null)}
+          url={selectedBarber.link}
+          barberName={selectedBarber.name}
+        />
+      )}
     </section>
   );
 };
