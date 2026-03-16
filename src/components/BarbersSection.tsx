@@ -1,36 +1,33 @@
 import { useState } from "react";
-import barberMohamed from "@/assets/barber-mohamed.jpg";
-import barberBassem from "@/assets/barber-bassem.jpg";
-import barberKareem from "@/assets/barber-kareem.jpg";
-import barberZiad from "@/assets/barber-ziad.jpg";
+import logo from "@/assets/logo.jpeg";
 import CalendlyModal from "./CalendlyModal";
 
 const barbers = [
   {
     name: "محمد",
     
-    image: barberMohamed,
+    image: logo,
     buttonText: "احجز مع محمد",
     link: "https://calendly.com/saadfouad1976t2/cut-salon-mohamed-barber",
   },
   {
     name: "باسم",
     
-    image: barberBassem,
+    image: logo,
     buttonText: "احجز مع باسم",
     link: "https://calendly.com/saadfouad1976t3/cut-salon-bassem-barber",
   },
   {
     name: "كريم",
     
-    image: barberKareem,
+    image: logo,
     buttonText: "احجز مع كريم",
     link: "https://calendly.com/tsts20031976/cut-salob-kareem-barber?month=2026-03",
   },
   {
     name: "زياد",
     
-    image: barberZiad,
+    image: logo,
     buttonText: "احجز مع زياد",
     link: "https://calendly.com/saadfouad1976tt/cut-salon-ziad-barber",
   },

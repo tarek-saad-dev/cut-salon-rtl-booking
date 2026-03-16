@@ -1,4 +1,5 @@
-import { Scissors, MapPin, Phone } from "lucide-react";
+import { MapPin, Phone } from "lucide-react";
+import logo from "@/assets/logo.jpeg";
 
 const FooterSection = () => {
   return (
@@ -8,8 +9,7 @@ const FooterSection = () => {
           {/* Brand */}
           <div>
             <div className="flex items-center gap-2 mb-4">
-              <Scissors className="w-6 h-6 text-primary rotate-[-45deg]" />
-              <span className="text-gold-gradient font-heading text-xl font-bold tracking-wider">CUT SALON</span>
+              <img src={logo} alt="CUT Salon" className="w-24 rounded-lg" />
             </div>
             <p className="text-muted-foreground text-sm leading-relaxed">
               صالون رجالي متخصص في قصات الشعر الحديثة والعناية باللحية، مع نظام حجز مسبق لتنظيم المواعيد وتقديم تجربة أفضل للعملاء.
