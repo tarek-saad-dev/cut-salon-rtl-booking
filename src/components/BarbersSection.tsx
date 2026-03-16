@@ -27,7 +27,7 @@ const barbers = [
   {
     name: "زياد",
     
-    image: barberZiad,
+    image: logo,
     buttonText: "احجز مع زياد",
     link: "https://calendly.com/saadfouad1976tt/cut-salon-ziad-barber",
   },

@@ -1,4 +1,4 @@
-import { Scissors } from "lucide-react";
+import logo from "@/assets/logo.jpeg";
 
 const HeroSection = () => {
   return (
@@ -9,10 +9,8 @@ const HeroSection = () => {
       
       <div className="container relative z-10 text-center px-4 py-20">
         {/* Logo */}
-        <div className="flex items-center justify-center gap-3 mb-8 animate-fade-up">
-          <Scissors className="w-8 h-8 text-primary rotate-[-45deg]" />
-          <span className="text-gold-gradient font-heading text-2xl font-bold tracking-wider">CUT SALON</span>
-          <Scissors className="w-8 h-8 text-primary rotate-[135deg]" />
+        <div className="flex items-center justify-center mb-8 animate-fade-up">
+          <img src={logo} alt="CUT Salon" className="w-48 md:w-64 rounded-xl shadow-[0_8px_30px_hsl(43_90%_55%/0.15)]" />
         </div>
 
         {/* Headline */}
