@@ -17,14 +17,15 @@ const HeroSection = () => {
 
         {/* Headline */}
         <h1 className="font-heading text-4xl md:text-5xl lg:text-6xl font-900 leading-tight mb-6 animate-fade-up" style={{ animationDelay: "0.1s" }}>
-          احجز موعدك الآن مع
-          <br />
-          <span className="text-gold-gradient">الحلاق اللي تختاره</span>
+          <span className="text-gold-gradient">احجز موعدك بسهولة</span>
         </h1>
 
         {/* Subheadline */}
-        <p className="text-muted-foreground text-lg md:text-xl max-w-xl mx-auto mb-10 animate-fade-up" style={{ animationDelay: "0.2s" }}>
-          تجربة حجز سهلة وسريعة داخل Cut Salon
+        <p className="text-muted-foreground text-lg md:text-xl max-w-xl mx-auto mb-4 animate-fade-up" style={{ animationDelay: "0.2s" }}>
+          اختَر الحلاق المناسب لك واحجز موعدك في ثوانٍ داخل Cut Salon.
+        </p>
+        <p className="text-muted-foreground text-base md:text-lg max-w-xl mx-auto mb-10 animate-fade-up" style={{ animationDelay: "0.25s" }}>
+          تجربة حجز بسيطة وسريعة بدون زحام.
         </p>
 
         {/* CTA Buttons */}

@@ -1,9 +1,9 @@
 import { UserSearch, CalendarDays, CheckCircle2 } from "lucide-react";
 
 const steps = [
-  { icon: UserSearch, number: "١", title: "اختَر الحلاق", desc: "تصفّح فريقنا واختَر الحلاق المناسب" },
-  { icon: CalendarDays, number: "٢", title: "اختَر الميعاد", desc: "اختَر اليوم والوقت المناسب لك" },
-  { icon: CheckCircle2, number: "٣", title: "أكد الحجز", desc: "أكد حجزك واستلم تأكيد فوري" },
+  { icon: UserSearch, number: "١", title: "اختَر الحلاق", desc: "تصفّح فريقنا واختَر الحلاق المناسب لك." },
+  { icon: CalendarDays, number: "٢", title: "اختَر الميعاد", desc: "اختَر اليوم والوقت المناسب." },
+  { icon: CheckCircle2, number: "٣", title: "أكد الحجز", desc: "استلم تأكيد حجزك فوراً." },
 ];
 
 const HowItWorksSection = () => {
@@ -11,7 +11,7 @@ const HowItWorksSection = () => {
     <section className="py-20 md:py-28 bg-background">
       <div className="container px-4">
         <div className="text-center mb-14">
-          <p className="text-primary font-heading font-bold text-sm tracking-widest mb-3">خطوات بسيطة</p>
+          <p className="text-primary font-heading font-bold text-sm tracking-widest mb-3">خطوات الحجز</p>
           <h2 className="font-heading text-3xl md:text-4xl font-800 text-gold-gradient">كيف تحجز؟</h2>
         </div>
 
@@ -30,6 +30,13 @@ const HowItWorksSection = () => {
               <p className="text-muted-foreground text-sm">{step.desc}</p>
             </div>
           ))}
+        </div>
+
+        {/* Waiting note */}
+        <div className="mt-10 max-w-2xl mx-auto text-center">
+          <p className="text-muted-foreground text-sm bg-secondary/60 rounded-lg px-6 py-4 border border-border">
+            عند حضورك في الموعد قد يكون هناك انتظار بسيط من 1 إلى 10 دقائق كحد أقصى حتى يبدأ دورك.
+          </p>
         </div>
       </div>
     </section>
