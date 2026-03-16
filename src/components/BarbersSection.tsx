@@ -1,8 +1,5 @@
 import { useState } from "react";
-import barberMohamed from "@/assets/barber-mohamed.jpg";
-import barberBassem from "@/assets/barber-bassem.jpg";
-import barberKareem from "@/assets/barber-kareem.jpg";
-import barberZiad from "@/assets/barber-ziad.jpg";
+import logo from "@/assets/logo.jpeg";
 import CalendlyModal from "./CalendlyModal";
 
 const barbers = [
