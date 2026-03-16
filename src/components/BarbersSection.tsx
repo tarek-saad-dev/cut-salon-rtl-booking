@@ -22,7 +22,7 @@ const barbers = [
   },
   {
     name: "كريم",
-    desc: "فنان في تصميم اللحية والذقن",
+    
     image: barberKareem,
     buttonText: "احجز مع كريم",
     link: "https://calendly.com/tsts20031976/cut-salob-kareem-barber?month=2026-03",
