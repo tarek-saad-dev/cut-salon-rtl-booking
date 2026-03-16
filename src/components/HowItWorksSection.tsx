@@ -31,6 +31,13 @@ const HowItWorksSection = () => {
             </div>
           ))}
         </div>
+
+        {/* Waiting note */}
+        <div className="mt-10 max-w-2xl mx-auto text-center">
+          <p className="text-muted-foreground text-sm bg-secondary/60 rounded-lg px-6 py-4 border border-border">
+            عند حضورك في الموعد قد يكون هناك انتظار بسيط من 1 إلى 10 دقائق كحد أقصى حتى يبدأ دورك.
+          </p>
+        </div>
       </div>
     </section>
   );

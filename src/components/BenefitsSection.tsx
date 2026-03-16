@@ -1,10 +1,10 @@
 import { Zap, UserCheck, Clock, Star } from "lucide-react";
 
 const benefits = [
-  { icon: Zap, title: "حجز سريع", desc: "احجز موعدك في ثوانٍ معدودة" },
-  { icon: UserCheck, title: "اختيار الحلاق المناسب", desc: "تصفّح الحلاقين واختَر اللي يناسبك" },
-  { icon: Clock, title: "مواعيد دقيقة", desc: "بدون انتظار، موعدك محجوز مسبقاً" },
-  { icon: Star, title: "تجربة صالون احترافية", desc: "خدمة مميزة وجودة عالية في كل زيارة" },
+  { icon: Zap, title: "حجز سريع", desc: "احجز موعدك خلال ثوانٍ." },
+  { icon: UserCheck, title: "اختيار الحلاق", desc: "اختَر الحلاق اللي تفضله بسهولة." },
+  { icon: Clock, title: "تنظيم المواعيد", desc: "نظام حجز يساعد على تقليل الزحام داخل الصالون." },
+  { icon: Star, title: "تجربة احترافية", desc: "خدمة مميزة وجودة عالية في كل زيارة." },
 ];
 
 const BenefitsSection = () => {
@@ -12,7 +12,7 @@ const BenefitsSection = () => {
     <section className="py-20 md:py-28 bg-secondary/50">
       <div className="container px-4">
         <div className="text-center mb-14">
-          <p className="text-primary font-heading font-bold text-sm tracking-widest mb-3">لماذا نحن</p>
+          <p className="text-primary font-heading font-bold text-sm tracking-widest mb-3">لماذا Cut Salon؟</p>
           <h2 className="font-heading text-3xl md:text-4xl font-800 text-gold-gradient">ليه تختار Cut Salon؟</h2>
         </div>
 

@@ -1,4 +1,4 @@
-import { Scissors, MapPin, Phone, MessageCircle } from "lucide-react";
+import { Scissors, MapPin, Phone } from "lucide-react";
 
 const FooterSection = () => {
   return (
@@ -12,7 +12,7 @@ const FooterSection = () => {
               <span className="text-gold-gradient font-heading text-xl font-bold tracking-wider">CUT SALON</span>
             </div>
             <p className="text-muted-foreground text-sm leading-relaxed">
-              صالون رجالي متميز يقدم أفضل خدمات الحلاقة والعناية بالشعر واللحية.
+              صالون رجالي متخصص في قصات الشعر الحديثة والعناية باللحية، مع نظام حجز مسبق لتنظيم المواعيد وتقديم تجربة أفضل للعملاء.
             </p>
           </div>
 
@@ -22,35 +22,61 @@ const FooterSection = () => {
             <ul className="space-y-3 text-muted-foreground text-sm">
               <li className="flex items-center gap-2">
                 <Phone className="w-4 h-4 text-primary" />
-                <span>+20 100 000 0000</span>
+                <span>📞 الهاتف / واتساب</span>
               </li>
-              <li className="flex items-center gap-2">
-                <MessageCircle className="w-4 h-4 text-primary" />
-                <span>واتساب: +20 100 000 0000</span>
+              <li>
+                <a href="https://wa.me/201012126899" target="_blank" rel="noopener noreferrer" className="hover:text-primary transition-colors">
+                  +201012126899
+                </a>
               </li>
             </ul>
           </div>
 
-          {/* Location */}
+          {/* Branches */}
           <div>
-            <h4 className="font-heading font-bold text-lg mb-4">الموقع</h4>
-            <div className="flex items-start gap-2 text-muted-foreground text-sm">
-              <MapPin className="w-4 h-4 text-primary mt-0.5" />
-              <span>القاهرة، مصر – الموقع بالتحديد قريباً</span>
-            </div>
+            <h4 className="font-heading font-bold text-lg mb-4">الفروع</h4>
+            <ul className="space-y-4 text-muted-foreground text-sm">
+              <li>
+                <div className="flex items-start gap-2">
+                  <MapPin className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+                  <div>
+                    <p className="font-bold text-foreground mb-1">📍 فرع (جليم – سابا باشا)</p>
+                    <p>يسرى قمحة، فلمنج، قسم أول الرمل، محافظة الإسكندرية</p>
+                    <a
+                      href="https://share.google/F4o7oOQVs3EJSgxaw"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary hover:underline text-xs mt-1 inline-block"
+                    >
+                      الموقع على الخريطة ←
+                    </a>
+                  </div>
+                </div>
+              </li>
+              <li>
+                <div className="flex items-start gap-2">
+                  <MapPin className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+                  <div>
+                    <p className="font-bold text-foreground mb-1">📍 فرع (سيدي جابر – مساكن الضباط)</p>
+                    <p>96 مصطفى كامل، سيدي جابر، قسم سيدي جابر، محافظة الإسكندرية</p>
+                    <a
+                      href="https://share.google/sdf7izl3WKSpmlwPg"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary hover:underline text-xs mt-1 inline-block"
+                    >
+                      الموقع على الخريطة ←
+                    </a>
+                  </div>
+                </div>
+              </li>
+            </ul>
           </div>
         </div>
 
-        {/* Social & Copyright */}
-        <div className="border-t border-border pt-6 flex flex-col md:flex-row items-center justify-between gap-4">
-          <p className="text-muted-foreground text-xs">© {new Date().getFullYear()} Cut Salon. جميع الحقوق محفوظة.</p>
-          <div className="flex items-center gap-4">
-            {["فيسبوك", "انستغرام", "تيك توك"].map((name) => (
-              <a key={name} href="#" className="text-muted-foreground hover:text-primary transition-colors text-xs font-heading">
-                {name}
-              </a>
-            ))}
-          </div>
+        {/* Copyright */}
+        <div className="border-t border-border pt-6 text-center">
+          <p className="text-muted-foreground text-xs">© 2026 Cut Salon. جميع الحقوق محفوظة.</p>
         </div>
       </div>
     </footer>
