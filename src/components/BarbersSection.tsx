@@ -8,7 +8,7 @@ import CalendlyModal from "./CalendlyModal";
 const barbers = [
   {
     name: "محمد",
-    desc: "خبير في القصات الكلاسيكية والعصرية",
+    
     image: barberMohamed,
     buttonText: "احجز مع محمد",
     link: "https://calendly.com/saadfouad1976t2/cut-salon-mohamed-barber",
