@@ -8,28 +8,28 @@ import CalendlyModal from "./CalendlyModal";
 const barbers = [
   {
     name: "محمد",
-    desc: "خبير في القصات الكلاسيكية والعصرية",
+    
     image: barberMohamed,
     buttonText: "احجز مع محمد",
     link: "https://calendly.com/saadfouad1976t2/cut-salon-mohamed-barber",
   },
   {
     name: "باسم",
-    desc: "متخصص في تصفيفات الشعر الحديثة",
+    
     image: barberBassem,
     buttonText: "احجز مع باسم",
     link: "https://calendly.com/saadfouad1976t3/cut-salon-bassem-barber",
   },
   {
     name: "كريم",
-    desc: "فنان في تصميم اللحية والذقن",
+    
     image: barberKareem,
     buttonText: "احجز مع كريم",
     link: "https://calendly.com/tsts20031976/cut-salob-kareem-barber?month=2026-03",
   },
   {
     name: "زياد",
-    desc: "خبرة واسعة في أحدث صيحات القصات",
+    
     image: barberZiad,
     buttonText: "احجز مع زياد",
     link: "https://calendly.com/saadfouad1976tt/cut-salon-ziad-barber",
@@ -62,7 +62,7 @@ const BarbersSection = () => {
               </div>
               <div className="p-5 text-center">
                 <h3 className="font-heading text-xl font-bold mb-1">{barber.name}</h3>
-                <p className="text-muted-foreground text-sm mb-5">{barber.desc}</p>
+                
                 <button
                   onClick={() => setSelectedBarber(barber)}
                   className="gold-shimmer block w-full py-3 rounded-lg font-heading font-bold text-primary-foreground transition-all hover:scale-[1.02] cursor-pointer"
