@@ -29,7 +29,7 @@ const barbers = [
   },
   {
     name: "زياد",
-    desc: "خبرة واسعة في أحدث صيحات القصات",
+    
     image: barberZiad,
     buttonText: "احجز مع زياد",
     link: "https://calendly.com/saadfouad1976tt/cut-salon-ziad-barber",
