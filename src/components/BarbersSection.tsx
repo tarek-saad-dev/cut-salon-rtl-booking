@@ -15,7 +15,7 @@ const barbers = [
   },
   {
     name: "باسم",
-    desc: "متخصص في تصفيفات الشعر الحديثة",
+    
     image: barberBassem,
     buttonText: "احجز مع باسم",
     link: "https://calendly.com/saadfouad1976t3/cut-salon-bassem-barber",
