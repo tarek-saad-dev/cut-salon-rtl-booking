@@ -24,13 +24,6 @@ const barbers = [
     buttonText: "احجز مع كريم",
     link: "https://calendly.com/tsts20031976/cut-salob-kareem-barber?month=2026-03",
   },
-  {
-    name: "زياد",
-    
-    image: logo,
-    buttonText: "احجز مع زياد",
-    link: "https://calendly.com/saadfouad1976tt/cut-salon-ziad-barber",
-  },
 ];
 
 const BarbersSection = () => {
