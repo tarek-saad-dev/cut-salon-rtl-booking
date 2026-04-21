@@ -1,28 +1,38 @@
 import { useState } from "react";
-import logo from "@/assets/logo.jpeg";
+import barberMohamed from "@/assets/barber-mohamed.jpg";
+import barberBassem from "@/assets/barber-bassem.jpg";
+import barberKareem from "@/assets/barber-kareem.jpg";
+import youngZiad from "@/assets/young-ziad.jpg";
 import CalendlyModal from "./CalendlyModal";
 
 const barbers = [
   {
     name: "محمد",
-    
-    image: logo,
+    role: "حلاق",
+    image: barberMohamed,
     buttonText: "احجز مع محمد",
     link: "https://calendly.com/saadfouad1976t2/cut-salon-mohamed-barber",
   },
   {
     name: "باسم",
-    
-    image: logo,
+    role: "حلاق",
+    image: barberBassem,
     buttonText: "احجز مع باسم",
     link: "https://calendly.com/saadfouad1976t3/cut-salon-bassem-barber",
   },
   {
     name: "كريم",
-    
-    image: logo,
+    role: "حلاق",
+    image: barberKareem,
     buttonText: "احجز مع كريم",
     link: "https://calendly.com/tsts20031976/cut-salob-kareem-barber?month=2026-03",
+  },
+  {
+    name: "زياد",
+    role: "اخصائي العناية بالبشرة",
+    image: youngZiad,
+    buttonText: "احجز مع زياد",
+    link: "https://calendly.com/saadfouad1976/skincare",
   },
 ];
 
@@ -37,7 +47,7 @@ const BarbersSection = () => {
           <h2 className="font-heading text-3xl md:text-4xl font-800 text-gold-gradient">اختَر حلاقك المفضل</h2>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-4xl mx-auto">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-5xl mx-auto">
           {barbers.map((barber) => (
             <div
               key={barber.name}
@@ -52,7 +62,7 @@ const BarbersSection = () => {
               </div>
               <div className="p-5 text-center">
                 <h3 className="font-heading text-xl font-bold mb-1">{barber.name}</h3>
-                
+                <p className="text-primary/80 text-sm mb-3">{barber.role}</p>
                 <button
                   onClick={() => setSelectedBarber(barber)}
                   className="gold-shimmer block w-full py-3 rounded-lg font-heading font-bold text-primary-foreground transition-all hover:scale-[1.02] cursor-pointer"
