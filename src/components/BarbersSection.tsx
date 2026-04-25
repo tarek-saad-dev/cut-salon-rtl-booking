@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import barberMohamed from "@/assets/barber-mohamed.jpg";
 import barberBassem from "@/assets/barber-bassem.jpg";
 import barberKareem from "@/assets/barber-kareem.jpg";
@@ -38,6 +38,65 @@ const barbers = [
 
 const BarbersSection = () => {
   const [selectedBarber, setSelectedBarber] = useState<typeof barbers[0] | null>(null);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const sliderRef = useRef<HTMLDivElement>(null);
+  const touchStartX = useRef(0);
+  const touchEndX = useRef(0);
+  const isDragging = useRef(false);
+
+  const scrollToCard = useCallback((index: number) => {
+    if (!sliderRef.current) return;
+    const cardWidth = 296; // 280px + 16px gap
+    const scrollPosition = index * cardWidth;
+    sliderRef.current.scrollTo({
+      left: scrollPosition,
+      behavior: "smooth",
+    });
+    setActiveIndex(index);
+  }, []);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+    isDragging.current = true;
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isDragging.current) return;
+    touchEndX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchEnd = () => {
+    if (!isDragging.current) return;
+    isDragging.current = false;
+
+    const diff = touchStartX.current - touchEndX.current;
+    const threshold = 30; // minimum swipe distance
+
+    if (Math.abs(diff) > threshold) {
+      if (diff > 0 && activeIndex < barbers.length - 1) {
+        // Swipe left - go to next
+        scrollToCard(activeIndex + 1);
+      } else if (diff < 0 && activeIndex > 0) {
+        // Swipe right - go to previous
+        scrollToCard(activeIndex - 1);
+      }
+    }
+  };
+
+  // Update active index on scroll (for desktop drag)
+  useEffect(() => {
+    const slider = sliderRef.current;
+    if (!slider) return;
+
+    const handleScroll = () => {
+      const cardWidth = 296;
+      const newIndex = Math.round(slider.scrollLeft / cardWidth);
+      setActiveIndex(Math.min(newIndex, barbers.length - 1));
+    };
+
+    slider.addEventListener("scroll", handleScroll, { passive: true });
+    return () => slider.removeEventListener("scroll", handleScroll);
+  }, []);
 
   return (
     <section id="barbers" className="py-20 md:py-28 bg-background">
@@ -65,11 +124,18 @@ const BarbersSection = () => {
         </div>
 
         {/* Mobile: Horizontal scroll slider | Desktop: Grid */}
-        <div className="flex md:grid md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 max-w-5xl mx-auto overflow-x-auto pb-4 md:pb-0 px-4 md:px-0 snap-x snap-mandatory scrollbar-hide">
-          {barbers.map((barber) => (
+        <div
+          ref={sliderRef}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          className="flex md:grid md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 max-w-5xl mx-auto overflow-x-auto pb-4 md:pb-0 px-4 md:px-0 scrollbar-hide scroll-smooth"
+        >
+          {barbers.map((barber, index) => (
             <div
               key={barber.name}
-              className="gold-border-glow rounded-xl bg-card overflow-hidden group transition-all hover:-translate-y-1 hover:shadow-[0_8px_30px_hsl(43_90%_55%/0.12)] flex-shrink-0 w-[280px] md:w-auto snap-center"
+              className={`gold-border-glow rounded-xl bg-card overflow-hidden group transition-all duration-500 flex-shrink-0 w-[280px] md:w-auto ${index === activeIndex ? "scale-[1.02] shadow-[0_8px_30px_hsl(43_90%_55%/0.2)]" : ""
+                }`}
             >
               <div className="aspect-[4/5] overflow-hidden">
                 <img
@@ -95,7 +161,15 @@ const BarbersSection = () => {
         {/* Mobile scroll indicator */}
         <div className="flex md:hidden justify-center gap-2 mt-4">
           {barbers.map((_, idx) => (
-            <div key={idx} className="w-2 h-2 rounded-full bg-primary/30" />
+            <button
+              key={idx}
+              onClick={() => scrollToCard(idx)}
+              className={`w-2.5 h-2.5 rounded-full transition-all duration-300 ${idx === activeIndex
+                  ? "bg-primary w-6"
+                  : "bg-primary/30 hover:bg-primary/50"
+                }`}
+              aria-label={`Go to barber ${idx + 1}`}
+            />
           ))}
         </div>
       </div>
