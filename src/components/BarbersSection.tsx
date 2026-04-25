@@ -7,34 +7,44 @@ import barberKareem from "@/assets/barber-kareem.jpg";
 import youngZiad from "@/assets/young-ziad.jpg";
 import CalendlyModal from "./CalendlyModal";
 
+// Get current year-month for Calendly links
+const getCurrentMonth = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  return `${year}-${month}`;
+};
+
+const currentMonth = getCurrentMonth();
+
 const barbers = [
   {
     name: "محمد",
     role: "حلاق",
     image: barberMohamed,
     buttonText: "احجز مع محمد",
-    link: "https://calendly.com/saadfouad1976t2/cut-salon-mohamed-barber",
+    link: `https://calendly.com/saadfouad1976t2/cut-salon-mohamed-barber?month=${currentMonth}`,
   },
   {
     name: "باسم",
     role: "حلاق",
     image: barberBassem,
     buttonText: "احجز مع باسم",
-    link: "https://calendly.com/saadfouad1976t3/cut-salon-bassem-barber",
+    link: `https://calendly.com/saadfouad1976t3/cut-salon-bassem-barber?month=${currentMonth}`,
   },
   {
     name: "كريم",
     role: "حلاق",
     image: barberKareem,
     buttonText: "احجز مع كريم",
-    link: "https://calendly.com/tsts20031976/cut-salob-kareem-barber?month=2026-03",
+    link: `https://calendly.com/tsts20031976/cut-salob-kareem-barber?month=${currentMonth}`,
   },
   {
     name: "زياد",
     role: "اخصائي العناية بالبشرة",
     image: youngZiad,
     buttonText: "احجز مع زياد",
-    link: "https://calendly.com/saadfouad1976/skincare",
+    link: `https://calendly.com/saadfouad1976tt/cut-salon-ziad-barber?month=${currentMonth}`,
   },
 ];
 
@@ -180,8 +190,8 @@ const BarbersSection = () => {
                   key={idx}
                   onClick={() => scrollTo(idx)}
                   className={`h-2 rounded-full transition-all duration-300 ${idx === selectedIndex
-                      ? "bg-primary w-6"
-                      : "bg-primary/30 w-2 hover:bg-primary/50"
+                    ? "bg-primary w-6"
+                    : "bg-primary/30 w-2 hover:bg-primary/50"
                     }`}
                   aria-label={`Go to barber ${idx + 1}`}
                 />
