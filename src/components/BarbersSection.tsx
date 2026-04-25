@@ -1,4 +1,6 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
+import useEmblaCarousel from "embla-carousel-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import barberMohamed from "@/assets/barber-mohamed.jpg";
 import barberBassem from "@/assets/barber-bassem.jpg";
 import barberKareem from "@/assets/barber-kareem.jpg";
@@ -38,65 +40,43 @@ const barbers = [
 
 const BarbersSection = () => {
   const [selectedBarber, setSelectedBarber] = useState<typeof barbers[0] | null>(null);
-  const [activeIndex, setActiveIndex] = useState(0);
-  const sliderRef = useRef<HTMLDivElement>(null);
-  const touchStartX = useRef(0);
-  const touchEndX = useRef(0);
-  const isDragging = useRef(false);
 
-  const scrollToCard = useCallback((index: number) => {
-    if (!sliderRef.current) return;
-    const cardWidth = 296; // 280px + 16px gap
-    const scrollPosition = index * cardWidth;
-    sliderRef.current.scrollTo({
-      left: scrollPosition,
-      behavior: "smooth",
-    });
-    setActiveIndex(index);
-  }, []);
+  // Embla Carousel setup
+  const [emblaRef, emblaApi] = useEmblaCarousel({
+    direction: "rtl",
+    align: "start",
+    loop: false,
+    skipSnaps: false,
+    dragFree: false,
+  });
 
-  const handleTouchStart = (e: React.TouchEvent) => {
-    touchStartX.current = e.touches[0].clientX;
-    isDragging.current = true;
-  };
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  const [scrollSnaps, setScrollSnaps] = useState<number[]>([]);
 
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (!isDragging.current) return;
-    touchEndX.current = e.touches[0].clientX;
-  };
+  const scrollTo = useCallback(
+    (index: number) => emblaApi && emblaApi.scrollTo(index),
+    [emblaApi]
+  );
 
-  const handleTouchEnd = () => {
-    if (!isDragging.current) return;
-    isDragging.current = false;
+  const onSelect = useCallback(() => {
+    if (!emblaApi) return;
+    setSelectedIndex(emblaApi.selectedScrollSnap());
+  }, [emblaApi]);
 
-    const diff = touchStartX.current - touchEndX.current;
-    const threshold = 30; // minimum swipe distance
-
-    if (Math.abs(diff) > threshold) {
-      if (diff > 0 && activeIndex < barbers.length - 1) {
-        // Swipe left - go to next
-        scrollToCard(activeIndex + 1);
-      } else if (diff < 0 && activeIndex > 0) {
-        // Swipe right - go to previous
-        scrollToCard(activeIndex - 1);
-      }
-    }
-  };
-
-  // Update active index on scroll (for desktop drag)
   useEffect(() => {
-    const slider = sliderRef.current;
-    if (!slider) return;
+    if (!emblaApi) return;
+    setScrollSnaps(emblaApi.scrollSnapList());
+    emblaApi.on("select", onSelect);
+    onSelect();
+  }, [emblaApi, onSelect]);
 
-    const handleScroll = () => {
-      const cardWidth = 296;
-      const newIndex = Math.round(slider.scrollLeft / cardWidth);
-      setActiveIndex(Math.min(newIndex, barbers.length - 1));
-    };
+  const scrollPrev = useCallback(() => {
+    if (emblaApi) emblaApi.scrollPrev();
+  }, [emblaApi]);
 
-    slider.addEventListener("scroll", handleScroll, { passive: true });
-    return () => slider.removeEventListener("scroll", handleScroll);
-  }, []);
+  const scrollNext = useCallback(() => {
+    if (emblaApi) emblaApi.scrollNext();
+  }, [emblaApi]);
 
   return (
     <section id="barbers" className="py-20 md:py-28 bg-background">
@@ -123,54 +103,99 @@ const BarbersSection = () => {
           </div>
         </div>
 
-        {/* Mobile: Horizontal scroll slider | Desktop: Grid */}
-        <div
-          ref={sliderRef}
-          onTouchStart={handleTouchStart}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={handleTouchEnd}
-          className="flex md:grid md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 max-w-5xl mx-auto overflow-x-auto pb-4 md:pb-0 px-4 md:px-0 scrollbar-hide scroll-smooth"
-        >
-          {barbers.map((barber, index) => (
-            <div
-              key={barber.name}
-              className={`gold-border-glow rounded-xl bg-card overflow-hidden group transition-all duration-500 flex-shrink-0 w-[280px] md:w-auto ${index === activeIndex ? "scale-[1.02] shadow-[0_8px_30px_hsl(43_90%_55%/0.2)]" : ""
-                }`}
-            >
-              <div className="aspect-[4/5] overflow-hidden">
-                <img
-                  src={barber.image}
-                  alt={barber.name}
-                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                />
-              </div>
-              <div className="p-5 text-center">
-                <h3 className="font-heading text-xl font-bold mb-1">{barber.name}</h3>
-                <p className="text-primary/80 text-sm mb-3">{barber.role}</p>
-                <button
-                  onClick={() => setSelectedBarber(barber)}
-                  className="gold-shimmer block w-full py-3 rounded-lg font-heading font-bold text-primary-foreground transition-all hover:scale-[1.02] cursor-pointer"
+        {/* Mobile: Embla Carousel | Desktop: Grid */}
+        <div className="relative max-w-5xl mx-auto md:block">
+          {/* Mobile Carousel */}
+          <div className="md:hidden overflow-hidden" ref={emblaRef}>
+            <div className="flex gap-4 px-4">
+              {barbers.map((barber, index) => (
+                <div
+                  key={barber.name}
+                  className={`flex-[0_0_280px] min-w-0 gold-border-glow rounded-xl bg-card overflow-hidden group transition-all duration-500 ${index === selectedIndex ? "scale-[1.02] shadow-[0_8px_30px_hsl(43_90%_55%/0.2)]" : ""
+                    }`}
                 >
-                  {barber.buttonText}
-                </button>
-              </div>
+                  <div className="aspect-[4/5] overflow-hidden">
+                    <img
+                      src={barber.image}
+                      alt={barber.name}
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    />
+                  </div>
+                  <div className="p-5 text-center">
+                    <h3 className="font-heading text-xl font-bold mb-1">{barber.name}</h3>
+                    <p className="text-primary/80 text-sm mb-3">{barber.role}</p>
+                    <button
+                      onClick={() => setSelectedBarber(barber)}
+                      className="gold-shimmer block w-full py-3 rounded-lg font-heading font-bold text-primary-foreground transition-all hover:scale-[1.02] cursor-pointer"
+                    >
+                      {barber.buttonText}
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
+          </div>
 
-        {/* Mobile scroll indicator */}
-        <div className="flex md:hidden justify-center gap-2 mt-4">
-          {barbers.map((_, idx) => (
+          {/* Desktop Grid */}
+          <div className="hidden md:grid md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-5xl mx-auto">
+            {barbers.map((barber) => (
+              <div
+                key={barber.name}
+                className="gold-border-glow rounded-xl bg-card overflow-hidden group transition-all hover:-translate-y-1 hover:shadow-[0_8px_30px_hsl(43_90%_55%/0.12)]"
+              >
+                <div className="aspect-[4/5] overflow-hidden">
+                  <img
+                    src={barber.image}
+                    alt={barber.name}
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                  />
+                </div>
+                <div className="p-5 text-center">
+                  <h3 className="font-heading text-xl font-bold mb-1">{barber.name}</h3>
+                  <p className="text-primary/80 text-sm mb-3">{barber.role}</p>
+                  <button
+                    onClick={() => setSelectedBarber(barber)}
+                    className="gold-shimmer block w-full py-3 rounded-lg font-heading font-bold text-primary-foreground transition-all hover:scale-[1.02] cursor-pointer"
+                  >
+                    {barber.buttonText}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Mobile Navigation */}
+          <div className="flex md:hidden items-center justify-center gap-4 mt-6">
             <button
-              key={idx}
-              onClick={() => scrollToCard(idx)}
-              className={`w-2.5 h-2.5 rounded-full transition-all duration-300 ${idx === activeIndex
-                  ? "bg-primary w-6"
-                  : "bg-primary/30 hover:bg-primary/50"
-                }`}
-              aria-label={`Go to barber ${idx + 1}`}
-            />
-          ))}
+              onClick={scrollPrev}
+              disabled={selectedIndex === 0}
+              className="w-10 h-10 rounded-full gold-shimmer flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed transition-all active:scale-95"
+            >
+              <ChevronRight className="w-5 h-5 text-primary-foreground" />
+            </button>
+
+            <div className="flex gap-2">
+              {scrollSnaps.map((_, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => scrollTo(idx)}
+                  className={`h-2 rounded-full transition-all duration-300 ${idx === selectedIndex
+                      ? "bg-primary w-6"
+                      : "bg-primary/30 w-2 hover:bg-primary/50"
+                    }`}
+                  aria-label={`Go to barber ${idx + 1}`}
+                />
+              ))}
+            </div>
+
+            <button
+              onClick={scrollNext}
+              disabled={selectedIndex === barbers.length - 1}
+              className="w-10 h-10 rounded-full gold-shimmer flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed transition-all active:scale-95"
+            >
+              <ChevronLeft className="w-5 h-5 text-primary-foreground" />
+            </button>
+          </div>
         </div>
       </div>
 

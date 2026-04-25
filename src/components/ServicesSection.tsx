@@ -1,5 +1,6 @@
-import { useState, useRef, useEffect, useCallback } from "react";
-import { Scissors, Droplets, Sparkles, Crown } from "lucide-react";
+import { useState, useCallback, useEffect } from "react";
+import useEmblaCarousel from "embla-carousel-react";
+import { Scissors, Droplets, Sparkles, Crown, ChevronLeft, ChevronRight } from "lucide-react";
 
 const hairServices = [
   { name: "قص شعر (Haircut)", price: "150 جنيه" },
@@ -66,63 +67,49 @@ const ServiceCard = ({ title, icon, services, delay }: ServiceCardProps) => (
 );
 
 const ServicesSection = () => {
-  const [activeIndex, setActiveIndex] = useState(0);
-  const sliderRef = useRef<HTMLDivElement>(null);
-  const touchStartX = useRef(0);
-  const touchEndX = useRef(0);
-  const isDragging = useRef(false);
-  const cardCount = 4;
+  // Embla Carousel setup
+  const [emblaRef, emblaApi] = useEmblaCarousel({
+    direction: "rtl",
+    align: "start",
+    loop: false,
+    skipSnaps: false,
+    dragFree: false,
+  });
 
-  const scrollToCard = useCallback((index: number) => {
-    if (!sliderRef.current) return;
-    const cardWidth = 316; // 300px + 16px gap
-    const scrollPosition = index * cardWidth;
-    sliderRef.current.scrollTo({
-      left: scrollPosition,
-      behavior: "smooth",
-    });
-    setActiveIndex(index);
-  }, []);
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  const [scrollSnaps, setScrollSnaps] = useState<number[]>([]);
 
-  const handleTouchStart = (e: React.TouchEvent) => {
-    touchStartX.current = e.touches[0].clientX;
-    isDragging.current = true;
-  };
+  const scrollTo = useCallback(
+    (index: number) => emblaApi && emblaApi.scrollTo(index),
+    [emblaApi]
+  );
 
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (!isDragging.current) return;
-    touchEndX.current = e.touches[0].clientX;
-  };
-
-  const handleTouchEnd = () => {
-    if (!isDragging.current) return;
-    isDragging.current = false;
-
-    const diff = touchStartX.current - touchEndX.current;
-    const threshold = 30;
-
-    if (Math.abs(diff) > threshold) {
-      if (diff > 0 && activeIndex < cardCount - 1) {
-        scrollToCard(activeIndex + 1);
-      } else if (diff < 0 && activeIndex > 0) {
-        scrollToCard(activeIndex - 1);
-      }
-    }
-  };
+  const onSelect = useCallback(() => {
+    if (!emblaApi) return;
+    setSelectedIndex(emblaApi.selectedScrollSnap());
+  }, [emblaApi]);
 
   useEffect(() => {
-    const slider = sliderRef.current;
-    if (!slider) return;
+    if (!emblaApi) return;
+    setScrollSnaps(emblaApi.scrollSnapList());
+    emblaApi.on("select", onSelect);
+    onSelect();
+  }, [emblaApi, onSelect]);
 
-    const handleScroll = () => {
-      const cardWidth = 316;
-      const newIndex = Math.round(slider.scrollLeft / cardWidth);
-      setActiveIndex(Math.min(newIndex, cardCount - 1));
-    };
+  const scrollPrev = useCallback(() => {
+    if (emblaApi) emblaApi.scrollPrev();
+  }, [emblaApi]);
 
-    slider.addEventListener("scroll", handleScroll, { passive: true });
-    return () => slider.removeEventListener("scroll", handleScroll);
-  }, []);
+  const scrollNext = useCallback(() => {
+    if (emblaApi) emblaApi.scrollNext();
+  }, [emblaApi]);
+
+  const servicesData = [
+    { title: "خدمات الشعر", icon: <Scissors className="w-6 h-6 text-primary-foreground" />, services: hairServices },
+    { title: "العناية بالبشرة", icon: <Droplets className="w-6 h-6 text-primary-foreground" />, services: skinServices },
+    { title: "خدمات إضافية", icon: <Sparkles className="w-6 h-6 text-primary-foreground" />, services: extraServices },
+    { title: "خدمات خاصة", icon: <Crown className="w-6 h-6 text-primary-foreground" />, services: specialServices },
+  ];
 
   return (
     <section id="services" className="py-20 md:py-28 bg-background relative">
@@ -141,48 +128,73 @@ const ServicesSection = () => {
           </p>
         </div>
 
-        {/* Mobile: Horizontal scroll slider | Desktop: Grid */}
-        <div
-          ref={sliderRef}
-          onTouchStart={handleTouchStart}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={handleTouchEnd}
-          className="flex md:grid md:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-6 max-w-7xl mx-auto overflow-x-auto pb-4 md:pb-0 px-4 md:px-0 scrollbar-hide scroll-smooth"
-        >
-          {[hairServices, skinServices, extraServices, specialServices].map((services, idx) => (
-            <div
-              key={idx}
-              className={`flex-shrink-0 w-[300px] md:w-auto transition-all duration-500 ${idx === activeIndex ? "scale-[1.02]" : ""
-                }`}
-            >
+        {/* Mobile: Embla Carousel | Desktop: Grid */}
+        <div className="relative max-w-7xl mx-auto">
+          {/* Mobile Carousel */}
+          <div className="md:hidden overflow-hidden" ref={emblaRef}>
+            <div className="flex gap-4 px-4">
+              {servicesData.map((service, idx) => (
+                <div
+                  key={idx}
+                  className={`flex-[0_0_300px] min-w-0 transition-all duration-500 ${idx === selectedIndex ? "scale-[1.02]" : ""
+                    }`}
+                >
+                  <ServiceCard
+                    title={service.title}
+                    icon={service.icon}
+                    services={service.services}
+                    delay={`${0.1 + idx * 0.1}s`}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Desktop Grid */}
+          <div className="hidden md:grid md:grid-cols-2 xl:grid-cols-4 gap-6">
+            {servicesData.map((service, idx) => (
               <ServiceCard
-                title={["خدمات الشعر", "العناية بالبشرة", "خدمات إضافية", "خدمات خاصة"][idx]}
-                icon={[
-                  <Scissors className="w-6 h-6 text-primary-foreground" />,
-                  <Droplets className="w-6 h-6 text-primary-foreground" />,
-                  <Sparkles className="w-6 h-6 text-primary-foreground" />,
-                  <Crown className="w-6 h-6 text-primary-foreground" />,
-                ][idx]}
-                services={services}
+                key={idx}
+                title={service.title}
+                icon={service.icon}
+                services={service.services}
                 delay={`${0.1 + idx * 0.1}s`}
               />
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
 
-        {/* Mobile scroll indicator */}
-        <div className="flex md:hidden justify-center gap-2 mt-4">
-          {[0, 1, 2, 3].map((idx) => (
+          {/* Mobile Navigation */}
+          <div className="flex md:hidden items-center justify-center gap-4 mt-6">
             <button
-              key={idx}
-              onClick={() => scrollToCard(idx)}
-              className={`h-2.5 rounded-full transition-all duration-300 ${idx === activeIndex
-                  ? "bg-primary w-6"
-                  : "bg-primary/30 w-2.5 hover:bg-primary/50"
-                }`}
-              aria-label={`Go to service ${idx + 1}`}
-            />
-          ))}
+              onClick={scrollPrev}
+              disabled={selectedIndex === 0}
+              className="w-10 h-10 rounded-full gold-shimmer flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed transition-all active:scale-95"
+            >
+              <ChevronRight className="w-5 h-5 text-primary-foreground" />
+            </button>
+
+            <div className="flex gap-2">
+              {scrollSnaps.map((_, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => scrollTo(idx)}
+                  className={`h-2 rounded-full transition-all duration-300 ${idx === selectedIndex
+                      ? "bg-primary w-6"
+                      : "bg-primary/30 w-2 hover:bg-primary/50"
+                    }`}
+                  aria-label={`Go to service ${idx + 1}`}
+                />
+              ))}
+            </div>
+
+            <button
+              onClick={scrollNext}
+              disabled={selectedIndex === servicesData.length - 1}
+              className="w-10 h-10 rounded-full gold-shimmer flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed transition-all active:scale-95"
+            >
+              <ChevronLeft className="w-5 h-5 text-primary-foreground" />
+            </button>
+          </div>
         </div>
 
         {/* CTA */}
