@@ -47,11 +47,29 @@ const BarbersSection = () => {
           <h2 className="font-heading text-3xl md:text-4xl font-800 text-gold-gradient">اختَر حلاقك المفضل</h2>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-5xl mx-auto">
+        {/* Booking Policy Notice */}
+        <div className="gold-border-glow rounded-xl bg-card/50 p-5 mb-10 max-w-2xl mx-auto">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-lg gold-shimmer flex items-center justify-center flex-shrink-0 mt-0.5">
+              <span className="text-lg">✂️</span>
+            </div>
+            <div className="text-right">
+              <p className="text-foreground font-medium mb-2">
+                علشان نحافظ على جودة الخدمة، الحجز بيكون قبلها بـ <span className="text-primary font-bold">4 ساعات</span> ✂️
+              </p>
+              <p className="text-muted-foreground text-sm">
+                ولو حابب تيجي فورًا، بتاخد دور وبتدخل في دورك علطول
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Mobile: Horizontal scroll slider | Desktop: Grid */}
+        <div className="flex md:grid md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 max-w-5xl mx-auto overflow-x-auto pb-4 md:pb-0 px-4 md:px-0 snap-x snap-mandatory scrollbar-hide">
           {barbers.map((barber) => (
             <div
               key={barber.name}
-              className="gold-border-glow rounded-xl bg-card overflow-hidden group transition-all hover:-translate-y-1 hover:shadow-[0_8px_30px_hsl(43_90%_55%/0.12)]"
+              className="gold-border-glow rounded-xl bg-card overflow-hidden group transition-all hover:-translate-y-1 hover:shadow-[0_8px_30px_hsl(43_90%_55%/0.12)] flex-shrink-0 w-[280px] md:w-auto snap-center"
             >
               <div className="aspect-[4/5] overflow-hidden">
                 <img
@@ -71,6 +89,13 @@ const BarbersSection = () => {
                 </button>
               </div>
             </div>
+          ))}
+        </div>
+
+        {/* Mobile scroll indicator */}
+        <div className="flex md:hidden justify-center gap-2 mt-4">
+          {barbers.map((_, idx) => (
+            <div key={idx} className="w-2 h-2 rounded-full bg-primary/30" />
           ))}
         </div>
       </div>

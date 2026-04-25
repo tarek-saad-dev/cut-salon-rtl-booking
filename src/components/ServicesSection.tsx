@@ -82,32 +82,47 @@ const ServicesSection = () => {
           </p>
         </div>
 
-        {/* Services Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 max-w-7xl mx-auto">
-          <ServiceCard
-            title="خدمات الشعر"
-            icon={<Scissors className="w-6 h-6 text-primary-foreground" />}
-            services={hairServices}
-            delay="0.1s"
-          />
-          <ServiceCard
-            title="العناية بالبشرة"
-            icon={<Droplets className="w-6 h-6 text-primary-foreground" />}
-            services={skinServices}
-            delay="0.2s"
-          />
-          <ServiceCard
-            title="خدمات إضافية"
-            icon={<Sparkles className="w-6 h-6 text-primary-foreground" />}
-            services={extraServices}
-            delay="0.3s"
-          />
-          <ServiceCard
-            title="خدمات خاصة"
-            icon={<Crown className="w-6 h-6 text-primary-foreground" />}
-            services={specialServices}
-            delay="0.4s"
-          />
+        {/* Mobile: Horizontal scroll slider | Desktop: Grid */}
+        <div className="flex md:grid md:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-6 max-w-7xl mx-auto overflow-x-auto pb-4 md:pb-0 px-4 md:px-0 snap-x snap-mandatory scrollbar-hide">
+          <div className="flex-shrink-0 w-[300px] md:w-auto snap-center">
+            <ServiceCard
+              title="خدمات الشعر"
+              icon={<Scissors className="w-6 h-6 text-primary-foreground" />}
+              services={hairServices}
+              delay="0.1s"
+            />
+          </div>
+          <div className="flex-shrink-0 w-[300px] md:w-auto snap-center">
+            <ServiceCard
+              title="العناية بالبشرة"
+              icon={<Droplets className="w-6 h-6 text-primary-foreground" />}
+              services={skinServices}
+              delay="0.2s"
+            />
+          </div>
+          <div className="flex-shrink-0 w-[300px] md:w-auto snap-center">
+            <ServiceCard
+              title="خدمات إضافية"
+              icon={<Sparkles className="w-6 h-6 text-primary-foreground" />}
+              services={extraServices}
+              delay="0.3s"
+            />
+          </div>
+          <div className="flex-shrink-0 w-[300px] md:w-auto snap-center">
+            <ServiceCard
+              title="خدمات خاصة"
+              icon={<Crown className="w-6 h-6 text-primary-foreground" />}
+              services={specialServices}
+              delay="0.4s"
+            />
+          </div>
+        </div>
+
+        {/* Mobile scroll indicator */}
+        <div className="flex md:hidden justify-center gap-2 mt-4">
+          {[0, 1, 2, 3].map((idx) => (
+            <div key={idx} className="w-2 h-2 rounded-full bg-primary/30" />
+          ))}
         </div>
 
         {/* CTA */}
