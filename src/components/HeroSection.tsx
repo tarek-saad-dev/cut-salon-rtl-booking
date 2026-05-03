@@ -4,6 +4,10 @@ import heroImg from "@/assets/hero.png";
 import heroVerticalImg from "@/assets/hero_vertical.png";
 import barberKareem from "@/assets/barber-kareem.jpg";
 import barberMohamed from "@/assets/barber-mohamed.jpg";
+import barberZizo from "@/assets/barber-ziad.jpg";
+import barberOmar from "@/assets/omar.png";
+import barberYousef from "@/assets/yousef.jpg";
+import barberAhmed from "@/assets/ahmed.jpg";
 
 /* ─── Animation variants ─── */
 const fadeUp = {
@@ -12,15 +16,6 @@ const fadeUp = {
     opacity: 1,
     y: 0,
     transition: { duration: 0.65, delay: i * 0.13, ease: [0.25, 0.46, 0.45, 0.94] },
-  }),
-};
-
-const slideIn = {
-  hidden: { opacity: 0, x: 50 },
-  visible: (i: number) => ({
-    opacity: 1,
-    x: 0,
-    transition: { duration: 0.55, delay: 0.45 + i * 0.16, ease: [0.25, 0.46, 0.45, 0.94] },
   }),
 };
 
@@ -72,64 +67,6 @@ const OutlineButton = ({
   >
     {children}
   </a>
-);
-
-/* ─── Reusable: Barber Card ─── */
-const BarberCard = ({
-  image,
-  name,
-  rating,
-  reviews,
-  statusText,
-  statusColor,
-  glowColor,
-  index,
-}: {
-  image: string;
-  name: string;
-  rating: string;
-  reviews: string;
-  statusText: string;
-  statusColor: string;
-  glowColor: string;
-  index: number;
-}) => (
-  <motion.div
-    custom={index}
-    variants={slideIn}
-    initial="hidden"
-    animate="visible"
-    whileHover={{ y: -5, scale: 1.02, transition: { duration: 0.25 } }}
-    className="flex items-center gap-3.5 px-4 py-3.5 rounded-2xl cursor-pointer
-               bg-white/5 backdrop-blur-xl border border-white/10
-               shadow-[0_8px_32px_rgba(0,0,0,0.4)]
-               hover:border-[#C99A45]/40 hover:shadow-[0_16px_48px_rgba(201,154,69,0.18)]
-               transition-all duration-300"
-    role="button"
-    tabIndex={0}
-    aria-label={`احجز مع ${name}`}
-  >
-    {/* Circular avatar */}
-    <div className="relative w-12 h-12 rounded-full overflow-hidden flex-shrink-0
-                    ring-2 ring-[#C99A45]/30 shadow-[0_0_12px_rgba(201,154,69,0.15)]">
-      <img src={image} alt={name} className="w-full h-full object-cover object-top" loading="lazy" />
-    </div>
-    <div className="flex-1 text-right min-w-0">
-      <p className="text-white font-bold text-sm truncate">{name}</p>
-      <div className="flex items-center justify-end gap-1.5 mt-0.5">
-        <span className="text-white/50 text-xs">تقييم {reviews}</span>
-        <span className="text-[#E5C07B] text-xs font-bold">{rating}</span>
-        <Star className="w-3 h-3 text-[#E5C07B] fill-[#E5C07B]" />
-      </div>
-      <div className="flex items-center justify-end gap-1.5 mt-0.5">
-        <span className="text-[11px] text-white/50">{statusText}</span>
-        <div
-          className="w-2 h-2 rounded-full"
-          style={{ backgroundColor: statusColor, boxShadow: `0 0 8px ${glowColor}` }}
-        />
-      </div>
-    </div>
-  </motion.div>
 );
 
 /* ─── Reusable: Trust Badge ─── */
@@ -254,143 +191,109 @@ const HeroSection = () => {
         </a>
       </motion.nav>
 
-      {/* ─── MAIN CONTENT — 40/60 grid ─── */}
-      <div className="relative z-10 flex items-center min-h-[calc(100vh-80px)]">
-        <div className="w-full grid grid-cols-1 lg:grid-cols-[2fr_3fr] items-center">
+      {/* ─── MAIN CONTENT ─── */}
+      <div className="relative z-10 flex flex-col justify-center min-h-[calc(100vh-80px)]">
+        <div className="w-full flex-1 flex items-center">
+          <div className="w-full px-6 md:px-12 lg:px-20">
 
-          {/* ── RIGHT (in RTL) = Text content — 40% ── */}
-          <div className="flex flex-col items-center lg:items-start text-center lg:text-right
-                          px-6 md:px-12 lg:pr-20 lg:pl-10 py-10 lg:py-0
-                          max-w-[520px] mx-auto lg:mx-0 lg:max-w-none
+            {/* ── Text content ── */}
+            <div className="flex flex-col items-center lg:items-start text-center lg:text-right
+                          max-w-[540px] mx-auto lg:mx-0
                           gap-3">
 
-            {/* Eyebrow with glow */}
-            <motion.div custom={0} variants={fadeUp} initial="hidden" animate="visible"
-              className="flex items-center gap-2.5 mb-1">
-              <div className="w-8 h-px bg-gradient-to-l from-[#C99A45] to-transparent" />
-              <span className="text-[#C99A45] text-sm font-semibold tracking-wide
+              {/* Eyebrow with glow */}
+              <motion.div custom={0} variants={fadeUp} initial="hidden" animate="visible"
+                className="flex items-center gap-2.5 mb-1">
+                <div className="w-8 h-px bg-gradient-to-l from-[#C99A45] to-transparent" />
+                <span className="text-[#C99A45] text-sm font-semibold tracking-wide
                                drop-shadow-[0_0_8px_rgba(201,154,69,0.4)]">
-                — أسلوبك . دقّتنا —
-              </span>
-              <div className="w-8 h-px bg-gradient-to-r from-[#C99A45] to-transparent" />
-            </motion.div>
+                  — أسلوبك . دقّتنا —
+                </span>
+                <div className="w-8 h-px bg-gradient-to-r from-[#C99A45] to-transparent" />
+              </motion.div>
 
-            {/* Headline */}
-            <motion.h1 custom={1} variants={fadeUp} initial="hidden" animate="visible"
-              className="font-heading font-black leading-[1.05]">
-              <span className="block text-5xl md:text-6xl lg:text-7xl text-white">
-                احجز ستايلك
-              </span>
-              <span className="block text-5xl md:text-6xl lg:text-7xl mt-1 pb-2
+              {/* Headline */}
+              <motion.h1 custom={1} variants={fadeUp} initial="hidden" animate="visible"
+                className="font-heading font-black leading-[1.05]">
+                <span className="block text-5xl md:text-6xl lg:text-7xl text-white">
+                  احجز ستايلك
+                </span>
+                <span className="block text-5xl md:text-6xl lg:text-7xl mt-1 pb-2
                                bg-gradient-to-l from-[#C8A96A] via-[#E5C07B] to-[#C8A96A]
                                bg-clip-text text-transparent
                                drop-shadow-[0_0_20px_rgba(201,154,69,0.2)]">
-                بسهولة
-              </span>
-            </motion.h1>
+                  بسهولة
+                </span>
+              </motion.h1>
 
-            {/* Subtext */}
-            <motion.p custom={2} variants={fadeUp} initial="hidden" animate="visible"
-              className="text-gray-300 text-base md:text-lg max-w-md leading-[1.7] mt-1">
-              اختَر الحلاق المناسب لك واحجز في ثواني داخل Cut Salon.
-              <br />
-              تجربة سريعة، بدون زحمة… ونتيجة تفرق.
-            </motion.p>
+              {/* Subtext */}
+              <motion.p custom={2} variants={fadeUp} initial="hidden" animate="visible"
+                className="text-gray-300 text-base md:text-lg max-w-md leading-[1.7] mt-1">
+                اختَر الحلاق المناسب لك واحجز في ثواني داخل Cut Salon.
+                <br />
+                تجربة سريعة، بدون زحمة… ونتيجة تفرق.
+              </motion.p>
 
-            {/* CTA Buttons row */}
-            <motion.div custom={3} variants={fadeUp} initial="hidden" animate="visible"
-              className="flex flex-wrap items-center justify-center lg:justify-start gap-3 mt-2">
-              <GoldButton href="#barbers" ariaLabel="احجز الآن">
-                <Calendar className="w-4 h-4" />
-                احجز الآن
-              </GoldButton>
-              <OutlineButton href="#barbers" ariaLabel="شاهد الحلاقين">
-                <Users className="w-4 h-4" />
-                شاهد الحلاقين
-              </OutlineButton>
-            </motion.div>
+              {/* CTA Buttons row */}
+              <motion.div custom={3} variants={fadeUp} initial="hidden" animate="visible"
+                className="flex flex-wrap items-center justify-center lg:justify-start gap-3 mt-2">
+                <GoldButton href="#barbers" ariaLabel="احجز الآن">
+                  <Calendar className="w-4 h-4" />
+                  احجز الآن
+                </GoldButton>
+                <OutlineButton href="#barbers" ariaLabel="شاهد الحلاقين">
+                  <Users className="w-4 h-4" />
+                  شاهد الحلاقين
+                </OutlineButton>
+              </motion.div>
 
-            {/* Smart CTA */}
-            <motion.div custom={4} variants={fadeUp} initial="hidden" animate="visible"
-              className="-mt-0.5">
-              <a
-                href="#barbers"
-                aria-label="أقرب ميعاد متاح"
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg
+              {/* Smart CTA */}
+              <motion.div custom={4} variants={fadeUp} initial="hidden" animate="visible"
+                className="-mt-0.5">
+                <a
+                  href="#barbers"
+                  aria-label="أقرب ميعاد متاح"
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg
                            bg-[#C99A45]/10 border border-[#C99A45]/25 text-[#E5C07B] text-sm font-semibold
                            hover:bg-[#C99A45]/20 hover:border-[#C99A45]/50
                            hover:shadow-[0_0_16px_rgba(201,154,69,0.2)]
                            transition-all duration-300"
-              >
-                <Zap className="w-3.5 h-3.5" />
-                ⚡ أقرب ميعاد
-              </a>
-            </motion.div>
+                >
+                  <Zap className="w-3.5 h-3.5" />
+                  ⚡ أقرب ميعاد
+                </a>
+              </motion.div>
 
-            {/* Trust badges */}
-            <motion.div custom={5} variants={fadeUp} initial="hidden" animate="visible"
-              className="flex flex-wrap items-center justify-center lg:justify-start gap-3 mt-1">
-              <TrustBadge icon={Shield} title="حرفيون محترفون" sub="أعلى معايير الجودة والدقة" />
-              <TrustBadge icon={Gem} title="تجربة فاخرة" sub="راحة وأناقة في كل زيارة" />
-              <TrustBadge icon={Clock} title="مواعيد دقيقة" sub="احجز في الوقت المناسب لك" />
-            </motion.div>
-          </div>
-
-          {/* ── LEFT (in RTL) = Image space + floating cards — 60% ── */}
-          <div className="hidden lg:flex items-center justify-center relative h-full min-h-[calc(100vh-80px)]">
-            {/* Floating barber cards — positioned over the visible image area */}
-            <div className="absolute left-12 top-1/2 -translate-y-1/2 flex flex-col gap-3.5 w-[280px] z-10"
-              aria-label="حلاقين متاحين">
-              <BarberCard
-                image={barberKareem}
-                name="كريـــم"
-                rating="4.9"
-                reviews="(328)"
-                statusText="متاح الآن"
-                statusColor="#4ade80"
-                glowColor="rgba(74,222,128,0.8)"
-                index={0}
-              />
-              <BarberCard
-                image={barberMohamed}
-                name="محمد"
-                rating="4.8"
-                reviews="(215)"
-                statusText="بعد 15 دقيقة"
-                statusColor="#facc15"
-                glowColor="rgba(250,204,21,0.8)"
-                index={1}
-              />
-
-              {/* Quick Book badge */}
-              <motion.div
-                custom={2}
-                variants={slideIn}
-                initial="hidden"
-                animate="visible"
-                whileHover={{ y: -4, scale: 1.02, transition: { duration: 0.25 } }}
-                className="flex items-center gap-3.5 px-4 py-3.5 rounded-2xl
-                           bg-gradient-to-l from-[#C99A45]/15 to-[#8A6326]/5
-                           border border-[#C99A45]/30 backdrop-blur-xl
-                           shadow-[0_8px_32px_rgba(201,154,69,0.1)]
-                           hover:shadow-[0_16px_48px_rgba(201,154,69,0.2)]
-                           transition-all duration-300"
-              >
-                <div className="w-11 h-11 rounded-xl bg-[#C99A45]/15 border border-[#C99A45]/25
-                                flex items-center justify-center flex-shrink-0">
-                  <Clock className="w-5 h-5 text-[#E5C07B]" />
-                </div>
-                <div className="text-right">
-                  <p className="text-[#E5C07B] text-sm font-bold">حجز سريع</p>
-                  <p className="text-white/40 text-[11px] mt-0.5">خطوات بسيطة وموعدك محسوم</p>
-                </div>
+              {/* Trust badges */}
+              <motion.div custom={5} variants={fadeUp} initial="hidden" animate="visible"
+                className="flex flex-wrap items-center justify-center lg:justify-start gap-3 mt-1">
+                <TrustBadge icon={Shield} title="حرفيون محترفون" sub="أعلى معايير الجودة والدقة" />
+                <TrustBadge icon={Gem} title="تجربة فاخرة" sub="راحة وأناقة في كل زيارة" />
+                <TrustBadge icon={Clock} title="مواعيد دقيقة" sub="احجز في الوقت المناسب لك" />
               </motion.div>
             </div>
           </div>
+        </div>
 
-          {/* ── Mobile barber cards (horizontal scroll) ── */}
-          <div className="flex lg:hidden gap-3 overflow-x-auto pb-4 scrollbar-hide px-6"
-            aria-label="حلاقين متاحين">
+        {/* ─── Bottom horizontal barber scroll strip ─── */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.7, ease: "easeOut" }}
+          className="relative w-full pb-6 pt-4 lg:pb-10 lg:pt-6"
+        >
+          {/* Edge fade — right */}
+          <div className="absolute top-0 right-0 bottom-0 w-16 md:w-24 z-20
+                            bg-gradient-to-l from-[#080808] to-transparent pointer-events-none" />
+          {/* Edge fade — left */}
+          <div className="absolute top-0 left-0 bottom-0 w-16 md:w-24 z-20
+                            bg-gradient-to-r from-[#080808] to-transparent pointer-events-none" />
+
+          {/* Scroll container */}
+          <div className="flex gap-3 md:gap-4 overflow-x-auto px-8 md:px-16 lg:px-24
+                            scroll-smooth snap-x snap-mandatory scrollbar-hide"
+            aria-label="حلاقين متاحين"
+            role="list">
             {[
               {
                 image: barberKareem, name: "كريـــم", rating: "4.9", reviews: "(328)",
@@ -400,39 +303,68 @@ const HeroSection = () => {
                 image: barberMohamed, name: "محمد", rating: "4.8", reviews: "(215)",
                 statusText: "بعد 15 دقيقة", statusColor: "#facc15", glowColor: "rgba(250,204,21,0.8)",
               },
+              {
+                image: barberZizo, name: "زيزو", rating: "4.7", reviews: "(142)",
+                statusText: "متاح الآن", statusColor: "#4ade80", glowColor: "rgba(74,222,128,0.8)",
+              },
+              {
+                image: barberOmar, name: "عمر", rating: "4.8", reviews: "(189)",
+                statusText: "بعد 30 دقيقة", statusColor: "#facc15", glowColor: "rgba(250,204,21,0.8)",
+              },
+              {
+                image: barberYousef, name: "يوسف", rating: "4.7", reviews: "(167)",
+                statusText: "متاح الآن", statusColor: "#4ade80", glowColor: "rgba(74,222,128,0.8)",
+              },
+              {
+                image: barberAhmed, name: "أحمد", rating: "4.9", reviews: "(203)",
+                statusText: "بعد 10 دقائق", statusColor: "#facc15", glowColor: "rgba(250,204,21,0.8)",
+              },
             ].map((barber, i) => (
               <motion.div
                 key={barber.name}
-                custom={i}
-                variants={fadeUp}
-                initial="hidden"
-                animate="visible"
-                className="flex-shrink-0 flex items-center gap-3 px-4 py-3.5 rounded-2xl
-                           bg-white/5 backdrop-blur-xl border border-white/10
-                           shadow-[0_4px_20px_rgba(0,0,0,0.3)] min-w-[220px]"
+                initial={{ opacity: 0, x: 40 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.5, delay: 0.8 + i * 0.1, ease: [0.25, 0.46, 0.45, 0.94] }}
+                whileHover={{ y: -6, scale: 1.04, transition: { duration: 0.25 } }}
+                className="flex-shrink-0 snap-start flex items-center gap-3.5 px-4 py-3.5
+                             w-[220px] md:w-[240px]
+                             rounded-2xl cursor-pointer
+                             bg-white/5 backdrop-blur-xl border border-white/10
+                             shadow-[0_8px_32px_rgba(0,0,0,0.35)]
+                             hover:border-[#C99A45]/40
+                             hover:shadow-[0_16px_48px_rgba(201,154,69,0.15)]
+                             transition-all duration-300"
+                role="listitem"
+                tabIndex={0}
+                aria-label={`احجز مع ${barber.name}`}
               >
-                <div className="w-11 h-11 rounded-full overflow-hidden flex-shrink-0 ring-2 ring-[#C99A45]/30">
-                  <img src={barber.image} alt={barber.name} className="w-full h-full object-cover object-top" />
+                <div className="w-12 h-12 rounded-full overflow-hidden flex-shrink-0
+                                    ring-2 ring-[#C99A45]/30 shadow-[0_0_10px_rgba(201,154,69,0.12)]">
+                  <img src={barber.image} alt={barber.name}
+                    className="w-full h-full object-cover object-top" loading="lazy" />
                 </div>
-                <div className="flex-1 text-right">
-                  <p className="text-white font-bold text-sm">{barber.name}</p>
-                  <div className="flex items-center justify-end gap-1 mt-0.5">
+                <div className="flex-1 text-right min-w-0">
+                  <p className="text-white font-bold text-sm truncate">{barber.name}</p>
+                  <div className="flex items-center justify-end gap-1.5 mt-0.5">
                     <span className="text-white/50 text-xs">{barber.reviews} {barber.rating}</span>
                     <Star className="w-3 h-3 text-[#E5C07B] fill-[#E5C07B]" />
                   </div>
-                  <div className="flex items-center justify-end gap-1.5 mt-0.5">
-                    <span className="text-[10px] text-white/50">{barber.statusText}</span>
-                    <div
-                      className="w-1.5 h-1.5 rounded-full"
-                      style={{ backgroundColor: barber.statusColor, boxShadow: `0 0 6px ${barber.glowColor}` }}
-                    />
-                  </div>
+                  {/* Status hidden for now */}
+                  {false && (
+                    <div className="flex items-center justify-end gap-1.5 mt-0.5">
+                      <span className="text-[10px] text-white/50">{barber.statusText}</span>
+                      <div
+                        className="w-2 h-2 rounded-full"
+                        style={{ backgroundColor: barber.statusColor, boxShadow: `0 0 8px ${barber.glowColor}` }}
+                      />
+                    </div>
+                  )}
                 </div>
               </motion.div>
             ))}
           </div>
+        </motion.div>
 
-        </div>
       </div>
     </section>
   );

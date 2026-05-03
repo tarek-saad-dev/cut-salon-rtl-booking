@@ -5,6 +5,10 @@ import barberMohamed from "@/assets/barber-mohamed.jpg";
 import barberBassem from "@/assets/barber-bassem.jpg";
 import barberKareem from "@/assets/barber-kareem.jpg";
 import youngZiad from "@/assets/young-ziad.jpg";
+import barberZiad from "@/assets/barber-ziad.jpg";
+import barberOmar from "@/assets/omar.png";
+import barberYousef from "@/assets/yousef.jpg";
+import barberAhmed from "@/assets/ahmed.jpg";
 import CalendlyModal from "./CalendlyModal";
 
 // Get current year-month for Calendly links
@@ -45,6 +49,34 @@ const barbers = [
     image: youngZiad,
     buttonText: "احجز مع زياد",
     link: `https://calendly.com/saadfouad1976tt/cut-salon-ziad-barber?month=${currentMonth}`,
+  },
+  {
+    name: "زيزو",
+    role: "حلاق",
+    image: barberZiad,
+    buttonText: "احجز مع زيزو",
+    link: `https://calendly.com/placeholder/cut-salon-zizo-barber?month=${currentMonth}`,
+  },
+  {
+    name: "عمر",
+    role: "حلاق",
+    image: barberOmar,
+    buttonText: "احجز مع عمر",
+    link: `https://calendly.com/placeholder/cut-salon-omar-barber?month=${currentMonth}`,
+  },
+  {
+    name: "يوسف",
+    role: "حلاق",
+    image: barberYousef,
+    buttonText: "احجز مع يوسف",
+    link: `https://calendly.com/placeholder/cut-salon-yousef-barber?month=${currentMonth}`,
+  },
+  {
+    name: "أحمد",
+    role: "حلاق",
+    image: barberAhmed,
+    buttonText: "احجز مع أحمد",
+    link: `https://calendly.com/placeholder/cut-salon-ahmed-barber?month=${currentMonth}`,
   },
 ];
 
