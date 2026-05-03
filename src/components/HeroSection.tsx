@@ -247,22 +247,24 @@ const HeroSection = () => {
                 </OutlineButton>
               </motion.div>
 
-              {/* Smart CTA */}
-              <motion.div custom={4} variants={fadeUp} initial="hidden" animate="visible"
-                className="-mt-0.5">
-                <a
-                  href="#barbers"
-                  aria-label="أقرب ميعاد متاح"
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg
-                           bg-[#C99A45]/10 border border-[#C99A45]/25 text-[#E5C07B] text-sm font-semibold
-                           hover:bg-[#C99A45]/20 hover:border-[#C99A45]/50
-                           hover:shadow-[0_0_16px_rgba(201,154,69,0.2)]
-                           transition-all duration-300"
-                >
-                  <Zap className="w-3.5 h-3.5" />
-                  ⚡ أقرب ميعاد
-                </a>
-              </motion.div>
+              {/* Smart CTA — hidden for now */}
+              {false && (
+                <motion.div custom={4} variants={fadeUp} initial="hidden" animate="visible"
+                  className="-mt-0.5">
+                  <a
+                    href="#barbers"
+                    aria-label="أقرب ميعاد متاح"
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-lg
+                             bg-[#C99A45]/10 border border-[#C99A45]/25 text-[#E5C07B] text-sm font-semibold
+                             hover:bg-[#C99A45]/20 hover:border-[#C99A45]/50
+                             hover:shadow-[0_0_16px_rgba(201,154,69,0.2)]
+                             transition-all duration-300"
+                  >
+                    <Zap className="w-3.5 h-3.5" />
+                    ⚡ أقرب ميعاد
+                  </a>
+                </motion.div>
+              )}
 
               {/* Trust badges */}
               <motion.div custom={5} variants={fadeUp} initial="hidden" animate="visible"
