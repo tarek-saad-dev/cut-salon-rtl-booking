@@ -1,0 +1,5 @@
+1:"$Sreact.fragment"
+2:I[97367,["/_next/static/chunks/0lnzkn~jxrqji.js","/_next/static/chunks/17xjpe5.wolb_.js","/_next/static/chunks/0rl83mvsndp0v.js","/_next/static/chunks/0d3shmwh5_nmn.js"],"ViewportBoundary"]
+3:I[97367,["/_next/static/chunks/0lnzkn~jxrqji.js","/_next/static/chunks/17xjpe5.wolb_.js","/_next/static/chunks/0rl83mvsndp0v.js","/_next/static/chunks/0d3shmwh5_nmn.js"],"MetadataBoundary"]
+4:"$Sreact.suspense"
+0:{"rsc":["$","$1","h",{"children":[["$","meta",null,{"name":"robots","content":"noindex"}],["$","$L2",null,{"children":[["$","meta","0",{"charSet":"utf-8"}],["$","meta","1",{"name":"viewport","content":"width=device-width, initial-scale=1"}]]}],["$","div",null,{"hidden":true,"children":["$","$L3",null,{"children":["$","$4",null,{"name":"Next.Metadata","children":[["$","title","0",{"children":"Cut Salon - Premium Hair Styling"}],["$","meta","1",{"name":"description","content":"Premium hair salon services with Cut Club loyalty program"}]]}]}]}],null]}],"isPartial":false,"staleTime":300,"varyParams":null,"buildId":"YiCnjArHJZdGTyTAYXYf9"}

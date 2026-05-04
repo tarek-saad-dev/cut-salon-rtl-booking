@@ -1,13 +1,16 @@
+"use client";
+
 import { motion } from "framer-motion";
 import { Calendar, Users, Shield, Gem, Clock, Zap, Star } from "lucide-react";
-import heroImg from "@/assets/hero.png";
-import heroVerticalImg from "@/assets/hero_vertical.png";
-import barberKareem from "@/assets/barber-kareem.jpg";
-import barberMohamed from "@/assets/barber-mohamed.jpg";
-import barberZizo from "@/assets/barber-ziad.jpg";
-import barberOmar from "@/assets/omar.png";
-import barberYousef from "@/assets/yousef.jpg";
-import barberAhmed from "@/assets/ahmed.jpg";
+
+const heroImg = "/hero.png";
+const heroVerticalImg = "/hero_vertical.png";
+const barberKareem = "/barber-kareem.jpg";
+const barberMohamed = "/barber-mohamed.jpg";
+const barberZizo = "/barber-ziad.jpg";
+const barberOmar = "/omar.png";
+const barberYousef = "/yousef.jpg";
+const barberAhmed = "/ahmed.jpg";
 
 /* ─── Animation variants ─── */
 const fadeUp = {

@@ -1,3 +1,5 @@
+"use client";
+
 import { useState, useEffect } from "react";
 import { Star, Crown, Gem, Award, Check, Sparkles, Gift, Shield, ChevronLeft } from "lucide-react";
 

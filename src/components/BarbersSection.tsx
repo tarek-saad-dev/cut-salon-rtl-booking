@@ -1,15 +1,18 @@
+"use client";
+
 import { useState, useCallback, useEffect } from "react";
 import useEmblaCarousel from "embla-carousel-react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import barberMohamed from "@/assets/barber-mohamed.jpg";
-import barberBassem from "@/assets/barber-bassem.jpg";
-import barberKareem from "@/assets/barber-kareem.jpg";
-import youngZiad from "@/assets/young-ziad.jpg";
-import barberZiad from "@/assets/barber-ziad.jpg";
-import barberOmar from "@/assets/omar.png";
-import barberYousef from "@/assets/yousef.jpg";
-import barberAhmed from "@/assets/ahmed.jpg";
 import CalendlyModal from "./CalendlyModal";
+
+const barberMohamed = "/barber-mohamed.jpg";
+const barberBassem = "/barber-bassem.jpg";
+const barberKareem = "/barber-kareem.jpg";
+const youngZiad = "/young-ziad.jpg";
+const barberZiad = "/barber-ziad.jpg";
+const barberOmar = "/omar.png";
+const barberYousef = "/yousef.jpg";
+const barberAhmed = "/ahmed.jpg";
 
 // Get current year-month for Calendly links
 const getCurrentMonth = () => {

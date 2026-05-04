@@ -1,5 +1,6 @@
 import { MapPin, Phone } from "lucide-react";
-import logo from "@/assets/logo.jpeg";
+
+const logo = "/logo.jpeg";
 
 const FooterSection = () => {
   return (

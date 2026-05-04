@@ -1,3 +1,5 @@
+"use client";
+
 import { useState, useMemo } from "react";
 import { Gift, Lock, Check, Sparkles, ChevronLeft } from "lucide-react";
 
@@ -194,8 +196,8 @@ const CutClubRewardGiftMilestones = ({
                           boxShadow: isNext
                             ? "0 20px 40px rgba(201, 154, 69, 0.4), inset 0 2px 0 rgba(255,255,255,0.1)"
                             : isUnlocked
-                            ? "0 15px 30px rgba(201, 154, 69, 0.3), inset 0 2px 0 rgba(255,255,255,0.1)"
-                            : "0 10px 20px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05)",
+                              ? "0 15px 30px rgba(201, 154, 69, 0.3), inset 0 2px 0 rgba(255,255,255,0.1)"
+                              : "0 10px 20px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05)",
                         }}
                       >
                         {/* Box Top Edge */}
@@ -250,9 +252,8 @@ const CutClubRewardGiftMilestones = ({
                     <div className="flex items-center gap-2 mb-3">
                       <span className="text-[#888] text-xs">تُفتح عند</span>
                       <span
-                        className={`font-bold ${
-                          isUnlocked ? "text-[#E2B866]" : isNext ? "text-[#C99A45]" : "text-[#666]"
-                        }`}
+                        className={`font-bold ${isUnlocked ? "text-[#E2B866]" : isNext ? "text-[#C99A45]" : "text-[#666]"
+                          }`}
                       >
                         {reward.unlockPoints}
                       </span>
@@ -267,9 +268,8 @@ const CutClubRewardGiftMilestones = ({
                       >
                         <span className="text-[#666] text-xs">متبقي</span>
                         <span
-                          className={`font-bold text-lg ${
-                            isNext ? "text-[#E2B866]" : "text-[#888]"
-                          }`}
+                          className={`font-bold text-lg ${isNext ? "text-[#E2B866]" : "text-[#888]"
+                            }`}
                         >
                           {remaining}
                         </span>

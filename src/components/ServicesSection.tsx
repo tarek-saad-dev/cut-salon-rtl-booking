@@ -1,3 +1,5 @@
+"use client";
+
 import { useState, useCallback, useEffect } from "react";
 import useEmblaCarousel from "embla-carousel-react";
 import { Scissors, Droplets, Sparkles, Crown, ChevronLeft, ChevronRight } from "lucide-react";
@@ -179,8 +181,8 @@ const ServicesSection = () => {
                   key={idx}
                   onClick={() => scrollTo(idx)}
                   className={`h-2 rounded-full transition-all duration-300 ${idx === selectedIndex
-                      ? "bg-primary w-6"
-                      : "bg-primary/30 w-2 hover:bg-primary/50"
+                    ? "bg-primary w-6"
+                    : "bg-primary/30 w-2 hover:bg-primary/50"
                     }`}
                   aria-label={`Go to service ${idx + 1}`}
                 />
