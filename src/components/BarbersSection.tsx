@@ -68,13 +68,6 @@ const barbers = [
     link: `https://calendly.com/placeholder/cut-salon-omar-barber?month=${currentMonth}`,
   },
   {
-    name: "يوسف",
-    role: "حلاق",
-    image: barberYousef,
-    buttonText: "احجز مع يوسف",
-    link: `https://calendly.com/placeholder/cut-salon-yousef-barber?month=${currentMonth}`,
-  },
-  {
     name: "أحمد",
     role: "حلاق",
     image: barberAhmed,
