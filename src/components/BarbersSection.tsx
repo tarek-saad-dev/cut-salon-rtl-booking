@@ -3,81 +3,60 @@
 import { useState, useCallback, useEffect } from "react";
 import useEmblaCarousel from "embla-carousel-react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import CalendlyModal from "./CalendlyModal";
+import BookingModal, { type BarberBookingInfo } from "./BookingModal";
+import { getBookingBarbers, type BookingBarber } from "@/lib/publicBookingApi";
 
-const barberMohamed = "/barber-mohamed.jpg";
-const barberBassem = "/barber-bassem.jpg";
-const barberKareem = "/barber-kareem.jpg";
-const youngZiad = "/young-ziad.jpg";
-const barberZiad = "/barber-ziad.jpg";
-const barberOmar = "/omar.png";
-const barberYousef = "/yousef.jpg";
-const barberAhmed = "/ahmed.jpg";
+type DisplayBarber = BarberBookingInfo & { buttonText: string };
 
-// Get current year-month for Calendly links
-const getCurrentMonth = () => {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  return `${year}-${month}`;
+// ─── Local fallback data ───────────────────────────────────────────────────────
+const LOCAL_IMAGE_MAP: Record<string, string> = {
+  "محمد": "/barber-mohamed.jpg",
+  "باسم": "/barber-bassem.jpg",
+  "كريم": "/barber-kareem.jpg",
+  "زياد": "/young-ziad.jpg",
+  "زيزو": "/barber-ziad.jpg",
+  "عمر": "/omar.png",
+  "يوسف": "/yousef.jpg",
+  "أحمد": "/ahmed.jpg",
 };
 
-const currentMonth = getCurrentMonth();
-
-const barbers = [
-  {
-    name: "محمد",
-    role: "حلاق",
-    image: barberMohamed,
-    buttonText: "احجز مع محمد",
-    link: `https://calendly.com/saadfouad1976t2/cut-salon-mohamed-barber?month=${currentMonth}`,
-  },
-  {
-    name: "باسم",
-    role: "حلاق",
-    image: barberBassem,
-    buttonText: "احجز مع باسم",
-    link: `https://calendly.com/saadfouad1976t3/cut-salon-bassem-barber?month=${currentMonth}`,
-  },
-  {
-    name: "كريم",
-    role: "حلاق",
-    image: barberKareem,
-    buttonText: "احجز مع كريم",
-    link: `https://calendly.com/tsts20031976/cut-salob-kareem-barber?month=${currentMonth}`,
-  },
-  {
-    name: "زياد",
-    role: "اخصائي العناية بالبشرة",
-    image: youngZiad,
-    buttonText: "احجز مع زياد",
-    link: `https://calendly.com/saadfouad1976tt/cut-salon-ziad-barber?month=${currentMonth}`,
-  },
-  {
-    name: "زيزو",
-    role: "حلاق",
-    image: barberZiad,
-    buttonText: "احجز مع زيزو",
-    link: `https://calendly.com/placeholder/cut-salon-zizo-barber?month=${currentMonth}`,
-  },
-  {
-    name: "عمر",
-    role: "حلاق",
-    image: barberOmar,
-    buttonText: "احجز مع عمر",
-    link: `https://calendly.com/placeholder/cut-salon-omar-barber?month=${currentMonth}`,
-  },
-  {
-    name: "أحمد",
-    role: "حلاق",
-    image: barberAhmed,
-    buttonText: "احجز مع أحمد",
-    link: `https://calendly.com/placeholder/cut-salon-ahmed-barber?month=${currentMonth}`,
-  },
+const FALLBACK_BARBERS: DisplayBarber[] = [
+  { name: "محمد", role: "حلاق", image: "/barber-mohamed.jpg", rating: 4.8, reviewCount: "(215)", location: "Cut Salon · الإسكندرية", buttonText: "احجز مع محمد" },
+  { name: "باسم", role: "حلاق", image: "/barber-bassem.jpg", rating: 4.7, reviewCount: "(189)", location: "Cut Salon · الإسكندرية", buttonText: "احجز مع باسم" },
+  { name: "كريم", role: "حلاق", image: "/barber-kareem.jpg", rating: 4.9, reviewCount: "(328)", location: "Cut Salon · الإسكندرية", buttonText: "احجز مع كريم" },
+  { name: "زياد", role: "أخصائي العناية بالبشرة", image: "/young-ziad.jpg", rating: 4.8, reviewCount: "(143)", location: "Cut Salon · الإسكندرية", buttonText: "احجز مع زياد" },
+  { name: "زيزو", role: "حلاق", image: "/barber-ziad.jpg", rating: 4.7, reviewCount: "(142)", location: "Cut Salon · الإسكندرية", buttonText: "احجز مع زيزو" },
+  { name: "عمر", role: "حلاق", image: "/omar.png", rating: 4.8, reviewCount: "(189)", location: "Cut Salon · الإسكندرية", buttonText: "احجز مع عمر" },
+  { name: "أحمد", role: "حلاق", image: "/ahmed.jpg", rating: 4.9, reviewCount: "(203)", location: "Cut Salon · الإسكندرية", buttonText: "احجز مع أحمد" },
 ];
 
+function apiToDisplay(b: BookingBarber): DisplayBarber {
+  const localImage = LOCAL_IMAGE_MAP[b.name];
+  const image = b.photoUrl && b.photoUrl.trim() !== "" ? b.photoUrl : (localImage ?? "/placeholder.svg");
+  return {
+    id: b.id,
+    name: b.name,
+    role: b.job ?? "حلاق محترف",
+    image,
+    location: "Cut Salon · الإسكندرية",
+    buttonText: `احجز مع ${b.name}`,
+  };
+}
+
 const BarbersSection = () => {
-  const [selectedBarber, setSelectedBarber] = useState<typeof barbers[0] | null>(null);
+  const [selectedBarber, setSelectedBarber] = useState<DisplayBarber | null>(null);
+  const [barbers, setBarbers] = useState<DisplayBarber[]>(FALLBACK_BARBERS);
+  const [isLoadingBarbers, setIsLoadingBarbers] = useState(true);
+
+  useEffect(() => {
+    getBookingBarbers()
+      .then(res => {
+        const bookable = res.barbers.filter(b => b.isBookableOnline);
+        if (bookable.length > 0) setBarbers(bookable.map(apiToDisplay));
+      })
+      .catch(() => { /* keep fallback */ })
+      .finally(() => setIsLoadingBarbers(false));
+  }, []);
 
   // Embla Carousel setup
   const [emblaRef, emblaApi] = useEmblaCarousel({
@@ -116,6 +95,10 @@ const BarbersSection = () => {
     if (emblaApi) emblaApi.scrollNext();
   }, [emblaApi]);
 
+  const skeletons: (DisplayBarber | null)[] = [null, null, null, null];
+  const mobileItems: (DisplayBarber | null)[] = isLoadingBarbers ? skeletons : barbers;
+  const desktopItems: (DisplayBarber | null)[] = isLoadingBarbers ? skeletons : barbers;
+
   return (
     <section id="barbers" className="py-20 md:py-28 bg-background">
       <div className="container px-4">
@@ -146,11 +129,60 @@ const BarbersSection = () => {
           {/* Mobile Carousel */}
           <div className="md:hidden overflow-hidden" ref={emblaRef}>
             <div className="flex gap-4 px-4">
-              {barbers.map((barber, index) => (
+              {mobileItems.map((barber, index) => (
+                !barber ? (
+                  <div key={`skel-${index}`} className="flex-[0_0_280px] min-w-0 gold-border-glow rounded-xl bg-card overflow-hidden animate-pulse">
+                    <div className="aspect-[4/5] bg-muted" />
+                    <div className="p-5 space-y-3">
+                      <div className="h-5 bg-muted rounded w-1/2 mx-auto" />
+                      <div className="h-3 bg-muted rounded w-1/3 mx-auto" />
+                      <div className="h-10 bg-muted rounded" />
+                    </div>
+                  </div>
+                ) :
+                  <div
+                    key={barber.name}
+                    className={`flex-[0_0_280px] min-w-0 gold-border-glow rounded-xl bg-card overflow-hidden group transition-all duration-500 ${index === selectedIndex ? "scale-[1.02] shadow-[0_8px_30px_hsl(43_90%_55%/0.2)]" : ""
+                      }`}
+                  >
+                    <div className="aspect-[4/5] overflow-hidden">
+                      <img
+                        src={barber.image}
+                        alt={barber.name}
+                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      />
+                    </div>
+                    <div className="p-5 text-center">
+                      <h3 className="font-heading text-xl font-bold mb-1">{barber.name}</h3>
+                      <p className="text-primary/80 text-sm mb-3">{barber.role}</p>
+                      <button
+                        onClick={() => setSelectedBarber(barber)}
+                        className="gold-shimmer block w-full py-3 rounded-lg font-heading font-bold text-primary-foreground transition-all hover:scale-[1.02] cursor-pointer"
+                      >
+                        {barber.buttonText}
+                      </button>
+                    </div>
+                  </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Desktop Grid */}
+          <div className="hidden md:grid md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-5xl mx-auto">
+            {desktopItems.map((barber, idx) => (
+              !barber ? (
+                <div key={`skel-d-${idx}`} className="gold-border-glow rounded-xl bg-card overflow-hidden animate-pulse">
+                  <div className="aspect-[4/5] bg-muted" />
+                  <div className="p-5 space-y-3">
+                    <div className="h-5 bg-muted rounded w-1/2 mx-auto" />
+                    <div className="h-3 bg-muted rounded w-1/3 mx-auto" />
+                    <div className="h-10 bg-muted rounded" />
+                  </div>
+                </div>
+              ) :
                 <div
                   key={barber.name}
-                  className={`flex-[0_0_280px] min-w-0 gold-border-glow rounded-xl bg-card overflow-hidden group transition-all duration-500 ${index === selectedIndex ? "scale-[1.02] shadow-[0_8px_30px_hsl(43_90%_55%/0.2)]" : ""
-                    }`}
+                  className="gold-border-glow rounded-xl bg-card overflow-hidden group transition-all hover:-translate-y-1 hover:shadow-[0_8px_30px_hsl(43_90%_55%/0.12)]"
                 >
                   <div className="aspect-[4/5] overflow-hidden">
                     <img
@@ -170,36 +202,8 @@ const BarbersSection = () => {
                     </button>
                   </div>
                 </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Desktop Grid */}
-          <div className="hidden md:grid md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-5xl mx-auto">
-            {barbers.map((barber) => (
-              <div
-                key={barber.name}
-                className="gold-border-glow rounded-xl bg-card overflow-hidden group transition-all hover:-translate-y-1 hover:shadow-[0_8px_30px_hsl(43_90%_55%/0.12)]"
-              >
-                <div className="aspect-[4/5] overflow-hidden">
-                  <img
-                    src={barber.image}
-                    alt={barber.name}
-                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                  />
-                </div>
-                <div className="p-5 text-center">
-                  <h3 className="font-heading text-xl font-bold mb-1">{barber.name}</h3>
-                  <p className="text-primary/80 text-sm mb-3">{barber.role}</p>
-                  <button
-                    onClick={() => setSelectedBarber(barber)}
-                    className="gold-shimmer block w-full py-3 rounded-lg font-heading font-bold text-primary-foreground transition-all hover:scale-[1.02] cursor-pointer"
-                  >
-                    {barber.buttonText}
-                  </button>
-                </div>
-              </div>
-            ))}
+            ))
+            }
           </div>
 
           {/* Mobile Navigation */}
@@ -228,7 +232,7 @@ const BarbersSection = () => {
 
             <button
               onClick={scrollNext}
-              disabled={selectedIndex === barbers.length - 1}
+              disabled={selectedIndex === Math.max(barbers.length - 1, 0)}
               className="w-10 h-10 rounded-full gold-shimmer flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed transition-all active:scale-95"
             >
               <ChevronLeft className="w-5 h-5 text-primary-foreground" />
@@ -238,11 +242,10 @@ const BarbersSection = () => {
       </div>
 
       {selectedBarber && (
-        <CalendlyModal
+        <BookingModal
           open={!!selectedBarber}
           onOpenChange={(open) => !open && setSelectedBarber(null)}
-          url={selectedBarber.link}
-          barberName={selectedBarber.name}
+          barber={selectedBarber}
         />
       )}
     </section>
