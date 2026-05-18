@@ -137,6 +137,8 @@ export interface AvailableSlot {
   available: boolean;
   empId?: number | null;
   barberName?: string | null;
+  durationMinutes?: number | null;
+  durationSource?: string | null;
   reason?: string | null;
 }
 
