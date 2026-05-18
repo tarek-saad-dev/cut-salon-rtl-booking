@@ -12,8 +12,15 @@ import BookingServiceSelect from "./BookingServiceSelect";
 import {
   getBookingConfig,
   getBookingServices,
+  getAvailableDays,
+  getAvailableSlots,
+  createBooking,
+  BookingConflictError,
   type BookingConfigResponse,
   type BookingService,
+  type AvailableDay,
+  type AvailableSlot,
+  type CreatedBooking,
 } from "@/lib/publicBookingApi";
 
 export interface BarberBookingInfo {
@@ -51,14 +58,27 @@ const BookingModal = ({ open, onOpenChange, barber }: BookingModalProps) => {
   const [isLoadingServices, setIsLoadingServices] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
 
+  // ── Available days state ───────────────────────────────────────────────────
+  const [availableDays, setAvailableDays] = useState<AvailableDay[]>([]);
+  const [isLoadingDays, setIsLoadingDays] = useState(false);
+
+  // ── Available slots state ──────────────────────────────────────────────────
+  const [availableSlots, setAvailableSlots] = useState<AvailableSlot[]>([]);
+  const [isLoadingSlots, setIsLoadingSlots] = useState(false);
+
   // ── Booking state ──────────────────────────────────────────────────────────
   const [currentStep, setCurrentStep] = useState<BookingStep>("service");
   const [selectedServiceIds, setSelectedServiceIds] = useState<number[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date>();
   const [selectedTime, setSelectedTime] = useState<string>();
+  const [selectedSlotEmpId, setSelectedSlotEmpId] = useState<number | undefined>();
+  const [selectedSlotBarberName, setSelectedSlotBarberName] = useState<string | undefined>();
   const [selectedMode, setSelectedMode] = useState<BookingMode>("specific");
-  const [selectedEmpId] = useState<number | undefined>(barber.id);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [confirmedBooking, setConfirmedBooking] = useState<CreatedBooking | null>(null);
+  const [customerName, setCustomerName] = useState("");
+  const [customerPhone, setCustomerPhone] = useState("");
 
   // ── Fetch config + services when modal opens ───────────────────────────────
   useEffect(() => {
@@ -93,6 +113,42 @@ const BookingModal = ({ open, onOpenChange, barber }: BookingModalProps) => {
     return () => { cancelled = true; };
   }, [open]);
 
+  // ── Fetch available days ───────────────────────────────────────────────────
+  useEffect(() => {
+    if (currentStep !== "date" || selectedServiceIds.length === 0) return;
+    let cancelled = false;
+    setIsLoadingDays(true);
+    setAvailableDays([]);
+    getAvailableDays({
+      serviceIds: selectedServiceIds,
+      mode: selectedMode,
+      empId: selectedMode === "specific" ? barber.id : undefined,
+    })
+      .then(res => { if (!cancelled) setAvailableDays(res.days); })
+      .catch(() => { if (!cancelled) setAvailableDays([]); })
+      .finally(() => { if (!cancelled) setIsLoadingDays(false); });
+    return () => { cancelled = true; };
+  }, [currentStep, selectedServiceIds, selectedMode, barber.id]);
+
+  // ── Fetch available slots ──────────────────────────────────────────────────
+  useEffect(() => {
+    if (currentStep !== "time" || !selectedDate || selectedServiceIds.length === 0) return;
+    let cancelled = false;
+    setIsLoadingSlots(true);
+    setAvailableSlots([]);
+    const dateStr = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, "0")}-${String(selectedDate.getDate()).padStart(2, "0")}`;
+    getAvailableSlots({
+      date: dateStr,
+      serviceIds: selectedServiceIds,
+      mode: selectedMode,
+      empId: selectedMode === "specific" ? barber.id : undefined,
+    })
+      .then(res => { if (!cancelled) setAvailableSlots(res.slots); })
+      .catch(() => { if (!cancelled) setAvailableSlots([]); })
+      .finally(() => { if (!cancelled) setIsLoadingSlots(false); });
+    return () => { cancelled = true; };
+  }, [currentStep, selectedDate, selectedServiceIds, selectedMode, barber.id]);
+
   // ── Helpers ────────────────────────────────────────────────────────────────
   const handleClose = () => {
     onOpenChange(false);
@@ -101,8 +157,16 @@ const BookingModal = ({ open, onOpenChange, barber }: BookingModalProps) => {
       setSelectedServiceIds([]);
       setSelectedDate(undefined);
       setSelectedTime(undefined);
+      setSelectedSlotEmpId(undefined);
+      setSelectedSlotBarberName(undefined);
       setSelectedMode("specific");
+      setAvailableDays([]);
+      setAvailableSlots([]);
       setApiError(null);
+      setSubmitError(null);
+      setConfirmedBooking(null);
+      setCustomerName("");
+      setCustomerPhone("");
     }, 300);
   };
 
@@ -110,15 +174,37 @@ const BookingModal = ({ open, onOpenChange, barber }: BookingModalProps) => {
 
   const handleServiceSelect = (id: number) => {
     setSelectedServiceIds([id]);
+    setSelectedDate(undefined);
+    setSelectedTime(undefined);
+    setSelectedSlotEmpId(undefined);
+    setSelectedSlotBarberName(undefined);
+    setAvailableDays([]);
+    setAvailableSlots([]);
+  };
+
+  const handleModeChange = (mode: BookingMode) => {
+    setSelectedMode(mode);
+    setSelectedDate(undefined);
+    setSelectedTime(undefined);
+    setSelectedSlotEmpId(undefined);
+    setSelectedSlotBarberName(undefined);
+    setAvailableDays([]);
+    setAvailableSlots([]);
   };
 
   const handleDateSelect = (date: Date) => {
     setSelectedDate(date);
+    setSelectedTime(undefined);
+    setSelectedSlotEmpId(undefined);
+    setSelectedSlotBarberName(undefined);
+    setAvailableSlots([]);
     setCurrentStep("time");
   };
 
-  const handleTimeSelect = (time: string) => {
-    setSelectedTime(time);
+  const handleTimeSelect = (slot: AvailableSlot) => {
+    setSelectedTime(slot.time);
+    setSelectedSlotEmpId(slot.empId ?? undefined);
+    setSelectedSlotBarberName(slot.barberName ?? undefined);
     setCurrentStep("confirm");
   };
 
@@ -129,16 +215,49 @@ const BookingModal = ({ open, onOpenChange, barber }: BookingModalProps) => {
     } else if (currentStep === "time") {
       setCurrentStep("date");
       setSelectedTime(undefined);
+      setSelectedSlotEmpId(undefined);
+      setSelectedSlotBarberName(undefined);
     } else if (currentStep === "confirm") {
       setCurrentStep("time");
     }
   };
 
   const handleConfirm = async () => {
+    if (!selectedDate || !selectedTime || selectedServiceIds.length === 0) return;
+
+    // Determine the empId to send
+    const empIdToUse =
+      selectedMode === "nearest"
+        ? selectedSlotEmpId
+        : barber.id;
+
+    if (empIdToUse == null) return;
+
+    const dateStr = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, "0")}-${String(selectedDate.getDate()).padStart(2, "0")}`;
+
     setIsSubmitting(true);
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    setIsSubmitting(false);
-    setCurrentStep("success");
+    setSubmitError(null);
+    try {
+      const res = await createBooking({
+        customer: { name: customerName.trim(), phone: customerPhone.trim() },
+        serviceIds: selectedServiceIds,
+        date: dateStr,
+        time: selectedTime,
+        mode: selectedMode,
+        empId: empIdToUse,
+        notes: "",
+      });
+      setConfirmedBooking(res.booking);
+      setCurrentStep("success");
+    } catch (err) {
+      if (err instanceof BookingConflictError) {
+        setSubmitError("المعاد لم يعد متاحًا، من فضلك اختر ميعادًا آخر.");
+      } else {
+        setSubmitError("حدث خطأ أثناء الحجز، يرجى المحاولة مرة أخرى.");
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const formatDateAr = (date?: Date) => {
@@ -149,6 +268,7 @@ const BookingModal = ({ open, onOpenChange, barber }: BookingModalProps) => {
   };
 
   const allowNearest = config?.settings?.allowNearestBarber ?? false;
+  const maxDaysAhead = config?.settings?.maxBookingDaysAhead ?? 60;
 
   // ── Step active id for header ──────────────────────────────────────────────
   const activeStepId = currentStep === "success" ? "confirm" : currentStep;
@@ -205,7 +325,7 @@ const BookingModal = ({ open, onOpenChange, barber }: BookingModalProps) => {
               <div className="px-6 pt-6 pb-0">
                 <div className="flex rounded-xl border border-gray-150 overflow-hidden mb-4">
                   <button
-                    onClick={() => setSelectedMode("specific")}
+                    onClick={() => handleModeChange("specific")}
                     className={`flex-1 py-2.5 text-sm font-medium transition-colors ${selectedMode === "specific"
                       ? "bg-[#D4AF37] text-black"
                       : "bg-white text-gray-500 hover:bg-gray-50"
@@ -214,7 +334,7 @@ const BookingModal = ({ open, onOpenChange, barber }: BookingModalProps) => {
                     مع {barber.name}
                   </button>
                   <button
-                    onClick={() => setSelectedMode("nearest")}
+                    onClick={() => handleModeChange("nearest")}
                     className={`flex-1 py-2.5 text-sm font-medium transition-colors ${selectedMode === "nearest"
                       ? "bg-[#D4AF37] text-black"
                       : "bg-white text-gray-500 hover:bg-gray-50"
@@ -249,7 +369,13 @@ const BookingModal = ({ open, onOpenChange, barber }: BookingModalProps) => {
       case "date":
         return (
           <div dir="rtl">
-            <BookingCalendar selectedDate={selectedDate} onDateSelect={handleDateSelect} />
+            <BookingCalendar
+              selectedDate={selectedDate}
+              onDateSelect={handleDateSelect}
+              availableDays={availableDays}
+              isLoading={isLoadingDays}
+              maxDaysAhead={maxDaysAhead}
+            />
             <div className="px-6 pb-6">
               <button
                 onClick={handleBack}
@@ -265,7 +391,12 @@ const BookingModal = ({ open, onOpenChange, barber }: BookingModalProps) => {
       case "time":
         return (
           <div dir="rtl">
-            <BookingTimeSlots selectedTime={selectedTime} onTimeSelect={handleTimeSelect} />
+            <BookingTimeSlots
+              selectedTime={selectedTime}
+              onTimeSelect={handleTimeSelect}
+              slots={availableSlots}
+              isLoading={isLoadingSlots}
+            />
             <div className="px-6 pb-6">
               <button
                 onClick={handleBack}
@@ -278,23 +409,53 @@ const BookingModal = ({ open, onOpenChange, barber }: BookingModalProps) => {
           </div>
         );
 
-      case "confirm":
+      case "confirm": {
+        const confirmBarberName =
+          selectedMode === "nearest"
+            ? (selectedSlotBarberName ?? "أقرب حلاق متاح")
+            : barber.name;
+        const canSubmit =
+          customerName.trim().length >= 2 && customerPhone.trim().length >= 8;
         return (
           <div className="p-6" dir="rtl">
-            <h3 className="text-xl font-heading font-bold text-gray-900 mb-6">تأكيد الحجز</h3>
+            <h3 className="text-xl font-heading font-bold text-gray-900 mb-4">تأكيد الحجز</h3>
 
-            <div className="bg-gray-50 rounded-xl p-5 mb-6 border border-gray-100 space-y-4">
+            {/* Customer fields */}
+            <div className="space-y-3 mb-5">
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">الاسم</label>
+                <input
+                  type="text"
+                  value={customerName}
+                  onChange={e => setCustomerName(e.target.value)}
+                  placeholder="مثال: تارق سعد"
+                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-800 placeholder-gray-300 focus:outline-none focus:border-[#D4AF37] focus:ring-1 focus:ring-[#D4AF37]/30 transition-colors"
+                  dir="rtl"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">رقم الهاتف</label>
+                <input
+                  type="tel"
+                  value={customerPhone}
+                  onChange={e => setCustomerPhone(e.target.value)}
+                  placeholder="مثال: 01XXXXXXXXX"
+                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-800 placeholder-gray-300 focus:outline-none focus:border-[#D4AF37] focus:ring-1 focus:ring-[#D4AF37]/30 transition-colors"
+                  dir="ltr"
+                />
+              </div>
+            </div>
+
+            <div className="bg-gray-50 rounded-xl p-5 mb-4 border border-gray-100 space-y-4">
               {/* Barber */}
               <div className="flex items-center gap-4">
                 <img
                   src={barber.image}
-                  alt={barber.name}
+                  alt={confirmBarberName}
                   className="w-12 h-12 rounded-full object-cover object-top border-2 border-[#D4AF37]/30"
                 />
                 <div>
-                  <h4 className="font-bold text-gray-900 text-sm">
-                    {selectedMode === "nearest" ? "أقرب حلاق متاح" : barber.name}
-                  </h4>
+                  <h4 className="font-bold text-gray-900 text-sm">{confirmBarberName}</h4>
                   <p className="text-gray-400 text-xs">{barber.specialty || barber.role || "حلاق محترف"}</p>
                 </div>
               </div>
@@ -335,6 +496,12 @@ const BookingModal = ({ open, onOpenChange, barber }: BookingModalProps) => {
               </div>
             </div>
 
+            {submitError && (
+              <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm text-center" dir="rtl">
+                {submitError}
+              </div>
+            )}
+
             <div className="flex gap-3">
               <button
                 onClick={handleBack}
@@ -345,8 +512,8 @@ const BookingModal = ({ open, onOpenChange, barber }: BookingModalProps) => {
               </button>
               <button
                 onClick={handleConfirm}
-                disabled={isSubmitting}
-                className="flex-[2] py-3 px-4 rounded-xl bg-[#D4AF37] text-black font-bold hover:bg-[#C4A030] transition-colors flex items-center justify-center gap-2 disabled:opacity-70 shadow-md shadow-[#D4AF37]/20"
+                disabled={isSubmitting || !canSubmit}
+                className="flex-[2] py-3 px-4 rounded-xl bg-[#D4AF37] text-black font-bold hover:bg-[#C4A030] transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-md shadow-[#D4AF37]/20"
               >
                 {isSubmitting ? (
                   <><Loader2 className="w-5 h-5 animate-spin" />جاري التأكيد...</>
@@ -355,33 +522,47 @@ const BookingModal = ({ open, onOpenChange, barber }: BookingModalProps) => {
             </div>
           </div>
         );
+      }
 
-      case "success":
+      case "success": {
+        const displayBarber =
+          confirmedBooking?.barberName ??
+          (selectedMode === "nearest" ? selectedSlotBarberName : barber.name) ??
+          barber.name;
         return (
           <div className="p-6 text-center" dir="rtl">
             <div className="w-20 h-20 rounded-full bg-green-50 border-2 border-green-200 flex items-center justify-center mx-auto mb-6">
               <Check className="w-10 h-10 text-green-500" />
             </div>
             <h3 className="text-2xl font-heading font-bold text-gray-900 mb-2">تم تأكيد الحجز!</h3>
-            <p className="text-gray-500 mb-6 text-sm leading-relaxed">
-              تم حجز موعدك مع <strong className="text-gray-800">
-                {selectedMode === "nearest" ? "أقرب حلاق متاح" : barber.name}
-              </strong> بنجاح.
+            <p className="text-gray-500 mb-1 text-sm leading-relaxed">
+              تم حجز موعدك مع <strong className="text-gray-800">{displayBarber}</strong> بنجاح.
             </p>
+            {confirmedBooking?.bookingCode && (
+              <p className="text-[#D4AF37] font-bold text-sm mb-6">
+                كود الحجز: {confirmedBooking.bookingCode}
+              </p>
+            )}
 
             <div className="bg-gray-50 rounded-xl p-4 mb-6 text-right border border-gray-100 space-y-2">
-              {selectedService && (
+              {(confirmedBooking?.services?.[0] ?? selectedService?.name) && (
                 <div className="flex justify-between items-center">
-                  <span className="font-medium text-gray-800 text-sm">{selectedService.name}</span>
+                  <span className="font-medium text-gray-800 text-sm">
+                    {confirmedBooking?.services?.[0] ?? selectedService?.name}
+                  </span>
                   <span className="text-gray-400 text-xs">الخدمة</span>
                 </div>
               )}
               <div className="flex justify-between items-center">
-                <span className="font-medium text-gray-800 text-sm">{formatDateAr(selectedDate)}</span>
+                <span className="font-medium text-gray-800 text-sm">
+                  {confirmedBooking?.date ? formatDateAr(new Date(confirmedBooking.date + "T00:00:00")) : formatDateAr(selectedDate)}
+                </span>
                 <span className="text-gray-400 text-xs">التاريخ</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="font-medium text-gray-800 text-sm">{selectedTime}</span>
+                <span className="font-medium text-gray-800 text-sm">
+                  {confirmedBooking?.time ?? selectedTime}
+                </span>
                 <span className="text-gray-400 text-xs">الوقت</span>
               </div>
             </div>
@@ -394,6 +575,7 @@ const BookingModal = ({ open, onOpenChange, barber }: BookingModalProps) => {
             </button>
           </div>
         );
+      }
     }
   };
 

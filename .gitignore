@@ -12,7 +12,9 @@ dist
 dist-ssr
 *.local
 
+.next
 .history
+.next
 
 # Editor directories and files
 .vscode/*
@@ -24,3 +26,4 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
