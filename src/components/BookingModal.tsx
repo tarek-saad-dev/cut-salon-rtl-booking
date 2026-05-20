@@ -14,13 +14,15 @@ import {
   getBookingServices,
   getAvailableDays,
   getAvailableSlots,
-  createBooking,
+  createBookingPlan,
   BookingConflictError,
+  BookingPlanError,
   type BookingConfigResponse,
   type BookingService,
   type AvailableDay,
   type AvailableSlot,
-  type CreatedBooking,
+  type BookingPlanResponse,
+  type BookingPlanItem,
 } from "@/lib/publicBookingApi";
 
 export interface BarberBookingInfo {
@@ -77,7 +79,7 @@ const BookingModal = ({ open, onOpenChange, barber, initialMode }: BookingModalP
   const [selectedMode, setSelectedMode] = useState<BookingMode>(initialMode ?? "specific");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [confirmedBooking, setConfirmedBooking] = useState<CreatedBooking | null>(null);
+  const [confirmedPlan, setConfirmedPlan] = useState<BookingPlanResponse | null>(null);
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
 
@@ -211,7 +213,7 @@ const BookingModal = ({ open, onOpenChange, barber, initialMode }: BookingModalP
       setAvailableSlots([]);
       setApiError(null);
       setSubmitError(null);
-      setConfirmedBooking(null);
+      setConfirmedPlan(null);
       setCustomerName("");
       setCustomerPhone("");
     }, 300);
@@ -326,40 +328,55 @@ const BookingModal = ({ open, onOpenChange, barber, initialMode }: BookingModalP
     // Determine the empId to send — prefer slot.empId if present (covers both modes)
     const empIdToUse = selectedSlot?.empId ?? barber.id;
 
-    if (empIdToUse == null) return;
-
     const actualDate = getActualBookingDate(selectedDate, selectedSlot);
     const dateStr = `${actualDate.getFullYear()}-${String(actualDate.getMonth() + 1).padStart(2, "0")}-${String(actualDate.getDate()).padStart(2, "0")}`;
+    const dayOffset = selectedSlot?.dayOffset ?? 0;
 
     if (process.env.NODE_ENV === "development") {
       console.log("[booking submit] selectedDate:", selectedDate.toISOString().slice(0, 10));
       console.log("[booking submit] selectedSlot:", selectedSlot);
-      console.log("[booking submit] dayOffset:", selectedSlot?.dayOffset ?? 0);
+      console.log("[booking submit] dayOffset:", dayOffset);
       console.log("[booking submit] actualBookingDate:", dateStr);
+      console.log("[booking submit] serviceIds:", selectedServiceIds);
+      console.log("[booking submit] mode:", selectedMode);
+      console.log("[booking submit] empId:", empIdToUse);
     }
 
     setIsSubmitting(true);
     setSubmitError(null);
     try {
-      const res = await createBooking({
+      const res = await createBookingPlan({
         customer: { name: customerName.trim(), phone: customerPhone.trim() },
         serviceIds: selectedServiceIds,
         date: dateStr,
         time: selectedTime,
+        dayOffset,
         mode: selectedMode,
-        empId: empIdToUse,
+        empId: empIdToUse ?? undefined,
         notes: "",
       });
-      setConfirmedBooking(res.booking);
+
+      if (process.env.NODE_ENV === "development") {
+        console.log("[booking submit] plan response:", res);
+      }
+
+      setConfirmedPlan(res);
       setCurrentStep("success");
     } catch (err) {
       if (err instanceof BookingConflictError) {
-        // Clear slots + go back to time so useEffect re-fetches fresh slots
         setAvailableSlots([]);
         setCurrentStep("time");
         setSelectedTime(undefined);
         setSelectedSlot(undefined);
-        setSubmitError("المعاد لم يعد متاحًا، من فضلك اختر ميعادًا آخر.");
+        setSubmitError(
+          (err as BookingConflictError).serverMessage ??
+          "المعاد لم يعد متاحًا، من فضلك اختر ميعادًا آخر."
+        );
+      } else if (err instanceof BookingPlanError) {
+        setSubmitError(
+          (err as BookingPlanError).serverMessage ??
+          "تعذر تأكيد الحجز، يرجى اختيار ميعاد آخر أو تعديل الخدمات."
+        );
       } else {
         setSubmitError("حدث خطأ أثناء الحجز، يرجى المحاولة مرة أخرى.");
       }
@@ -708,7 +725,7 @@ const BookingModal = ({ open, onOpenChange, barber, initialMode }: BookingModalP
                 className="flex-[2] py-3 px-4 rounded-xl bg-[#D4AF37] text-black font-bold hover:bg-[#C4A030] transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-md shadow-[#D4AF37]/20"
               >
                 {isSubmitting ? (
-                  <><Loader2 className="w-5 h-5 animate-spin" />جاري التأكيد...</>
+                  <><Loader2 className="w-5 h-5 animate-spin" />جاري تسجيل الخدمات...</>
                 ) : "تأكيد الحجز"}
               </button>
             </div>
@@ -717,52 +734,125 @@ const BookingModal = ({ open, onOpenChange, barber, initialMode }: BookingModalP
       }
 
       case "success": {
-        const displayBarber =
-          confirmedBooking?.barberName ??
-          selectedSlot?.barberName ??
-          barber.name;
+        const plan = confirmedPlan?.plan ?? [];
+        const primaryEmpName = plan[0]?.empName ?? selectedSlot?.barberName ?? barber.name;
+        const selectedEmpId = selectedSlot?.empId ?? barber.id;
+
+        const formatPlanTime = (t: string) => {
+          const [hStr, mStr] = t.split(":");
+          const h = parseInt(hStr, 10);
+          const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+          const ampm = h >= 12 ? "م" : "ص";
+          return `${h12}:${mStr} ${ampm}`;
+        };
+
         return (
           <div className="p-6 text-center" dir="rtl">
-            <div className="w-20 h-20 rounded-full bg-green-50 border-2 border-green-200 flex items-center justify-center mx-auto mb-6">
+            <div className="w-20 h-20 rounded-full bg-green-50 border-2 border-green-200 flex items-center justify-center mx-auto mb-5">
               <Check className="w-10 h-10 text-green-500" />
             </div>
             <h3 className="text-2xl font-heading font-bold text-gray-900 mb-2">تم تأكيد الحجز!</h3>
             <p className="text-gray-500 mb-1 text-sm leading-relaxed">
-              تم حجز موعدك مع <strong className="text-gray-800">{displayBarber}</strong> بنجاح.
+              تم حجز موعدك مع <strong className="text-gray-800">{primaryEmpName}</strong> بنجاح.
             </p>
             {customerName.trim() && (
               <p className="text-gray-400 text-xs mb-2">باسم: {customerName.trim()}</p>
             )}
-            {confirmedBooking?.bookingCode && (
-              <p className="text-[#D4AF37] font-bold text-sm mb-6">
-                كود الحجز: {confirmedBooking.bookingCode}
-              </p>
+
+            {/* Booking codes */}
+            {confirmedPlan?.bookingCodes && confirmedPlan.bookingCodes.length > 0 && (
+              <div className="mb-5">
+                {confirmedPlan.bookingCodes.length === 1 ? (
+                  <p className="text-[#D4AF37] font-bold text-sm">
+                    كود الحجز: {confirmedPlan.bookingCodes[0]}
+                  </p>
+                ) : (
+                  <div className="space-y-1">
+                    <p className="text-gray-500 text-xs">أرقام الحجز:</p>
+                    <div className="flex flex-wrap gap-2 justify-center">
+                      {confirmedPlan.bookingCodes.map(code => (
+                        <span key={code} className="inline-block bg-[#D4AF37]/10 text-[#D4AF37] font-bold text-sm px-3 py-1 rounded-lg border border-[#D4AF37]/20">
+                          {code}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             )}
 
-            <div className="bg-gray-50 rounded-xl p-4 mb-6 text-right border border-gray-100 space-y-2">
-              {(confirmedBooking?.services?.[0] ?? selectedService?.name) && (
+            {/* Plan Timeline */}
+            {plan.length > 0 && (
+              <div className="bg-gray-50 rounded-xl p-4 mb-4 text-right border border-gray-100">
+                <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest mb-3">تفاصيل الموعد</p>
+                <div className="space-y-0">
+                  {plan.map((item: BookingPlanItem, idx: number) => {
+                    const isRerouted = selectedEmpId != null && item.empId !== selectedEmpId;
+                    const isLast = idx === plan.length - 1;
+                    return (
+                      <div key={item.bookingId} className="flex gap-3">
+                        {/* Timeline dot + line */}
+                        <div className="flex flex-col items-center pt-0.5">
+                          <div className="w-2.5 h-2.5 rounded-full bg-[#D4AF37] border-2 border-[#D4AF37]/30 flex-shrink-0" />
+                          {!isLast && <div className="w-px flex-1 bg-gray-200 my-0.5" />}
+                        </div>
+                        {/* Content */}
+                        <div className={`flex-1 ${!isLast ? "pb-4" : "pb-1"}`}>
+                          <div className="flex items-baseline justify-between gap-2">
+                            <span className="font-bold text-gray-900 text-sm">{item.serviceName}</span>
+                            <span className="text-[#D4AF37] font-bold text-xs tabular-nums">{formatPlanTime(item.startTime)}</span>
+                          </div>
+                          <div className="flex items-center gap-2 mt-0.5 text-xs text-gray-500">
+                            <span>{item.empName}</span>
+                            <span className="text-gray-300">·</span>
+                            <span>{item.durationMinutes} دقيقة</span>
+                            {item.price > 0 && (
+                              <>
+                                <span className="text-gray-300">·</span>
+                                <span>{item.price} جنيه</span>
+                              </>
+                            )}
+                          </div>
+                          {isRerouted && (
+                            <p className="text-[11px] text-amber-600 bg-amber-50 rounded-md px-2 py-0.5 mt-1 inline-block border border-amber-100">
+                              تم توجيه هذه الخدمة للمتخصص المتاح
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Totals */}
+            <div className="bg-gray-50 rounded-xl p-4 mb-5 text-right border border-gray-100 space-y-2">
+              {confirmedPlan?.totalDurationMinutes != null && (
                 <div className="flex justify-between items-center">
-                  <span className="font-medium text-gray-800 text-sm">
-                    {confirmedBooking?.services?.[0] ?? selectedService?.name}
-                  </span>
-                  <span className="text-gray-400 text-xs">الخدمة</span>
+                  <span className="font-medium text-gray-800 text-sm">{confirmedPlan.totalDurationMinutes} دقيقة</span>
+                  <span className="text-gray-400 text-xs">إجمالي المدة</span>
                 </div>
               )}
-              <div className="flex justify-between items-center">
-                <span className="font-medium text-gray-800 text-sm">
-                  {confirmedBooking?.date ? formatDateAr(new Date(confirmedBooking.date + "T00:00:00")) : formatDateAr(selectedDate)}
-                </span>
-                <span className="text-gray-400 text-xs">التاريخ</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="font-medium text-gray-800 text-sm">
-                  {confirmedBooking?.time
-                    ? (selectedSlot?.label ?? confirmedBooking.time)
-                    : (selectedSlot?.label ?? selectedTime)}
-                </span>
-                <span className="text-gray-400 text-xs">الوقت</span>
-              </div>
+              {confirmedPlan?.totalPrice != null && (
+                <div className="flex justify-between items-center">
+                  <span className="font-medium text-[#D4AF37] text-sm">{confirmedPlan.totalPrice} جنيه</span>
+                  <span className="text-gray-400 text-xs">الإجمالي</span>
+                </div>
+              )}
+              {plan[0]?.date && (
+                <div className="flex justify-between items-center">
+                  <span className="font-medium text-gray-800 text-sm">
+                    {formatDateAr(new Date(plan[0].date + "T00:00:00"))}
+                  </span>
+                  <span className="text-gray-400 text-xs">التاريخ</span>
+                </div>
+              )}
             </div>
+
+            {confirmedPlan?.message && (
+              <p className="text-gray-500 text-xs mb-4">{confirmedPlan.message}</p>
+            )}
 
             <button
               onClick={handleClose}

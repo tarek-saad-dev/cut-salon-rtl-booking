@@ -173,7 +173,7 @@ export async function getAvailableSlots(
   );
 }
 
-// ─── Create booking ───────────────────────────────────────────────────────────
+// ─── Create booking (legacy — kept for reference) ────────────────────────────
 
 export interface CreateBookingCustomer {
   name: string;
@@ -204,7 +204,7 @@ export interface CreateBookingResponse {
 }
 
 export class BookingConflictError extends Error {
-  constructor() {
+  constructor(public serverMessage?: string) {
     super("CONFLICT");
     this.name = "BookingConflictError";
   }
@@ -228,6 +228,79 @@ export async function createBooking(
     if (error instanceof BookingConflictError) throw error;
     if (process.env.NODE_ENV === "development") {
       console.error("[public booking api] createBooking", url, error);
+    }
+    throw error;
+  }
+}
+
+// ─── Booking Plan (multi-service) ────────────────────────────────────────────
+
+export interface BookingPlanRequest {
+  customer: CreateBookingCustomer;
+  serviceIds: number[];
+  date: string;
+  time: string;
+  dayOffset?: number;
+  mode: "specific" | "nearest";
+  empId?: number;
+  notes?: string;
+}
+
+export interface BookingPlanItem {
+  serviceId: number;
+  serviceName: string;
+  empId: number;
+  empName: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  durationMinutes: number;
+  price: number;
+  bookingCode: string;
+  bookingId: number;
+}
+
+export interface BookingPlanResponse {
+  ok: boolean;
+  plan: BookingPlanItem[];
+  totalDurationMinutes: number;
+  totalPrice: number;
+  bookingCodes: string[];
+  message?: string;
+}
+
+export class BookingPlanError extends Error {
+  constructor(public serverMessage?: string) {
+    super(serverMessage ?? "BOOKING_PLAN_ERROR");
+    this.name = "BookingPlanError";
+  }
+}
+
+export async function createBookingPlan(
+  body: BookingPlanRequest,
+): Promise<BookingPlanResponse> {
+  const url = buildBookingApiUrl("/api/public/booking/plan");
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      cache: "no-store",
+      body: JSON.stringify(body),
+    });
+    if (res.status === 409) {
+      const data = await res.json().catch(() => ({}));
+      throw new BookingConflictError(data?.message);
+    }
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new BookingPlanError(data?.message ?? `HTTP ${res.status}`);
+    }
+    return res.json() as Promise<BookingPlanResponse>;
+  } catch (error) {
+    if (error instanceof BookingConflictError) throw error;
+    if (error instanceof BookingPlanError) throw error;
+    if (process.env.NODE_ENV === "development") {
+      console.error("[public booking api] createBookingPlan", url, error);
     }
     throw error;
   }
