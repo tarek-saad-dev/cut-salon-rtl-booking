@@ -138,16 +138,63 @@ const BookingModal = ({ open, onOpenChange, barber, initialMode }: BookingModalP
     setIsLoadingSlots(true);
     setAvailableSlots([]);
     const dateStr = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, "0")}-${String(selectedDate.getDate()).padStart(2, "0")}`;
-    getAvailableSlots({
+
+    const params = {
       date: dateStr,
       serviceIds: selectedServiceIds,
       mode: selectedMode,
       empId: selectedMode === "specific" ? barber.id : undefined,
-    })
-      .then(res => { if (!cancelled) setAvailableSlots(res.slots); })
+    };
+
+    if (process.env.NODE_ENV === "development") {
+      console.group("[booking slots] Fetching slots");
+      console.log("[booking slots] config:", config ? { slotIntervalMinutes: config.settings.slotIntervalMinutes, minNoticeMinutes: config.settings.minNoticeMinutes, maxBookingDaysAhead: config.settings.maxBookingDaysAhead } : "not loaded");
+      console.log("[booking slots] selected barber:", { id: barber.id, name: barber.name });
+      console.log("[booking slots] selected services:", selectedServiceIds, selectedServices.map(s => ({ name: s.name, duration: s.durationMinutes })));
+      console.log("[booking slots] total duration:", totalDuration, "minutes");
+      console.log("[booking slots] request params:", params);
+    }
+
+    getAvailableSlots(params)
+      .then(res => {
+        if (cancelled) return;
+
+        if (process.env.NODE_ENV === "development") {
+          const allSlots = res.slots;
+          const availOnly = allSlots.filter(s => s.available);
+          const unavailOnly = allSlots.filter(s => !s.available);
+          console.log("[booking slots] API response:", { ok: res.ok, date: res.date, mode: res.mode, empId: res.empId });
+          console.log("[booking slots] total slots from API:", allSlots.length);
+          console.log("[booking slots] available:", availOnly.length, "unavailable:", unavailOnly.length);
+          console.log("[booking slots] first slot:", allSlots[0]);
+          console.log("[booking slots] last slot:", allSlots[allSlots.length - 1]);
+          console.log("[booking slots] first available:", availOnly[0]);
+          console.log("[booking slots] last available:", availOnly[availOnly.length - 1]);
+
+          // Detect interval between consecutive slots
+          if (allSlots.length >= 2) {
+            const toMin = (t: string) => { const [h, m] = t.split(":").map(Number); return h * 60 + m; };
+            const intervals = new Set<number>();
+            for (let i = 1; i < Math.min(allSlots.length, 10); i++) {
+              intervals.add(toMin(allSlots[i].time) - toMin(allSlots[i - 1].time));
+            }
+            console.log("[booking slots] detected interval(s) between slots:", [...intervals].map(m => m + " min"));
+            console.log("[booking slots] slot interval source: BACKEND (slots come pre-generated from API, frontend does NOT generate them)");
+          }
+
+          // Log sample of unavailable reasons
+          if (unavailOnly.length > 0) {
+            console.log("[booking slots] unavailable slot reasons (first 5):", unavailOnly.slice(0, 5).map(s => ({ time: s.time, reason: s.reason })));
+          }
+          console.groupEnd();
+        }
+
+        setAvailableSlots(res.slots);
+      })
       .catch(() => { if (!cancelled) setAvailableSlots([]); })
       .finally(() => { if (!cancelled) setIsLoadingSlots(false); });
     return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentStep, selectedDate, selectedServiceIds, selectedMode, barber.id]);
 
   // ── Helpers ────────────────────────────────────────────────────────────────
