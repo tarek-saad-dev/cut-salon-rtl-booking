@@ -179,15 +179,6 @@ const BookingModal = ({ open, onOpenChange, barber }: BookingModalProps) => {
     setAvailableSlots([]);
   };
 
-  const handleModeChange = (mode: BookingMode) => {
-    setSelectedMode(mode);
-    setSelectedDate(undefined);
-    setSelectedTime(undefined);
-    setSelectedSlot(undefined);
-    setAvailableDays([]);
-    setAvailableSlots([]);
-  };
-
   const handleDateSelect = (date: Date) => {
     setSelectedDate(date);
     setSelectedTime(undefined);
@@ -265,7 +256,6 @@ const BookingModal = ({ open, onOpenChange, barber }: BookingModalProps) => {
     }).format(date);
   };
 
-  const allowNearest = config?.settings?.allowNearestBarber ?? false;
   const maxDaysAhead = config?.settings?.maxBookingDaysAhead ?? 60;
 
   // ── Step active id for header ──────────────────────────────────────────────
@@ -318,32 +308,6 @@ const BookingModal = ({ open, onOpenChange, barber }: BookingModalProps) => {
       case "service":
         return (
           <div dir="rtl">
-            {/* Nearest barber option */}
-            {allowNearest && (
-              <div className="px-6 pt-6 pb-0">
-                <div className="flex rounded-xl border border-gray-150 overflow-hidden mb-4">
-                  <button
-                    onClick={() => handleModeChange("specific")}
-                    className={`flex-1 py-2.5 text-sm font-medium transition-colors ${selectedMode === "specific"
-                      ? "bg-[#D4AF37] text-black"
-                      : "bg-white text-gray-500 hover:bg-gray-50"
-                      }`}
-                  >
-                    مع {barber.name}
-                  </button>
-                  <button
-                    onClick={() => handleModeChange("nearest")}
-                    className={`flex-1 py-2.5 text-sm font-medium transition-colors ${selectedMode === "nearest"
-                      ? "bg-[#D4AF37] text-black"
-                      : "bg-white text-gray-500 hover:bg-gray-50"
-                      }`}
-                  >
-                    أقرب حلاق متاح
-                  </button>
-                </div>
-              </div>
-            )}
-
             <BookingServiceSelect
               services={services}
               selectedIds={selectedServiceIds}
@@ -413,9 +377,7 @@ const BookingModal = ({ open, onOpenChange, barber }: BookingModalProps) => {
         );
 
       case "confirm": {
-        const confirmBarberName =
-          selectedSlot?.barberName ??
-          (selectedMode === "nearest" ? "أقرب حلاق متاح" : barber.name);
+        const confirmBarberName = selectedSlot?.barberName ?? barber.name;
         const slotDuration = selectedSlot?.durationMinutes ?? selectedService?.durationMinutes;
         const slotLabel = selectedSlot?.label ?? selectedTime;
         const canSubmit =
@@ -605,7 +567,7 @@ const BookingModal = ({ open, onOpenChange, barber }: BookingModalProps) => {
         <BookingStepHeader
           steps={steps}
           currentStep={activeStepId}
-          barberName={selectedMode === "nearest" ? "أقرب حلاق متاح" : barber.name}
+          barberName={barber.name}
           onClose={handleClose}
         />
 
@@ -620,7 +582,6 @@ const BookingModal = ({ open, onOpenChange, barber }: BookingModalProps) => {
               selectedTime={selectedTime}
               service={selectedService?.name}
               serviceDuration={selectedService?.durationMinutes}
-              mode={selectedMode}
             />
           </div>
 
@@ -665,9 +626,7 @@ const BookingModal = ({ open, onOpenChange, barber }: BookingModalProps) => {
               className="w-9 h-9 rounded-full object-cover object-top border border-[#D4AF37]/30 flex-shrink-0"
             />
             <div className="flex-1 min-w-0">
-              <p className="font-bold text-white text-sm leading-none">
-                {selectedMode === "nearest" ? "أقرب حلاق متاح" : barber.name}
-              </p>
+              <p className="font-bold text-white text-sm leading-none">{barber.name}</p>
               <p className="text-white/50 text-xs mt-0.5">{barber.specialty || barber.role || "حلاق محترف"}</p>
             </div>
             {selectedDate && selectedTime && currentStep === "time" && (

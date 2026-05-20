@@ -14,10 +14,11 @@ const LOCAL_IMAGE_MAP: Record<string, string> = {
   "باسم": "/barber-bassem.jpg",
   "كريم": "/barber-kareem.jpg",
   "زياد": "/young-ziad.jpg",
-  "زيزو": "/barber-ziad.jpg",
+  "ذياد": "/barber-ziad.jpg",
   "عمر": "/omar.png",
   "يوسف": "/yousef.jpg",
-  "أحمد": "/ahmed.jpg",
+  "أحمد الصنايعي": "/ahmed.jpg",
+  "احمد": "/ahmed.jpg",
 };
 
 const FALLBACK_BARBERS: DisplayBarber[] = [
@@ -25,7 +26,7 @@ const FALLBACK_BARBERS: DisplayBarber[] = [
   { name: "باسم", role: "حلاق", image: "/barber-bassem.jpg", rating: 4.7, reviewCount: "(189)", location: "Cut Salon · الإسكندرية", buttonText: "احجز مع باسم" },
   { name: "كريم", role: "حلاق", image: "/barber-kareem.jpg", rating: 4.9, reviewCount: "(328)", location: "Cut Salon · الإسكندرية", buttonText: "احجز مع كريم" },
   { name: "زياد", role: "أخصائي العناية بالبشرة", image: "/young-ziad.jpg", rating: 4.8, reviewCount: "(143)", location: "Cut Salon · الإسكندرية", buttonText: "احجز مع زياد" },
-  { name: "زيزو", role: "حلاق", image: "/barber-ziad.jpg", rating: 4.7, reviewCount: "(142)", location: "Cut Salon · الإسكندرية", buttonText: "احجز مع زيزو" },
+  { name: "ذياد", role: "حلاق", image: "/barber-ziad.jpg", rating: 4.7, reviewCount: "(142)", location: "Cut Salon · الإسكندرية", buttonText: "احجز مع ذiad" },
   { name: "عمر", role: "حلاق", image: "/omar.png", rating: 4.8, reviewCount: "(189)", location: "Cut Salon · الإسكندرية", buttonText: "احجز مع عمر" },
   { name: "أحمد", role: "حلاق", image: "/ahmed.jpg", rating: 4.9, reviewCount: "(203)", location: "Cut Salon · الإسكندرية", buttonText: "احجز مع أحمد" },
 ];
