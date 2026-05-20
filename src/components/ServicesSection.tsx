@@ -1,211 +1,138 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
-import useEmblaCarousel from "embla-carousel-react";
-import { Scissors, Droplets, Sparkles, Crown, ChevronLeft, ChevronRight } from "lucide-react";
+import { useState } from "react";
+import { Scissors, Droplets, Sparkles, Crown } from "lucide-react";
 
-const hairServices = [
-  { name: "قص شعر (Haircut)", price: "150 جنيه" },
-  { name: "تحديد لحية (Beard)", price: "100 جنيه" },
-  { name: "قص شعر + لحية (Hair + Beard)", price: "200 جنيه" },
-  { name: "سيشوار (Blow-dry)", price: "80 جنيه" },
-  { name: "تصميم على الشعر (Hair Design)", price: "50 جنيه" },
+const categories = [
+  {
+    key: "hair",
+    label: "خدمات الشعر",
+    icon: Scissors,
+    services: [
+      { name: "قص شعر", price: "150 جنيه" },
+      { name: "تحديد لحية", price: "100 جنيه" },
+      { name: "قص شعر + لحية", price: "200 جنيه" },
+      { name: "سيشوار", price: "80 جنيه" },
+      { name: "تصميم على الشعر", price: "50 جنيه" },
+    ],
+  },
+  {
+    key: "skin",
+    label: "العناية بالبشرة",
+    icon: Droplets,
+    services: [
+      { name: "تنظيف بشرة عادي", price: "200 جنيه" },
+      { name: "تنظيف بشرة عميق", price: "300 جنيه" },
+      { name: "تنظيف الأنف", price: "50 جنيه" },
+      { name: "ماسك للبشرة", price: "30 جنيه" },
+    ],
+  },
+  {
+    key: "extra",
+    label: "خدمات إضافية",
+    icon: Sparkles,
+    services: [
+      { name: "إزالة شعر بالشمع", price: "100 جنيه" },
+      { name: "سبراي تكثيف الشعر", price: "50 جنيه" },
+      { name: "صبغة شعر عادية", price: "50 جنيه" },
+      { name: "صبغة شعر + لحية", price: "200 جنيه" },
+    ],
+  },
+  {
+    key: "special",
+    label: "خدمات خاصة",
+    icon: Crown,
+    services: [
+      { name: "بروتين للشعر القصير", price: "500 جنيه" },
+      { name: "بروتين للشعر الطويل", price: "700 جنيه" },
+      { name: "فرد الشعر", price: "200 جنيه" },
+      { name: "تلوين الشعر", price: "100 جنيه" },
+      { name: "هايلايت فضي", price: "700 جنيه" },
+    ],
+  },
 ];
-
-const skinServices = [
-  { name: "تنظيف بشرة عادي (Basic Facial)", price: "200 جنيه" },
-  { name: "تنظيف بشرة عميق (Deep Facial)", price: "300 جنيه" },
-  { name: "تنظيف الأنف (Nose Cleaning)", price: "50 جنيه" },
-  { name: "ماسك للبشرة (Mask)", price: "30 جنيه" },
-];
-
-const extraServices = [
-  { name: "إزالة شعر بالشمع (Wax)", price: "100 جنيه" },
-  { name: "سبراي تكثيف الشعر (Toppik Spray)", price: "50 جنيه" },
-  { name: "صبغة شعر عادية (Normal Hair Dye)", price: "50 جنيه" },
-  { name: "صبغة شعر + لحية (Hair + Beard Dye)", price: "200 جنيه" },
-];
-
-const specialServices = [
-  { name: "بروتين للشعر القصير (Short Hair Protein)", price: "500 جنيه" },
-  { name: "بروتين للشعر الطويل (Long Hair Protein)", price: "700 جنيه" },
-  { name: "فرد الشعر (Hair Straightening)", price: "200 جنيه" },
-  { name: "تلوين الشعر (Hair Color)", price: "100 جنيه" },
-  { name: "هايلايت فضي (Silver Highlights)", price: "700 جنيه" },
-];
-
-interface ServiceCardProps {
-  title: string;
-  icon: React.ReactNode;
-  services: { name: string; price: string }[];
-  delay: string;
-}
-
-const ServiceCard = ({ title, icon, services, delay }: ServiceCardProps) => (
-  <div
-    className="gold-border-glow rounded-xl bg-card overflow-hidden group transition-all hover:-translate-y-1 hover:shadow-[0_8px_30px_hsl(43_90%_55%/0.12)] animate-fade-up"
-    style={{ animationDelay: delay }}
-  >
-    <div className="p-6">
-      <div className="flex items-center gap-3 mb-5">
-        <div className="w-12 h-12 rounded-lg gold-shimmer flex items-center justify-center">
-          {icon}
-        </div>
-        <h3 className="font-heading text-xl font-bold text-gold-gradient">{title}</h3>
-      </div>
-      <ul className="space-y-3">
-        {services.map((service, idx) => (
-          <li
-            key={idx}
-            className="flex items-center justify-between py-2 border-b border-border/50 last:border-0"
-          >
-            <span className="text-muted-foreground text-sm">{service.name}</span>
-            <span className="font-heading font-bold text-primary">{service.price}</span>
-          </li>
-        ))}
-      </ul>
-    </div>
-  </div>
-);
 
 const ServicesSection = () => {
-  // Embla Carousel setup
-  const [emblaRef, emblaApi] = useEmblaCarousel({
-    direction: "rtl",
-    align: "start",
-    loop: false,
-    skipSnaps: false,
-    dragFree: false,
-  });
-
-  const [selectedIndex, setSelectedIndex] = useState(0);
-  const [scrollSnaps, setScrollSnaps] = useState<number[]>([]);
-
-  const scrollTo = useCallback(
-    (index: number) => emblaApi && emblaApi.scrollTo(index),
-    [emblaApi]
-  );
-
-  const onSelect = useCallback(() => {
-    if (!emblaApi) return;
-    setSelectedIndex(emblaApi.selectedScrollSnap());
-  }, [emblaApi]);
-
-  useEffect(() => {
-    if (!emblaApi) return;
-    setScrollSnaps(emblaApi.scrollSnapList());
-    emblaApi.on("select", onSelect);
-    onSelect();
-  }, [emblaApi, onSelect]);
-
-  const scrollPrev = useCallback(() => {
-    if (emblaApi) emblaApi.scrollPrev();
-  }, [emblaApi]);
-
-  const scrollNext = useCallback(() => {
-    if (emblaApi) emblaApi.scrollNext();
-  }, [emblaApi]);
-
-  const servicesData = [
-    { title: "خدمات الشعر", icon: <Scissors className="w-6 h-6 text-primary-foreground" />, services: hairServices },
-    { title: "العناية بالبشرة", icon: <Droplets className="w-6 h-6 text-primary-foreground" />, services: skinServices },
-    { title: "خدمات إضافية", icon: <Sparkles className="w-6 h-6 text-primary-foreground" />, services: extraServices },
-    { title: "خدمات خاصة", icon: <Crown className="w-6 h-6 text-primary-foreground" />, services: specialServices },
-  ];
+  const [activeTab, setActiveTab] = useState("hair");
+  const activeCat = categories.find(c => c.key === activeTab)!;
+  const Icon = activeCat.icon;
 
   return (
-    <section id="services" className="py-20 md:py-28 bg-background relative">
-      {/* Decorative gradient */}
-      <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-l from-transparent via-primary/20 to-transparent" />
+    <section id="services" className="relative py-20 md:py-28 bg-[#0a0a0a] overflow-hidden">
+      {/* Top line separator */}
+      <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-l from-transparent via-[#D4AF37]/15 to-transparent" />
+      {/* Ambient glow */}
+      <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[500px] h-[400px] rounded-full bg-[radial-gradient(circle,rgba(212,175,55,0.04),transparent_60%)] pointer-events-none" />
 
-      <div className="container px-4">
-        {/* Section Header */}
-        <div className="text-center mb-14">
-          <p className="text-primary font-heading font-bold text-sm tracking-widest mb-3">خدماتنا</p>
-          <h2 className="font-heading text-3xl md:text-4xl font-800 text-gold-gradient mb-4">
-            💈 أسعار Cut Salon ✂️
+      <div className="container px-4 relative z-10">
+        {/* Section header */}
+        <div className="text-center mb-10 md:mb-14">
+          <p className="text-[#D4AF37] font-heading font-bold text-sm tracking-widest mb-3">خدماتنا</p>
+          <h2 className="font-heading text-3xl md:text-4xl lg:text-5xl font-black text-white mb-3">
+            أسعار <span className="text-gold-gradient">Cut Salon</span>
           </h2>
-          <p className="text-muted-foreground max-w-xl mx-auto">
+          <p className="text-zinc-500 text-sm md:text-base max-w-lg mx-auto">
             اكتشف مجموعة متكاملة من الخدمات المتميزة بأفضل الأسعار
           </p>
         </div>
 
-        {/* Mobile: Embla Carousel | Desktop: Grid */}
-        <div className="relative max-w-7xl mx-auto">
-          {/* Mobile Carousel */}
-          <div className="md:hidden overflow-hidden" ref={emblaRef}>
-            <div className="flex gap-4 px-4">
-              {servicesData.map((service, idx) => (
-                <div
-                  key={idx}
-                  className={`flex-[0_0_300px] min-w-0 transition-all duration-500 ${idx === selectedIndex ? "scale-[1.02]" : ""
-                    }`}
+        {/* Category tabs */}
+        <div className="flex flex-wrap items-center justify-center gap-2 md:gap-3 mb-10 max-w-2xl mx-auto">
+          {categories.map((cat) => {
+            const isActive = cat.key === activeTab;
+            const TabIcon = cat.icon;
+            return (
+              <button
+                key={cat.key}
+                onClick={() => setActiveTab(cat.key)}
+                className={`flex items-center gap-2 px-4 md:px-5 py-2.5 rounded-xl font-heading font-bold text-xs md:text-sm transition-all duration-300 cursor-pointer
+                  ${isActive
+                    ? "bg-gradient-to-l from-[#C8A96A] to-[#E5C07B] text-[#050505] shadow-[0_4px_20px_rgba(212,175,55,0.25)]"
+                    : "bg-white/[0.04] border border-white/[0.08] text-zinc-400 hover:text-white hover:border-[#D4AF37]/30"
+                  }`}
+              >
+                <TabIcon className="w-3.5 h-3.5" />
+                {cat.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Active category panel */}
+        <div className="max-w-2xl mx-auto">
+          <div className="rounded-2xl border border-[#D4AF37]/15 bg-[#0e0e0e] overflow-hidden">
+            {/* Panel header */}
+            <div className="flex items-center gap-3 px-6 py-4 border-b border-white/[0.06]">
+              <div className="w-10 h-10 rounded-xl bg-[#D4AF37]/10 flex items-center justify-center">
+                <Icon className="w-5 h-5 text-[#D4AF37]" />
+              </div>
+              <div>
+                <h3 className="font-heading text-lg font-bold text-white">{activeCat.label}</h3>
+                <p className="text-zinc-500 text-xs">{activeCat.services.length} خدمة</p>
+              </div>
+            </div>
+
+            {/* Service list */}
+            <ul>
+              {activeCat.services.map((s, i) => (
+                <li key={i}
+                  className={`flex items-center justify-between px-6 py-4 transition-colors hover:bg-white/[0.02]
+                    ${i < activeCat.services.length - 1 ? "border-b border-white/[0.04]" : ""}`}
                 >
-                  <ServiceCard
-                    title={service.title}
-                    icon={service.icon}
-                    services={service.services}
-                    delay={`${0.1 + idx * 0.1}s`}
-                  />
-                </div>
+                  <span className="text-zinc-300 text-sm md:text-base">{s.name}</span>
+                  <span className="text-[#D4AF37] font-heading font-bold text-sm md:text-base whitespace-nowrap mr-4">{s.price}</span>
+                </li>
               ))}
-            </div>
-          </div>
-
-          {/* Desktop Grid */}
-          <div className="hidden md:grid md:grid-cols-2 xl:grid-cols-4 gap-6">
-            {servicesData.map((service, idx) => (
-              <ServiceCard
-                key={idx}
-                title={service.title}
-                icon={service.icon}
-                services={service.services}
-                delay={`${0.1 + idx * 0.1}s`}
-              />
-            ))}
-          </div>
-
-          {/* Mobile Navigation */}
-          <div className="flex md:hidden items-center justify-center gap-4 mt-6">
-            <button
-              onClick={scrollPrev}
-              disabled={selectedIndex === 0}
-              className="w-10 h-10 rounded-full gold-shimmer flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed transition-all active:scale-95"
-            >
-              <ChevronRight className="w-5 h-5 text-primary-foreground" />
-            </button>
-
-            <div className="flex gap-2">
-              {scrollSnaps.map((_, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => scrollTo(idx)}
-                  className={`h-2 rounded-full transition-all duration-300 ${idx === selectedIndex
-                    ? "bg-primary w-6"
-                    : "bg-primary/30 w-2 hover:bg-primary/50"
-                    }`}
-                  aria-label={`Go to service ${idx + 1}`}
-                />
-              ))}
-            </div>
-
-            <button
-              onClick={scrollNext}
-              disabled={selectedIndex === servicesData.length - 1}
-              className="w-10 h-10 rounded-full gold-shimmer flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed transition-all active:scale-95"
-            >
-              <ChevronLeft className="w-5 h-5 text-primary-foreground" />
-            </button>
+            </ul>
           </div>
         </div>
 
         {/* CTA */}
-        <div className="text-center mt-14">
-          <a
-            href="#barbers"
-            className="gold-shimmer inline-block px-10 py-4 rounded-lg font-heading font-bold text-primary-foreground text-lg transition-all hover:scale-105 animate-gold-pulse"
-          >
-            احجز موعدك الآن
+        <div className="text-center mt-12">
+          <a href="#barbers"
+            className="group relative inline-flex items-center justify-center gap-2.5 px-10 py-4 rounded-xl font-heading font-bold text-[#050505] text-base overflow-hidden bg-gradient-to-l from-[#C8A96A] to-[#E5C07B] shadow-[0_8px_32px_rgba(212,175,55,0.25)] hover:shadow-[0_12px_48px_rgba(212,175,55,0.4)] hover:scale-[1.03] active:scale-[0.97] transition-all duration-300">
+            <span className="absolute inset-0 bg-gradient-to-l from-white/20 to-transparent translate-x-full group-hover:translate-x-0 transition-transform duration-500" />
+            <span className="relative z-10">احجز موعدك الآن</span>
           </a>
         </div>
       </div>
