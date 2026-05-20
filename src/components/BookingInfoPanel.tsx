@@ -1,6 +1,6 @@
 "use client";
 
-import { Clock, Scissors, MapPin, Star, CalendarDays } from "lucide-react";
+import { Clock, Scissors, MapPin, Star, CalendarDays, Banknote } from "lucide-react";
 
 interface BarberInfo {
   name: string;
@@ -18,11 +18,12 @@ interface BookingInfoPanelProps {
   selectedDate?: Date;
   selectedTime?: string;
   service?: string;
+  servicePrice?: number;
   serviceDuration?: number;
   mode?: "specific" | "nearest";
 }
 
-const BookingInfoPanel = ({ barber, selectedDate, selectedTime, service, serviceDuration, mode = "specific" }: BookingInfoPanelProps) => {
+const BookingInfoPanel = ({ barber, selectedDate, selectedTime, service, servicePrice, serviceDuration, mode = "specific" }: BookingInfoPanelProps) => {
   const formatDate = (date?: Date) => {
     if (!date) return null;
     return new Intl.DateTimeFormat("ar-EG", {
@@ -148,6 +149,19 @@ const BookingInfoPanel = ({ barber, selectedDate, selectedTime, service, service
               <p className="text-white font-medium text-sm">{duration} دقيقة</p>
             </div>
           </div>
+
+          {/* Price */}
+          {servicePrice != null && servicePrice > 0 && (
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 rounded-lg bg-[#D4AF37]/10 flex items-center justify-center flex-shrink-0">
+                <Banknote className="w-4 h-4 text-[#D4AF37]" />
+              </div>
+              <div>
+                <p className="text-white/40 text-xs mb-0.5">السعر</p>
+                <p className="text-[#D4AF37] font-bold text-sm">{servicePrice} جنيه</p>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

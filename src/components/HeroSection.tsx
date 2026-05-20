@@ -11,7 +11,7 @@ const barberStrip = [
   { image: "/barber-mohamed.jpg", name: "محمد", rating: "4.8" },
   { image: "/barber-ziad.jpg", name: "ذياد", rating: "4.7" },
   { image: "/omar.png", name: "عمر", rating: "4.8" },
-  { image: "/yousef.jpg", name: "يوسف", rating: "4.7" },
+  { image: "/barber-bassem.jpg", name: "باسم", rating: "4.7" },
   { image: "/ahmed.jpg", name: "أحمد", rating: "4.9" },
 ];
 

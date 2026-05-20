@@ -52,11 +52,6 @@ const FooterSection = () => {
                   address: "يسرى قمحة، فلمنج، قسم أول الرمل، الإسكندرية",
                   link: "https://share.google/F4o7oOQVs3EJSgxaw",
                 },
-                {
-                  name: "فرع سيدي جابر – مساكن الضباط",
-                  address: "96 مصطفى كامل، سيدي جابر، الإسكندرية",
-                  link: "https://share.google/sdf7izl3WKSpmlwPg",
-                },
               ].map((branch) => (
                 <div key={branch.name} className="flex items-start gap-3">
                   <div className="w-9 h-9 rounded-lg bg-[#D4AF37]/8 border border-[#D4AF37]/15 flex items-center justify-center flex-shrink-0 mt-0.5">

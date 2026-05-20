@@ -1,104 +1,461 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Scissors, Clock, Banknote, Check, Sparkles } from "lucide-react";
+import { Scissors, Clock, Banknote, Check, Sparkles, Droplets, Plus, Paintbrush, HandHelping, type LucideIcon } from "lucide-react";
 import type { BookingService } from "@/lib/publicBookingApi";
 
 interface BookingServiceSelectProps {
   services: BookingService[];
   selectedIds: number[];
   onSelect: (id: number) => void;
+  onToggleAddon?: (id: number) => void;
   isLoading?: boolean;
 }
 
-/* ─── Allowed categories & tab mapping ────────────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════════════════════
+   PRESENTATION MAP — every known service gets Arabic title + description
+   ═══════════════════════════════════════════════════════════════════════════ */
 
-const TAB_ORDER = ["حلاقة", "تنظيف", "خدمات الشعر"];
-
-const BADGES = ["عرض أونلاين", "خصم خاص", "الأكثر طلبًا"];
-
-function getTabKey(categoryName: string | null): string | null {
-  if (!categoryName) return null;
-  const cat = categoryName.trim().toLowerCase();
-  if (cat === "حلاقة") return "حلاقة";
-  if (cat === "skincare") return "تنظيف";
-  if (
-    cat.includes("خدمات") &&
-    (cat.includes("اضاف") || cat.includes("إضاف") || cat.includes("اضافية") || cat.includes("إضافية")) &&
-    cat.includes("شعر")
-  ) {
-    return "خدمات الشعر";
-  }
-  return null;
+interface ServicePres {
+  arabicTitle: string;
+  description: string;
+  salesText?: string;
+  icon: LucideIcon;
+  badge?: string;
 }
 
-function isAllowedCategory(categoryName: string | null): boolean {
-  return getTabKey(categoryName) !== null;
+const PRES: Record<string, ServicePres> = {
+  // ── Main primary ──
+  "Detailed Cut": { arabicTitle: "Detailed Cut", description: "قصة مضبوطة بتفاصيل أوضح وتدريج أنضف.", salesText: "مناسبة لمعظم العملاء اللي عاوزين نتيجة مرتبة وواضحة.", icon: Scissors, badge: "الأكثر طلبًا" },
+  "Beard": { arabicTitle: "Beard", description: "تظبيط وتحديد الدقن بشكل أنيق.", salesText: "اختيار مناسب لو محتاج تظبيط الدقن فقط بدون حلاقة شعر.", icon: Scissors },
+  "Beard Styling & Fade": { arabicTitle: "Beard", description: "تظبيط وتحديد الدقن بشكل أنيق.", salesText: "اختيار مناسب لو محتاج تظبيط الدقن فقط بدون حلاقة شعر.", icon: Scissors },
+  "Hair & Beard": { arabicTitle: "Hair & Beard", description: "باكدج كامل للشعر والدقن في زيارة واحدة.", salesText: "أفضل اختيار لو عاوز لوك كامل ومتناسق.", icon: Scissors, badge: "باكدج مميز" },
+  "Haircut & Beard": { arabicTitle: "Hair & Beard", description: "باكدج كامل للشعر والدقن في زيارة واحدة.", salesText: "أفضل اختيار لو عاوز لوك كامل ومتناسق.", icon: Scissors, badge: "باكدج مميز" },
+  // ── Main secondary ──
+  "Basic Cut": { arabicTitle: "حلاقة Basic", description: "للقصات البسيطة والسريعة.", icon: Scissors },
+  "Advanced Cut": { arabicTitle: "حلاقة Advanced", description: "للشعر الأطول أو القصات التي تحتاج وقت وعناية أكثر.", icon: Sparkles },
+  // ── عناية البشرة ──
+  "Basic Skin Care": { arabicTitle: "تنظيف بشرة Basic", description: "تنظيف خفيف للبشرة مناسب كإضافة سريعة.", icon: Droplets },
+  "Deep SkinCare": { arabicTitle: "تنظيف بشرة Deep", description: "عناية أعمق للبشرة لمن يريد نتيجة أوضح.", icon: Droplets, badge: "ينصح بها" },
+  "Medical Skin Care": { arabicTitle: "عناية متقدمة بالبشرة", description: "جلسة عناية متقدمة للبشرة.", icon: Droplets },
+  // ── ماسكات ──
+  "Face Mask": { arabicTitle: "ماسك للبشرة", description: "ماسك سريع يمنح البشرة انتعاش ولمسة نهائية أفضل.", icon: Droplets, badge: "تكمل الخدمة" },
+  "Gold Mask": { arabicTitle: "ماسك ذهبي", description: "اختيار مميز لمن يريد تجربة أفخم وعناية إضافية.", icon: Sparkles, badge: "تجربة مميزة" },
+  "Coffee Mask": { arabicTitle: "ماسك قهوة", description: "ينعش البشرة ويساعد على مظهر أكثر حيوية.", icon: Droplets, badge: "ينصح بها" },
+  "peel-off Mask": { arabicTitle: "Peel-off Mask", description: "ماسك يساعد على تنظيف البشرة وإحساس أنضف بعد الخدمة.", icon: Droplets },
+  "Hair Mask": { arabicTitle: "ماسك شعر", description: "عناية ملطفة للشعر بعد الحلاقة.", icon: Droplets },
+  // ── شعر ──
+  "Basic Hair Color": { arabicTitle: "صبغة شعر بسيطة", description: "تغيير لون بسيط للشعر.", icon: Paintbrush },
+  "Dry-Hair": { arabicTitle: "تجفيف شعر", description: "تجفيف وترتيب الشعر.", icon: Scissors },
+  "Hair & Beard Color": { arabicTitle: "صبغة شعر ودقن", description: "صبغة متكاملة للشعر والدقن.", icon: Paintbrush },
+  "Hair Botox": { arabicTitle: "بوتكس شعر", description: "عناية قوية للشعر لمن يريد مظهر أنعم وأكثر ترتيبًا.", icon: Sparkles, badge: "عناية قوية" },
+  "Hair Design": { arabicTitle: "تصميم على الشعر", description: "إضافة شكل أو رسمة بسيطة مع القصة.", icon: Paintbrush },
+  "Hair Oil Treatment": { arabicTitle: "حمام زيت", description: "تغذية ولمعة للشعر بعد الحلاقة.", icon: Droplets, badge: "ينصح بها" },
+  "Hair Straightening": { arabicTitle: "فرد شعر", description: "فرد وتنعيم للشعر.", icon: Scissors },
+  "Hair Styling": { arabicTitle: "تسريح", description: "لمسة نهائية مرتبة بعد الخدمة.", icon: Scissors },
+  "Long Hair Protein": { arabicTitle: "بروتين شعر طويل", description: "عناية مكثفة للشعر الطويل.", icon: Sparkles },
+  "Short Hair Protein": { arabicTitle: "بروتين شعر قصير", description: "عناية مكثفة للشعر القصير.", icon: Sparkles },
+  "Silver Highlights": { arabicTitle: "هايلايتس فضي", description: "لمسة لون فضية مميزة.", icon: Paintbrush },
+  "Smoothing Cream": { arabicTitle: "كريم فرد", description: "فرد وتنعيم خفيف للشعر.", icon: Droplets },
+  "Toppik Hair Spray": { arabicTitle: "رش توبيك", description: "لمسة تغطية وتحسين لمظهر الشعر.", icon: Scissors, badge: "لمسة سريعة" },
+  "Wavy Styling": { arabicTitle: "تمويج شعر", description: "تصفيف بأمواج طبيعية.", icon: Scissors },
+  "بلوب كيرلي": { arabicTitle: "بلوب كيرلي", description: "تمويج كيرلي للشعر.", icon: Scissors },
+  "معالج الشعر": { arabicTitle: "معالج الشعر", description: "علاج وتغذية للشعر.", icon: Droplets },
+  "بلسم": { arabicTitle: "بلسم", description: "بلسم مغذي للشعر.", icon: Droplets },
+  "ثيرم": { arabicTitle: "ثيرم", description: "حماية حرارية للشعر.", icon: Scissors },
+  "حمام كريم": { arabicTitle: "حمام كريم", description: "عناية مكثفة بحمام كريم للشعر.", icon: Droplets },
+  "شامبو": { arabicTitle: "شامبو", description: "غسيل شعر بشامبو مناسب.", icon: Droplets },
+  // ── دقن ووجه ──
+  "Zero Beard Shave": { arabicTitle: "دقن زيرو", description: "حلاقة دقن زيرو أو موس حسب اختيارك.", icon: Scissors },
+  "Beard Bleaching": { arabicTitle: "تشقير دقن", description: "تفتيح بسيط لشعر الدقن لإطلالة أنعم.", icon: Paintbrush },
+  "Face Threading": { arabicTitle: "فتلة وجه", description: "إزالة شعر الوجه بالخيط للحصول على مظهر أنضف.", icon: Scissors },
+  "Threading": { arabicTitle: "فتلة", description: "إزالة شعر بالخيط.", icon: Scissors },
+  "Full Wax": { arabicTitle: "واكس كامل", description: "إزالة شعر الوجه بشكل كامل.", icon: Scissors },
+  "Partial Wax": { arabicTitle: "واكس جزئي", description: "إزالة شعر منطقة محددة مثل الأنف.", icon: Scissors },
+  // ── راحة ولمسة نهائية ──
+  "Hot / Cold Towel": { arabicTitle: "فوطة سخنة / ساقعة", description: "إضافة بسيطة تعزز الراحة وتكمل التجربة.", icon: HandHelping, badge: "لمسة راحة" },
+  "Hot Towel": { arabicTitle: "فوطة سخنة", description: "إضافة بسيطة تعزز الراحة وتكمل التجربة.", icon: HandHelping },
+  "Cold Towel": { arabicTitle: "فوطة ساقعة", description: "إضافة بسيطة تعزز الراحة وتكمل التجربة.", icon: HandHelping },
+  "باديكير قدم": { arabicTitle: "باديكير قدم", description: "عناية إضافية لمظهر أكثر اكتمالًا.", icon: HandHelping },
+  "باديكير يد": { arabicTitle: "باديكير يد", description: "لمسة عناية إضافية لليدين.", icon: HandHelping },
+  "برفيوم SF": { arabicTitle: "برفيوم SF", description: "لمسة عطر نهائية بعد الخدمة.", icon: Sparkles },
+};
+
+function getPres(name: string): ServicePres | null {
+  return PRES[name.trim()] ?? null;
 }
 
-/* ─── Skeletons ───────────────────────────────────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════════════════════
+   MAIN / SECONDARY CLASSIFICATION
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+// Primary: order matters (Detail Cut → Beard → Hair & Beard)
+// Each slot has an array of name variations, first found wins
+const PRIMARY_SLOTS: { names: string[] }[] = [
+  { names: ["Detailed Cut"] },
+  { names: ["Beard", "Beard Styling & Fade", "Zero Beard Shave"] },
+  { names: ["Hair & Beard", "Haircut & Beard"] },
+];
+const SECONDARY_NAMES = ["Basic Cut", "Advanced Cut"];
+
+// Collect all possible main names for exclusion
+const ALL_MAIN_VARIATIONS = PRIMARY_SLOTS.flatMap(s => s.names).concat(SECONDARY_NAMES);
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ADD-ON CATEGORY TABS
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+type AddonCatKey = "skincare" | "masks" | "hair" | "beard_face" | "comfort";
+
+interface AddonCat {
+  key: AddonCatKey;
+  label: string;
+  icon: LucideIcon;
+  serviceNames: string[];
+}
+
+const ADDON_CATEGORIES: AddonCat[] = [
+  {
+    key: "skincare",
+    label: "عناية البشرة",
+    icon: Droplets,
+    serviceNames: ["Basic Skin Care", "Deep SkinCare", "Medical Skin Care"],
+  },
+  {
+    key: "masks",
+    label: "ماسكات",
+    icon: Sparkles,
+    serviceNames: ["Face Mask", "Gold Mask", "Coffee Mask", "peel-off Mask", "Hair Mask"],
+  },
+  {
+    key: "hair",
+    label: "شعر",
+    icon: Paintbrush,
+    serviceNames: [
+      "Basic Hair Color", "Dry-Hair", "Hair & Beard Color", "Hair Botox", "Hair Design",
+      "Hair Oil Treatment", "Hair Straightening", "Hair Styling", "Long Hair Protein",
+      "Short Hair Protein", "Silver Highlights", "Smoothing Cream", "Toppik Hair Spray",
+      "Wavy Styling", "بلوب كيرلي", "معالج الشعر", "بلسم", "ثيرم", "حمام كريم", "شامبو",
+    ],
+  },
+  {
+    key: "beard_face",
+    label: "دقن ووجه",
+    icon: Scissors,
+    serviceNames: [
+      "Zero Beard Shave", "Beard Bleaching", "Face Threading", "Threading",
+      "Full Wax", "Partial Wax",
+    ],
+  },
+  {
+    key: "comfort",
+    label: "راحة ولمسة نهائية",
+    icon: HandHelping,
+    serviceNames: [
+      "Hot / Cold Towel", "Hot Towel", "Cold Towel",
+      "باديكير قدم", "باديكير يد", "برفيوم SF",
+    ],
+  },
+];
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   SUB-COMPONENTS
+   ═══════════════════════════════════════════════════════════════════════════ */
 
 const SkeletonCard = () => (
-  <div className="rounded-xl border border-gray-100 p-4 animate-pulse">
-    <div className="flex items-start gap-3">
-      <div className="w-9 h-9 rounded-lg bg-gray-100 flex-shrink-0" />
+  <div className="rounded-2xl border border-gray-100 p-5 animate-pulse">
+    <div className="flex items-center gap-4 mb-3">
+      <div className="w-14 h-14 rounded-xl bg-gray-100 flex-shrink-0" />
       <div className="flex-1 space-y-2">
-        <div className="h-4 bg-gray-100 rounded w-2/3" />
-        <div className="h-3 bg-gray-100 rounded w-1/3" />
+        <div className="h-5 bg-gray-100 rounded w-3/5" />
+        <div className="h-3 bg-gray-100 rounded w-2/5" />
       </div>
     </div>
+    <div className="h-3 bg-gray-100 rounded w-full mb-2" />
+    <div className="h-3 bg-gray-100 rounded w-4/5" />
   </div>
 );
 
-/* ─── Component ─────────────────────────────────────────────────────────── */
+/* ─── Primary Large Card ──────────────────────────────────────────────── */
+const PrimaryCard = ({
+  service, isSelected, onSelect,
+}: { service: BookingService; isSelected: boolean; onSelect: () => void }) => {
+  const p = getPres(service.name);
+  const Icon = p?.icon ?? Scissors;
+  const title = p?.arabicTitle ?? service.name;
+  const desc = p?.description ?? "";
+  const sales = p?.salesText ?? "";
+  const badge = p?.badge;
+
+  return (
+    <button onClick={onSelect} className={`
+      w-full rounded-2xl border text-right transition-all duration-200 overflow-hidden group cursor-pointer
+      ${isSelected
+        ? "border-[#D4AF37] bg-[#D4AF37]/[0.06] shadow-[0_0_24px_rgba(212,175,55,0.15)] ring-1 ring-[#D4AF37]/20"
+        : "border-gray-150 bg-white hover:border-[#D4AF37]/40 hover:shadow-sm"
+      }
+    `}>
+      <div className={`h-1 w-full transition-colors ${isSelected ? "bg-[#D4AF37]" : "bg-gradient-to-l from-[#D4AF37]/15 to-transparent"}`} />
+      <div className="p-4 md:p-5">
+        {badge && (
+          <div className="mb-2.5">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-[#D4AF37]/10 text-[#D4AF37] border border-[#D4AF37]/20">
+              <Sparkles className="w-2.5 h-2.5" />
+              {badge}
+            </span>
+          </div>
+        )}
+        <div className="flex items-start gap-3.5">
+          <div className={`
+            w-12 h-12 md:w-14 md:h-14 rounded-xl flex items-center justify-center flex-shrink-0 transition-all
+            ${isSelected ? "bg-[#D4AF37] shadow-[0_4px_16px_rgba(212,175,55,0.3)]" : "bg-gray-50 group-hover:bg-[#D4AF37]/10"}
+          `}>
+            <Icon className={`w-5 h-5 md:w-6 md:h-6 transition-colors ${isSelected ? "text-black" : "text-gray-400 group-hover:text-[#D4AF37]"}`} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <h4 className={`font-heading font-bold text-base md:text-[17px] leading-tight mb-0.5 ${isSelected ? "text-gray-900" : "text-gray-800"}`}>{title}</h4>
+                {desc && <p className="text-gray-500 text-xs leading-relaxed">{desc}</p>}
+              </div>
+              <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-0.5 transition-all ${isSelected ? "border-[#D4AF37] bg-[#D4AF37]" : "border-gray-200"}`}>
+                {isSelected && <Check className="w-3.5 h-3.5 text-black" />}
+              </div>
+            </div>
+            {sales && (
+              <p className="text-gray-400 text-[11px] leading-relaxed mt-2 bg-gray-50/80 rounded-lg px-3 py-1.5 border border-gray-100">{sales}</p>
+            )}
+            <div className="flex items-center gap-3 mt-3">
+              <span className="inline-flex items-center gap-1 text-[#D4AF37] font-bold text-sm">
+                <Banknote className="w-3.5 h-3.5" />{service.price} جنيه
+              </span>
+              <span className="text-gray-300">·</span>
+              <span className="inline-flex items-center gap-1 text-gray-400 text-xs">
+                <Clock className="w-3.5 h-3.5" />{service.durationMinutes} دقيقة
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </button>
+  );
+};
+
+/* ─── Secondary Smaller Card ──────────────────────────────────────────── */
+const SecondaryCard = ({
+  service, isSelected, onSelect,
+}: { service: BookingService; isSelected: boolean; onSelect: () => void }) => {
+  const p = getPres(service.name);
+  const Icon = p?.icon ?? Scissors;
+  const title = p?.arabicTitle ?? service.name;
+  const desc = p?.description ?? "";
+
+  return (
+    <button onClick={onSelect} className={`
+      w-full rounded-xl border p-3.5 text-right transition-all duration-150 group cursor-pointer
+      ${isSelected
+        ? "border-[#D4AF37] bg-[#D4AF37]/[0.06] shadow-sm shadow-[#D4AF37]/10 ring-1 ring-[#D4AF37]/20"
+        : "border-gray-150 bg-white hover:border-[#D4AF37]/40"
+      }
+    `}>
+      <div className="flex items-center gap-3">
+        <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors ${isSelected ? "bg-[#D4AF37]" : "bg-gray-50 group-hover:bg-[#D4AF37]/10"}`}>
+          <Icon className={`w-4 h-4 transition-colors ${isSelected ? "text-black" : "text-gray-400 group-hover:text-[#D4AF37]"}`} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className={`font-bold text-sm leading-tight ${isSelected ? "text-gray-900" : "text-gray-800"}`}>{title}</p>
+          {desc && <p className="text-gray-400 text-[11px] mt-0.5 leading-snug">{desc}</p>}
+          <p className="text-gray-400 text-xs mt-1.5 flex items-center gap-2">
+            <span className="flex items-center gap-0.5 text-[#D4AF37] font-bold"><Banknote className="w-3 h-3" />{service.price} جنيه</span>
+            <span className="text-gray-300">·</span>
+            <span className="flex items-center gap-0.5"><Clock className="w-3 h-3" />{service.durationMinutes} د</span>
+          </p>
+        </div>
+        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all ${isSelected ? "border-[#D4AF37] bg-[#D4AF37]" : "border-gray-200"}`}>
+          {isSelected && <Check className="w-3 h-3 text-black" />}
+        </div>
+      </div>
+    </button>
+  );
+};
+
+/* ─── Upsell Add-on Card ──────────────────────────────────────────────── */
+const UpsellCard = ({
+  service, isSelected, onToggle,
+}: { service: BookingService; isSelected: boolean; onToggle: () => void }) => {
+  const p = getPres(service.name);
+  const Icon = p?.icon ?? Plus;
+  const title = p?.arabicTitle ?? service.name;
+  const desc = p?.description ?? "";
+  const badge = p?.badge;
+
+  return (
+    <button onClick={onToggle} className={`
+      w-full rounded-xl border p-3.5 text-right transition-all duration-150 group cursor-pointer
+      ${isSelected
+        ? "border-[#D4AF37] bg-[#D4AF37]/[0.04] shadow-sm shadow-[#D4AF37]/10"
+        : "border-gray-100 bg-gray-50/50 hover:border-[#D4AF37]/30 hover:bg-white"
+      }
+    `}>
+      <div className="flex items-center gap-3">
+        <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-all ${isSelected ? "border-[#D4AF37] bg-[#D4AF37]" : "border-gray-250 group-hover:border-[#D4AF37]/50"}`}>
+          {isSelected && <Check className="w-3 h-3 text-black" />}
+        </div>
+        <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors ${isSelected ? "bg-[#D4AF37]/15" : "bg-white"}`}>
+          <Icon className={`w-3.5 h-3.5 ${isSelected ? "text-[#D4AF37]" : "text-gray-400"}`} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <p className={`font-bold text-sm leading-tight ${isSelected ? "text-gray-900" : "text-gray-700"}`}>{title}</p>
+            {badge && (
+              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-[#D4AF37]/10 text-[#D4AF37] border border-[#D4AF37]/15 whitespace-nowrap">{badge}</span>
+            )}
+          </div>
+          {desc && <p className="text-gray-400 text-[11px] mt-0.5 leading-snug">{desc}</p>}
+        </div>
+        <div className="text-left flex-shrink-0">
+          <p className="text-[#D4AF37] font-bold text-xs">+{service.price} ج</p>
+          <p className="text-gray-400 text-[10px]">{service.durationMinutes} د</p>
+        </div>
+      </div>
+    </button>
+  );
+};
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   MAIN COMPONENT
+   ═══════════════════════════════════════════════════════════════════════════ */
 
 const BookingServiceSelect = ({
   services,
   selectedIds,
   onSelect,
+  onToggleAddon,
   isLoading = false,
 }: BookingServiceSelectProps) => {
-  const [activeTab, setActiveTab] = useState<string>(TAB_ORDER[0]);
+  const [activeAddonTab, setActiveAddonTab] = useState<AddonCatKey>("skincare");
 
-  /* Filter: allowed categories, price > 0, not deleted */
-  const filtered = useMemo(() => {
-    return services.filter(s => {
-      if (!s.isBookableOnline) return false;
-      if (!isAllowedCategory(s.categoryName)) return false;
-      if (s.price <= 0) return false;
-      if ((s as unknown as Record<string, unknown>).isDeleted === true) return false;
-      return true;
-    });
+  // Helper: find first bookable service matching any of the given names
+  const findByNames = (names: string[]): BookingService | null => {
+    for (const n of names) {
+      const s = services.find(sv => sv.name.trim() === n && sv.isBookableOnline && sv.price > 0);
+      if (s) return s;
+    }
+    return null;
+  };
+
+  /* ── Resolve primary services (exact 3, in order) ── */
+  const mainPrimary = useMemo(() => {
+    const result: BookingService[] = [];
+    for (const slot of PRIMARY_SLOTS) {
+      const s = findByNames(slot.names);
+      if (s) result.push(s);
+    }
+    return result;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [services]);
 
-  /* Group by tab */
-  const grouped = useMemo(() => {
-    const map: Record<string, BookingService[]> = {};
-    TAB_ORDER.forEach(t => (map[t] = []));
-    filtered.forEach(s => {
-      const key = getTabKey(s.categoryName);
-      if (key && map[key]) map[key].push(s);
+  /* ── Secondary services ── */
+  const mainSecondary = useMemo(() => {
+    return SECONDARY_NAMES
+      .map(n => services.find(s => s.name.trim() === n && s.isBookableOnline && s.price > 0))
+      .filter((s): s is BookingService => s != null);
+  }, [services]);
+
+  /* ── All main IDs for exclusion ── */
+  const allMainIds = useMemo(() => {
+    const ids = new Set<number>();
+    // All services whose names match any main variation
+    services.forEach(s => {
+      if (ALL_MAIN_VARIATIONS.includes(s.name.trim())) ids.add(s.id);
     });
+    // Also the resolved primary/secondary
+    mainPrimary.forEach(s => ids.add(s.id));
+    mainSecondary.forEach(s => ids.add(s.id));
+    return ids;
+  }, [services, mainPrimary, mainSecondary]);
+
+  /* ── Add-on services: everything bookable that's NOT a main service ── */
+  const addonServices = useMemo(() => {
+    return services.filter(s =>
+      s.isBookableOnline && s.price > 0 && !allMainIds.has(s.id)
+    );
+  }, [services, allMainIds]);
+
+  /* ── Group add-ons by category ── */
+  const addonGrouped = useMemo(() => {
+    const map: Record<AddonCatKey, BookingService[]> = {
+      skincare: [], masks: [], hair: [], beard_face: [], comfort: [],
+    };
+    const placed = new Set<number>();
+
+    // First pass: place by known service name
+    for (const cat of ADDON_CATEGORIES) {
+      for (const s of addonServices) {
+        if (placed.has(s.id)) continue;
+        if (cat.serviceNames.includes(s.name.trim())) {
+          map[cat.key].push(s);
+          placed.add(s.id);
+        }
+      }
+    }
+
+    // Second pass: unplaced services go to best-guess category or "hair" as fallback
+    for (const s of addonServices) {
+      if (placed.has(s.id)) continue;
+      const lower = s.name.toLowerCase();
+      if (lower.includes("mask") || lower.includes("ماسك")) {
+        map.masks.push(s);
+      } else if (lower.includes("skin") || lower.includes("بشرة")) {
+        map.skincare.push(s);
+      } else if (lower.includes("beard") || lower.includes("دقن") || lower.includes("wax") || lower.includes("thread") || lower.includes("فتلة")) {
+        map.beard_face.push(s);
+      } else if (lower.includes("towel") || lower.includes("فوطة") || lower.includes("باديكير") || lower.includes("برفيوم")) {
+        map.comfort.push(s);
+      } else {
+        map.hair.push(s);
+      }
+    }
+
     return map;
-  }, [filtered]);
+  }, [addonServices]);
 
-  /* Active tab services */
-  const tabServices = grouped[activeTab] ?? [];
+  /* ── Tabs with counts (only show tabs that have services) ── */
+  const visibleTabs = useMemo(() => {
+    return ADDON_CATEGORIES.filter(c => addonGrouped[c.key].length > 0);
+  }, [addonGrouped]);
 
-  /* Loading state */
+  /* ── Selected main ID ── */
+  const selectedMainId = useMemo(() => {
+    return selectedIds.find(id => allMainIds.has(id)) ?? null;
+  }, [selectedIds, allMainIds]);
+
+  const hasMainSelection = selectedMainId !== null;
+
+  /* ── Auto-select first non-empty addon tab ── */
+  const effectiveTab = visibleTabs.find(t => t.key === activeAddonTab) ? activeAddonTab : (visibleTabs[0]?.key ?? "skincare");
+
+  /* Handlers */
+  const handleMainSelect = (id: number) => onSelect(id);
+  const handleAddonToggle = (id: number) => {
+    if (onToggleAddon) onToggleAddon(id);
+    else onSelect(id);
+  };
+
+  const totalMain = mainPrimary.length + mainSecondary.length;
+
+  /* Loading */
   if (isLoading) {
     return (
-      <div className="p-6" dir="rtl">
-        <h3 className="text-xl font-heading font-bold text-gray-900 mb-6">اختر الخدمة</h3>
-        <div className="space-y-3">
-          {[1, 2, 3, 4].map(i => <SkeletonCard key={i} />)}
-        </div>
+      <div className="p-5 md:p-6" dir="rtl">
+        <h3 className="text-lg font-heading font-bold text-gray-900 mb-5">اختر الخدمة الأساسية</h3>
+        <div className="space-y-4">{[1, 2, 3].map(i => <SkeletonCard key={i} />)}</div>
       </div>
     );
   }
 
-  /* No services at all */
-  if (filtered.length === 0) {
+  /* Empty */
+  if (totalMain === 0) {
     return (
       <div className="p-6 text-center" dir="rtl">
         <div className="w-16 h-16 rounded-full bg-gray-50 flex items-center justify-center mx-auto mb-4">
@@ -110,131 +467,88 @@ const BookingServiceSelect = ({
   }
 
   return (
-    <div className="p-6" dir="rtl">
-      <h3 className="text-xl font-heading font-bold text-gray-900 mb-1">اختر الخدمة</h3>
-      <p className="text-gray-400 text-sm mb-5">اختر خدمة واحدة للمتابعة</p>
-
-      {/* ── Tabs ── */}
-      <div className="flex gap-1 mb-5 overflow-x-auto pb-1 scrollbar-hide">
-        {TAB_ORDER.map(tab => {
-          const count = grouped[tab]?.length ?? 0;
-          const isActive = activeTab === tab;
-          return (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              disabled={count === 0}
-              className={`
-                flex-shrink-0 px-4 py-2 rounded-xl text-sm font-bold transition-all whitespace-nowrap
-                ${isActive
-                  ? "bg-[#D4AF37] text-black shadow-md shadow-[#D4AF37]/20"
-                  : count === 0
-                    ? "bg-gray-100 text-gray-300 cursor-not-allowed"
-                    : "bg-gray-50 text-gray-600 hover:bg-gray-100"
-                }
-              `}
-            >
-              {tab}
-              {count > 0 && !isActive && (
-                <span className="mr-1.5 inline-block w-5 h-5 rounded-full bg-gray-200 text-gray-500 text-[10px] leading-5 text-center">
-                  {count}
-                </span>
-              )}
-            </button>
-          );
-        })}
+    <div className="p-5 md:p-6" dir="rtl">
+      {/* ═══════════════════════════════════════════
+         LEVEL 1: MAIN SERVICES
+         ═══════════════════════════════════════════ */}
+      <div className="mb-2">
+        <h3 className="text-lg font-heading font-bold text-gray-900 mb-0.5">اختر الخدمة الأساسية</h3>
+        <p className="text-gray-400 text-xs">ابدأ بالخدمة الرئيسية المناسبة لك</p>
       </div>
 
-      {/* ── Service Cards ── */}
-      {tabServices.length === 0 ? (
-        <div className="py-12 text-center">
-          <p className="text-gray-400 text-sm">لا توجد خدمات متاحة في هذا القسم</p>
+      {/* Primary — 3 large cards */}
+      {mainPrimary.length > 0 && (
+        <div className="space-y-3 mt-4">
+          {mainPrimary.map(s => (
+            <PrimaryCard key={s.id} service={s} isSelected={selectedIds.includes(s.id)} onSelect={() => handleMainSelect(s.id)} />
+          ))}
         </div>
-      ) : (
-        <div className="space-y-3">
-          {tabServices.map((service, idx) => {
-            const isSelected = selectedIds.includes(service.id);
-            const badge = BADGES[idx % BADGES.length];
-            return (
-              <button
-                key={service.id}
-                onClick={() => onSelect(service.id)}
-                className={`
-                  w-full rounded-xl border p-4 text-right transition-all duration-150 relative
-                  ${isSelected
-                    ? "border-[#D4AF37] bg-[#D4AF37]/5 shadow-sm shadow-[#D4AF37]/10"
-                    : "border-gray-150 bg-white hover:border-[#D4AF37]/50 hover:bg-[#D4AF37]/3"
-                  }
-                `}
-              >
-                {/* Badge */}
-                <div className="flex items-center gap-1 mb-2">
-                  <span
-                    className={`
-                      inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold
-                      ${idx % 3 === 0
-                        ? "bg-green-50 text-green-600 border border-green-100"
-                        : idx % 3 === 1
-                          ? "bg-red-50 text-red-600 border border-red-100"
-                          : "bg-amber-50 text-amber-600 border border-amber-100"
-                      }
-                    `}
-                  >
-                    <Sparkles className="w-3 h-3" />
-                    {badge}
-                  </span>
-                </div>
+      )}
 
-                <div className="flex items-center gap-3">
-                  {/* Icon */}
-                  <div
-                    className={`
-                      w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors
-                      ${isSelected ? "bg-[#D4AF37]" : "bg-gray-50"}
-                    `}
-                  >
-                    <Scissors
-                      className={`w-4 h-4 transition-colors ${isSelected ? "text-black" : "text-gray-400"}`}
-                    />
-                  </div>
+      {/* Secondary — smaller cards under divider */}
+      {mainSecondary.length > 0 && (
+        <div className="mt-4">
+          <div className="flex items-center gap-2 mb-2.5">
+            <div className="h-px flex-1 bg-gray-100" />
+            <span className="text-gray-400 text-[10px] font-bold whitespace-nowrap">اختيارات أخرى</span>
+            <div className="h-px flex-1 bg-gray-100" />
+          </div>
+          <div className="space-y-2.5">
+            {mainSecondary.map(s => (
+              <SecondaryCard key={s.id} service={s} isSelected={selectedIds.includes(s.id)} onSelect={() => handleMainSelect(s.id)} />
+            ))}
+          </div>
+        </div>
+      )}
 
-                  {/* Name + meta */}
-                  <div className="flex-1 min-w-0">
-                    <p
-                      className={`font-bold text-sm leading-tight transition-colors ${isSelected ? "text-gray-900" : "text-gray-800"
-                        }`}
-                    >
-                      {service.name}
-                    </p>
-                    <p className="text-gray-400 text-xs mt-0.5 flex items-center gap-1.5">
-                      <span className="flex items-center gap-1">
-                        <Banknote className="w-3 h-3 text-[#D4AF37]" />
-                        {service.price} جنيه
-                      </span>
-                      <span className="text-gray-300">·</span>
-                      <span className="flex items-center gap-1">
-                        <Clock className="w-3 h-3 text-gray-400" />
-                        {service.durationMinutes} دقيقة
-                      </span>
-                    </p>
-                  </div>
+      {/* ═══════════════════════════════════════════
+         LEVEL 2: CATEGORIZED UPSELL ADD-ONS
+         ═══════════════════════════════════════════ */}
+      {hasMainSelection && visibleTabs.length > 0 && (
+        <div className="mt-7 pt-6 border-t border-gray-100">
+          {/* Header */}
+          <div className="flex items-center gap-2.5 mb-1">
+            <div className="w-6 h-6 rounded-md bg-[#D4AF37]/10 flex items-center justify-center">
+              <Plus className="w-3 h-3 text-[#D4AF37]" />
+            </div>
+            <h4 className="font-heading font-bold text-sm text-gray-800">إضافات ممكن تعجبك</h4>
+          </div>
+          <p className="text-gray-400 text-[11px] mb-4 mr-8">اختيارات إضافية لتحسين النتيجة وتجربة أفضل</p>
 
-                  {/* Selected check */}
-                  <div
-                    className={`
-                      w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all
-                      ${isSelected
-                        ? "border-[#D4AF37] bg-[#D4AF37]"
-                        : "border-gray-200"
-                      }
-                    `}
-                  >
-                    {isSelected && <Check className="w-3.5 h-3.5 text-black" />}
-                  </div>
-                </div>
-              </button>
-            );
-          })}
+          {/* Category tabs */}
+          <div className="flex gap-1.5 mb-4 overflow-x-auto pb-1 scrollbar-hide">
+            {visibleTabs.map(tab => {
+              const isActive = effectiveTab === tab.key;
+              const TabIcon = tab.icon;
+              const count = addonGrouped[tab.key].length;
+              return (
+                <button
+                  key={tab.key}
+                  onClick={() => setActiveAddonTab(tab.key)}
+                  className={`
+                    flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all whitespace-nowrap cursor-pointer
+                    ${isActive
+                      ? "bg-[#D4AF37] text-black shadow-sm shadow-[#D4AF37]/20"
+                      : "bg-gray-50 text-gray-500 hover:bg-gray-100"
+                    }
+                  `}
+                >
+                  <TabIcon className="w-3 h-3" />
+                  {tab.label}
+                  {!isActive && (
+                    <span className="w-4 h-4 rounded-full bg-gray-200 text-gray-500 text-[9px] leading-4 text-center inline-block">{count}</span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Active category cards */}
+          <div className="space-y-2">
+            {addonGrouped[effectiveTab]?.map(s => (
+              <UpsellCard key={s.id} service={s} isSelected={selectedIds.includes(s.id)} onToggle={() => handleAddonToggle(s.id)} />
+            ))}
+          </div>
         </div>
       )}
     </div>

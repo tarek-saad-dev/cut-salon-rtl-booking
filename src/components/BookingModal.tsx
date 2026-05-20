@@ -169,9 +169,33 @@ const BookingModal = ({ open, onOpenChange, barber }: BookingModalProps) => {
   };
 
   const selectedService = services.find(s => selectedServiceIds.includes(s.id));
+  const selectedServices = services.filter(s => selectedServiceIds.includes(s.id));
+  const totalPrice = selectedServices.reduce((sum, s) => sum + s.price, 0);
+  const totalDuration = selectedServices.reduce((sum, s) => sum + s.durationMinutes, 0);
 
   const handleServiceSelect = (id: number) => {
-    setSelectedServiceIds([id]);
+    // Main service selection: keep add-on IDs that are not the new main
+    const mainNames = ["Detail Cut", "Haircut & Beard", "Hair & Beard", "Beard", "Beard Styling & Fade", "Zero Beard Shave", "Basic Cut", "Advanced Cut"];
+    const mainIds = services.filter(s => mainNames.includes(s.name.trim())).map(s => s.id);
+    // Remove any existing main, keep addons
+    const addonIds = selectedServiceIds.filter(sid => !mainIds.includes(sid));
+    setSelectedServiceIds([id, ...addonIds]);
+    setSelectedDate(undefined);
+    setSelectedTime(undefined);
+    setSelectedSlot(undefined);
+    setAvailableDays([]);
+    setAvailableSlots([]);
+  };
+
+  const handleToggleAddon = (id: number) => {
+    setSelectedServiceIds(prev => {
+      if (prev.includes(id)) {
+        return prev.filter(sid => sid !== id);
+      } else {
+        return [...prev, id];
+      }
+    });
+    // Reset date/time since duration changed
     setSelectedDate(undefined);
     setSelectedTime(undefined);
     setSelectedSlot(undefined);
@@ -312,11 +336,20 @@ const BookingModal = ({ open, onOpenChange, barber }: BookingModalProps) => {
               services={services}
               selectedIds={selectedServiceIds}
               onSelect={handleServiceSelect}
+              onToggleAddon={handleToggleAddon}
               isLoading={isLoadingServices}
             />
 
             {/* Continue button */}
             <div className="px-6 pb-6">
+              {selectedServiceIds.length > 0 && (
+                <div className="flex items-center justify-between mb-3 px-1">
+                  <span className="text-gray-500 text-xs">
+                    {selectedServices.length} خدمة · {totalDuration} دقيقة
+                  </span>
+                  <span className="text-[#D4AF37] font-bold text-sm">{totalPrice} جنيه</span>
+                </div>
+              )}
               <button
                 onClick={() => setCurrentStep("date")}
                 disabled={selectedServiceIds.length === 0}
@@ -427,10 +460,22 @@ const BookingModal = ({ open, onOpenChange, barber }: BookingModalProps) => {
               </div>
 
               <div className="pt-3 border-t border-gray-200 space-y-2.5">
-                {selectedService && (
-                  <div className="flex justify-between items-center">
-                    <span className="font-medium text-gray-800 text-sm">{selectedService.name}</span>
-                    <span className="text-gray-400 text-xs">الخدمة</span>
+                {selectedServices.length > 0 && (
+                  <div>
+                    <div className="flex justify-between items-center">
+                      <span className="font-medium text-gray-800 text-sm">{selectedServices[0].name}</span>
+                      <span className="text-gray-400 text-xs">الخدمة</span>
+                    </div>
+                    {selectedServices.length > 1 && (
+                      <div className="mt-1 space-y-1">
+                        {selectedServices.slice(1).map(s => (
+                          <div key={s.id} className="flex justify-between items-center">
+                            <span className="text-gray-600 text-xs">+ {s.name}</span>
+                            <span className="text-gray-400 text-[10px]">إضافة</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
                 {selectedDate && (
@@ -445,17 +490,17 @@ const BookingModal = ({ open, onOpenChange, barber }: BookingModalProps) => {
                     <span className="text-gray-400 text-xs">الوقت</span>
                   </div>
                 )}
-                {selectedService && (
+                {selectedServices.length > 0 && (
                   <div className="flex justify-between items-center">
                     <span className="font-medium text-[#D4AF37] text-sm">
-                      {selectedService.price} جنيه
+                      {totalPrice} جنيه
                     </span>
-                    <span className="text-gray-400 text-xs">السعر</span>
+                    <span className="text-gray-400 text-xs">الإجمالي</span>
                   </div>
                 )}
-                {slotDuration != null && (
+                {totalDuration > 0 && (
                   <div className="flex justify-between items-center">
-                    <span className="font-medium text-gray-800 text-sm">{slotDuration} دقيقة</span>
+                    <span className="font-medium text-gray-800 text-sm">{slotDuration ?? totalDuration} دقيقة</span>
                     <span className="text-gray-400 text-xs">المدة</span>
                   </div>
                 )}
@@ -580,8 +625,9 @@ const BookingModal = ({ open, onOpenChange, barber }: BookingModalProps) => {
               barber={barber}
               selectedDate={selectedDate}
               selectedTime={selectedTime}
-              service={selectedService?.name}
-              serviceDuration={selectedService?.durationMinutes}
+              service={selectedServices.map(s => s.name).join(" + ") || undefined}
+              servicePrice={totalPrice || undefined}
+              serviceDuration={totalDuration || undefined}
             />
           </div>
 
