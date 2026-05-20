@@ -266,6 +266,17 @@ const BookingModal = ({ open, onOpenChange, barber, initialMode }: BookingModalP
     setCurrentStep("time");
   };
 
+  const handleNextDay = () => {
+    const current = selectedDate ?? new Date();
+    const next = new Date(current);
+    next.setDate(next.getDate() + 1);
+    setSelectedDate(next);
+    setSelectedTime(undefined);
+    setSelectedSlot(undefined);
+    setAvailableSlots([]);
+    // currentStep stays "time" — useEffect will re-fetch slots for the new date
+  };
+
   const handleTimeSelect = (slot: AvailableSlot) => {
     setSelectedTime(slot.time);
     setSelectedSlot(slot);
@@ -523,6 +534,7 @@ const BookingModal = ({ open, onOpenChange, barber, initialMode }: BookingModalP
             <BookingTimeSlots
               selectedTime={selectedTime}
               onTimeSelect={handleTimeSelect}
+              onNextDay={handleNextDay}
               slots={availableSlots}
               isLoading={isLoadingSlots}
             />

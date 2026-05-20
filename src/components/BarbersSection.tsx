@@ -18,7 +18,7 @@ const LOCAL_IMAGE_MAP: Record<string, string> = {
   "عمر": "/omar.png",
   "يوسف": "/yousef.jpg",
   "أحمد الصنايعي": "/ahmed.jpg",
-  "احمد": "/ahmed.jpg",
+  "أحمد": "/ahmed.jpg",
 };
 
 const FALLBACK_BARBERS: DisplayBarber[] = [
