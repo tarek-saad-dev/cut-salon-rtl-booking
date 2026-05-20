@@ -278,6 +278,9 @@ const BookingModal = ({ open, onOpenChange, barber, initialMode }: BookingModalP
   };
 
   const handleTimeSelect = (slot: AvailableSlot) => {
+    if (process.env.NODE_ENV === "development") {
+      console.log("[time slots] selected slot:", slot);
+    }
     setSelectedTime(slot.time);
     setSelectedSlot(slot);
     setSubmitError(null);
@@ -308,6 +311,15 @@ const BookingModal = ({ open, onOpenChange, barber, initialMode }: BookingModalP
     setCurrentStep("service");
   };
 
+  const getActualBookingDate = (date: Date, slot?: AvailableSlot): Date => {
+    if (slot?.dayOffset === 1) {
+      const next = new Date(date);
+      next.setDate(next.getDate() + 1);
+      return next;
+    }
+    return date;
+  };
+
   const handleConfirm = async () => {
     if (!selectedDate || !selectedTime || selectedServiceIds.length === 0) return;
 
@@ -316,7 +328,15 @@ const BookingModal = ({ open, onOpenChange, barber, initialMode }: BookingModalP
 
     if (empIdToUse == null) return;
 
-    const dateStr = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, "0")}-${String(selectedDate.getDate()).padStart(2, "0")}`;
+    const actualDate = getActualBookingDate(selectedDate, selectedSlot);
+    const dateStr = `${actualDate.getFullYear()}-${String(actualDate.getMonth() + 1).padStart(2, "0")}-${String(actualDate.getDate()).padStart(2, "0")}`;
+
+    if (process.env.NODE_ENV === "development") {
+      console.log("[booking submit] selectedDate:", selectedDate.toISOString().slice(0, 10));
+      console.log("[booking submit] selectedSlot:", selectedSlot);
+      console.log("[booking submit] dayOffset:", selectedSlot?.dayOffset ?? 0);
+      console.log("[booking submit] actualBookingDate:", dateStr);
+    }
 
     setIsSubmitting(true);
     setSubmitError(null);
@@ -533,6 +553,7 @@ const BookingModal = ({ open, onOpenChange, barber, initialMode }: BookingModalP
             )}
             <BookingTimeSlots
               selectedTime={selectedTime}
+              selectedSlot={selectedSlot}
               onTimeSelect={handleTimeSelect}
               onNextDay={handleNextDay}
               slots={availableSlots}
@@ -640,9 +661,14 @@ const BookingModal = ({ open, onOpenChange, barber, initialMode }: BookingModalP
                   </div>
                 )}
                 {slotLabel && (
-                  <div className="flex justify-between items-center">
-                    <span className="font-medium text-gray-800 text-sm">{slotLabel}</span>
-                    <span className="text-gray-400 text-xs">الوقت</span>
+                  <div>
+                    <div className="flex justify-between items-center">
+                      <span className="font-medium text-gray-800 text-sm">{slotLabel}</span>
+                      <span className="text-gray-400 text-xs">الوقت</span>
+                    </div>
+                    {selectedSlot?.dayOffset === 1 && (
+                      <p className="text-[11px] text-[#d4af37] mt-1">بعد منتصف الليل — يُسجل بتاريخ اليوم التالي</p>
+                    )}
                   </div>
                 )}
                 {selectedServices.length > 0 && (
