@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { ArrowLeft, Check, Loader2, AlertCircle, WifiOff, Zap, UserCheck } from "lucide-react";
+import ConfettiBurst from "./ConfettiBurst";
 import BookingStepHeader from "./BookingStepHeader";
 import BookingInfoPanel from "./BookingInfoPanel";
 import BookingCalendar from "./BookingCalendar";
@@ -82,6 +83,7 @@ const BookingModal = ({ open, onOpenChange, barber, initialMode }: BookingModalP
   const [confirmedPlan, setConfirmedPlan] = useState<BookingPlanResponse | null>(null);
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
+  const [confettiTrigger, setConfettiTrigger] = useState(0);
 
   // ── Fetch config + services when modal opens ───────────────────────────────
   useEffect(() => {
@@ -362,6 +364,7 @@ const BookingModal = ({ open, onOpenChange, barber, initialMode }: BookingModalP
 
       setConfirmedPlan(res);
       setCurrentStep("success");
+      setConfettiTrigger(prev => prev + 1);
     } catch (err) {
       if (err instanceof BookingConflictError) {
         setAvailableSlots([]);
@@ -855,7 +858,10 @@ const BookingModal = ({ open, onOpenChange, barber, initialMode }: BookingModalP
             )}
 
             <button
-              onClick={handleClose}
+              onClick={() => {
+                setConfettiTrigger(prev => prev + 1);
+                setTimeout(handleClose, 600);
+              }}
               className="w-full py-3 px-4 rounded-xl bg-[#D4AF37] text-black font-bold hover:bg-[#C4A030] transition-colors shadow-md shadow-[#D4AF37]/20"
             >
               رائع، شكراً!
@@ -867,104 +873,107 @@ const BookingModal = ({ open, onOpenChange, barber, initialMode }: BookingModalP
   };
 
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent
-        className="max-w-4xl w-[95vw] max-h-[92vh] p-0 bg-white border-0 overflow-hidden gap-0 rounded-2xl shadow-2xl"
-        dir="rtl"
-      >
-        <VisuallyHidden>
-          <DialogTitle>{isNearestMode ? "احجز أقرب ميعاد" : `احجز مع ${barber.name}`}</DialogTitle>
-        </VisuallyHidden>
-        <DialogDescription className="sr-only">
-          واجهة حجز موعد في Cut Salon لاختيار الخدمة والحلاق واليوم والساعة.
-        </DialogDescription>
+    <>
+      <ConfettiBurst trigger={confettiTrigger} particleCount={55} />
+      <Dialog open={open} onOpenChange={handleClose}>
+        <DialogContent
+          className="max-w-4xl w-[95vw] max-h-[92vh] p-0 bg-white border-0 overflow-hidden gap-0 rounded-2xl shadow-2xl"
+          dir="rtl"
+        >
+          <VisuallyHidden>
+            <DialogTitle>{isNearestMode ? "احجز أقرب ميعاد" : `احجز مع ${barber.name}`}</DialogTitle>
+          </VisuallyHidden>
+          <DialogDescription className="sr-only">
+            واجهة حجز موعد في Cut Salon لاختيار الخدمة والحلاق واليوم والساعة.
+          </DialogDescription>
 
-        {/* Dark Header */}
-        <BookingStepHeader
-          steps={initialMode ? steps.filter(s => s.id !== "mode") : steps}
-          currentStep={activeStepId}
-          barberName={displayBarberName}
-          onClose={handleClose}
-        />
+          {/* Dark Header */}
+          <BookingStepHeader
+            steps={initialMode ? steps.filter(s => s.id !== "mode") : steps}
+            currentStep={activeStepId}
+            barberName={displayBarberName}
+            onClose={handleClose}
+          />
 
-        {/* Main Content */}
-        <div className="flex flex-col md:flex-row overflow-hidden" style={{ maxHeight: "calc(92vh - 130px)" }}>
+          {/* Main Content */}
+          <div className="flex flex-col md:flex-row overflow-hidden" style={{ maxHeight: "calc(92vh - 130px)" }}>
 
-          {/* Info Panel — desktop only */}
-          <div className="hidden md:block w-72 flex-shrink-0 border-r border-gray-100 overflow-y-auto">
-            <BookingInfoPanel
-              barber={barber}
-              selectedDate={selectedDate}
-              selectedTime={selectedTime}
-              service={selectedServices.map(s => s.name).join(" + ") || undefined}
-              servicePrice={totalPrice || undefined}
-              serviceDuration={totalDuration || undefined}
-              mode={selectedMode}
-            />
-          </div>
-
-          {/* Selection area */}
-          <div className="flex-1 flex flex-col overflow-hidden">
-            {/* Mobile mini-bar */}
-            {currentStep !== "service" && currentStep !== "success" && (selectedServiceIds.length > 0 || selectedDate || selectedTime) && (
-              <div className="md:hidden bg-gray-50 px-4 py-2.5 border-b border-gray-100 flex-shrink-0">
-                <div className="flex items-center gap-2 text-xs" dir="rtl">
-                  {selectedService && <span className="text-gray-600 font-medium">{selectedService.name}</span>}
-                  {selectedService && selectedDate && <span className="text-gray-300">|</span>}
-                  {selectedDate && (
-                    <span className="text-gray-600">
-                      {selectedDate.toLocaleDateString("ar-EG", { month: "short", day: "numeric" })}
-                    </span>
-                  )}
-                  {selectedDate && selectedTime && <span className="text-gray-300">|</span>}
-                  {selectedTime && <span className="text-gray-600 font-medium">{selectedTime}</span>}
-                  <button
-                    onClick={handleBack}
-                    className="mr-auto text-[#D4AF37] font-medium flex items-center gap-1"
-                  >
-                    <ArrowLeft className="w-3 h-3" />
-                    تعديل
-                  </button>
-                </div>
-              </div>
-            )}
-
-            <div className="flex-1 overflow-y-auto bg-white">
-              {renderContent()}
-            </div>
-          </div>
-        </div>
-
-        {/* Mobile bottom barber bar */}
-        <div className="md:hidden flex-shrink-0 border-t border-gray-100 bg-[#0a0a0a] px-4 py-3">
-          <div className="flex items-center gap-3" dir="rtl">
-            {isNearestMode ? (
-              <div className="w-9 h-9 rounded-full bg-[#D4AF37]/10 flex items-center justify-center border border-[#D4AF37]/30 flex-shrink-0">
-                <Zap className="w-4 h-4 text-[#D4AF37]" />
-              </div>
-            ) : (
-              <img
-                src={barber.image}
-                alt={barber.name}
-                className="w-9 h-9 rounded-full object-cover object-top border border-[#D4AF37]/30 flex-shrink-0"
+            {/* Info Panel — desktop only */}
+            <div className="hidden md:block w-72 flex-shrink-0 border-r border-gray-100 overflow-y-auto">
+              <BookingInfoPanel
+                barber={barber}
+                selectedDate={selectedDate}
+                selectedTime={selectedTime}
+                service={selectedServices.map(s => s.name).join(" + ") || undefined}
+                servicePrice={totalPrice || undefined}
+                serviceDuration={totalDuration || undefined}
+                mode={selectedMode}
               />
-            )}
-            <div className="flex-1 min-w-0">
-              <p className="font-bold text-white text-sm leading-none">{displayBarberName}</p>
-              <p className="text-white/50 text-xs mt-0.5">{isNearestMode ? "أقرب حلاق متاح" : (barber.specialty || barber.role || "حلاق محترف")}</p>
             </div>
-            {selectedDate && selectedTime && currentStep === "time" && (
-              <button
-                onClick={() => setCurrentStep("confirm")}
-                className="px-4 py-2 rounded-lg bg-[#D4AF37] text-black text-sm font-bold flex-shrink-0"
-              >
-                متابعة
-              </button>
-            )}
+
+            {/* Selection area */}
+            <div className="flex-1 flex flex-col overflow-hidden">
+              {/* Mobile mini-bar */}
+              {currentStep !== "service" && currentStep !== "success" && (selectedServiceIds.length > 0 || selectedDate || selectedTime) && (
+                <div className="md:hidden bg-gray-50 px-4 py-2.5 border-b border-gray-100 flex-shrink-0">
+                  <div className="flex items-center gap-2 text-xs" dir="rtl">
+                    {selectedService && <span className="text-gray-600 font-medium">{selectedService.name}</span>}
+                    {selectedService && selectedDate && <span className="text-gray-300">|</span>}
+                    {selectedDate && (
+                      <span className="text-gray-600">
+                        {selectedDate.toLocaleDateString("ar-EG", { month: "short", day: "numeric" })}
+                      </span>
+                    )}
+                    {selectedDate && selectedTime && <span className="text-gray-300">|</span>}
+                    {selectedTime && <span className="text-gray-600 font-medium">{selectedTime}</span>}
+                    <button
+                      onClick={handleBack}
+                      className="mr-auto text-[#D4AF37] font-medium flex items-center gap-1"
+                    >
+                      <ArrowLeft className="w-3 h-3" />
+                      تعديل
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex-1 overflow-y-auto bg-white">
+                {renderContent()}
+              </div>
+            </div>
           </div>
-        </div>
-      </DialogContent>
-    </Dialog>
+
+          {/* Mobile bottom barber bar */}
+          <div className="md:hidden flex-shrink-0 border-t border-gray-100 bg-[#0a0a0a] px-4 py-3">
+            <div className="flex items-center gap-3" dir="rtl">
+              {isNearestMode ? (
+                <div className="w-9 h-9 rounded-full bg-[#D4AF37]/10 flex items-center justify-center border border-[#D4AF37]/30 flex-shrink-0">
+                  <Zap className="w-4 h-4 text-[#D4AF37]" />
+                </div>
+              ) : (
+                <img
+                  src={barber.image}
+                  alt={barber.name}
+                  className="w-9 h-9 rounded-full object-cover object-top border border-[#D4AF37]/30 flex-shrink-0"
+                />
+              )}
+              <div className="flex-1 min-w-0">
+                <p className="font-bold text-white text-sm leading-none">{displayBarberName}</p>
+                <p className="text-white/50 text-xs mt-0.5">{isNearestMode ? "أقرب حلاق متاح" : (barber.specialty || barber.role || "حلاق محترف")}</p>
+              </div>
+              {selectedDate && selectedTime && currentStep === "time" && (
+                <button
+                  onClick={() => setCurrentStep("confirm")}
+                  className="px-4 py-2 rounded-lg bg-[#D4AF37] text-black text-sm font-bold flex-shrink-0"
+                >
+                  متابعة
+                </button>
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
 
