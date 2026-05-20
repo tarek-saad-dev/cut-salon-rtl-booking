@@ -1,61 +1,81 @@
 "use client";
 
-import { useState } from "react";
-import { Scissors, Droplets, Sparkles, Crown } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import { Scissors, Droplets, Sparkles } from "lucide-react";
+import { getBookingServices, type BookingService } from "@/lib/publicBookingApi";
 
-const categories = [
-  {
-    key: "hair",
-    label: "خدمات الشعر",
-    icon: Scissors,
-    services: [
-      { name: "قص شعر", price: "150 جنيه" },
-      { name: "تحديد لحية", price: "100 جنيه" },
-      { name: "قص شعر + لحية", price: "200 جنيه" },
-      { name: "سيشوار", price: "80 جنيه" },
-      { name: "تصميم على الشعر", price: "50 جنيه" },
-    ],
-  },
-  {
-    key: "skin",
-    label: "العناية بالبشرة",
-    icon: Droplets,
-    services: [
-      { name: "تنظيف بشرة عادي", price: "200 جنيه" },
-      { name: "تنظيف بشرة عميق", price: "300 جنيه" },
-      { name: "تنظيف الأنف", price: "50 جنيه" },
-      { name: "ماسك للبشرة", price: "30 جنيه" },
-    ],
-  },
-  {
-    key: "extra",
-    label: "خدمات إضافية",
-    icon: Sparkles,
-    services: [
-      { name: "إزالة شعر بالشمع", price: "100 جنيه" },
-      { name: "سبراي تكثيف الشعر", price: "50 جنيه" },
-      { name: "صبغة شعر عادية", price: "50 جنيه" },
-      { name: "صبغة شعر + لحية", price: "200 جنيه" },
-    ],
-  },
-  {
-    key: "special",
-    label: "خدمات خاصة",
-    icon: Crown,
-    services: [
-      { name: "بروتين للشعر القصير", price: "500 جنيه" },
-      { name: "بروتين للشعر الطويل", price: "700 جنيه" },
-      { name: "فرد الشعر", price: "200 جنيه" },
-      { name: "تلوين الشعر", price: "100 جنيه" },
-      { name: "هايلايت فضي", price: "700 جنيه" },
-    ],
-  },
-];
+/* ─── 3 allowed categories → tab mapping ────────────────────────────────────── */
+const TABS = [
+  { key: "حلاقة", label: "حلاقة", icon: Scissors },
+  { key: "خدمات الشعر", label: "خدمات الشعر", icon: Sparkles },
+  { key: "تنظيف", label: "العناية بالبشرة", icon: Droplets },
+] as const;
 
+function getTabKey(categoryName: string | null): string | null {
+  if (!categoryName) return null;
+  const cat = categoryName.trim().toLowerCase();
+  if (cat === "حلاقة") return "حلاقة";
+  if (cat === "skincare") return "تنظيف";
+  if (
+    cat.includes("خدمات") &&
+    (cat.includes("اضاف") || cat.includes("إضاف") || cat.includes("اضافية") || cat.includes("إضافية")) &&
+    cat.includes("شعر")
+  ) {
+    return "خدمات الشعر";
+  }
+  return null;
+}
+
+/* ─── Skeleton rows ─────────────────────────────────────────────────────────── */
+const SkeletonPanel = () => (
+  <div className="rounded-2xl border border-[#D4AF37]/15 bg-[#0e0e0e] overflow-hidden animate-pulse">
+    <div className="flex items-center gap-3 px-6 py-4 border-b border-white/[0.06]">
+      <div className="w-10 h-10 rounded-xl bg-[#1a1a1a]" />
+      <div className="space-y-2">
+        <div className="h-4 bg-[#1a1a1a] rounded w-28" />
+        <div className="h-3 bg-[#1a1a1a] rounded w-16" />
+      </div>
+    </div>
+    {[1, 2, 3, 4].map(i => (
+      <div key={i} className="flex items-center justify-between px-6 py-4 border-b border-white/[0.04] last:border-0">
+        <div className="h-4 bg-[#1a1a1a] rounded w-1/3" />
+        <div className="h-4 bg-[#1a1a1a] rounded w-20" />
+      </div>
+    ))}
+  </div>
+);
+
+/* ════════════════════════════════════════════
+   SERVICES SECTION
+   ════════════════════════════════════════════ */
 const ServicesSection = () => {
-  const [activeTab, setActiveTab] = useState("hair");
-  const activeCat = categories.find(c => c.key === activeTab)!;
-  const Icon = activeCat.icon;
+  const [allServices, setAllServices] = useState<BookingService[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<string>(TABS[0].key);
+
+  useEffect(() => {
+    getBookingServices()
+      .then(res => setAllServices(res.services))
+      .catch(() => { /* keep empty */ })
+      .finally(() => setIsLoading(false));
+  }, []);
+
+  /* Filter: allowed categories, price > 0, bookable */
+  const grouped = useMemo(() => {
+    const map: Record<string, BookingService[]> = {};
+    TABS.forEach(t => (map[t.key] = []));
+    allServices.forEach(s => {
+      if (!s.isBookableOnline) return;
+      if (s.price <= 0) return;
+      const key = getTabKey(s.categoryName);
+      if (key && map[key]) map[key].push(s);
+    });
+    return map;
+  }, [allServices]);
+
+  const activeTabMeta = TABS.find(t => t.key === activeTab)!;
+  const Icon = activeTabMeta.icon;
+  const tabServices = grouped[activeTab] ?? [];
 
   return (
     <section id="services" className="relative py-20 md:py-28 bg-[#0a0a0a] overflow-hidden">
@@ -78,13 +98,14 @@ const ServicesSection = () => {
 
         {/* Category tabs */}
         <div className="flex flex-wrap items-center justify-center gap-2 md:gap-3 mb-10 max-w-2xl mx-auto">
-          {categories.map((cat) => {
-            const isActive = cat.key === activeTab;
-            const TabIcon = cat.icon;
+          {TABS.map((tab) => {
+            const isActive = tab.key === activeTab;
+            const TabIcon = tab.icon;
+            const count = grouped[tab.key]?.length ?? 0;
             return (
               <button
-                key={cat.key}
-                onClick={() => setActiveTab(cat.key)}
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
                 className={`flex items-center gap-2 px-4 md:px-5 py-2.5 rounded-xl font-heading font-bold text-xs md:text-sm transition-all duration-300 cursor-pointer
                   ${isActive
                     ? "bg-gradient-to-l from-[#C8A96A] to-[#E5C07B] text-[#050505] shadow-[0_4px_20px_rgba(212,175,55,0.25)]"
@@ -92,7 +113,12 @@ const ServicesSection = () => {
                   }`}
               >
                 <TabIcon className="w-3.5 h-3.5" />
-                {cat.label}
+                {tab.label}
+                {!isLoading && count > 0 && (
+                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${isActive ? "bg-black/15" : "bg-white/[0.06]"}`}>
+                    {count}
+                  </span>
+                )}
               </button>
             );
           })}
@@ -100,31 +126,41 @@ const ServicesSection = () => {
 
         {/* Active category panel */}
         <div className="max-w-2xl mx-auto">
-          <div className="rounded-2xl border border-[#D4AF37]/15 bg-[#0e0e0e] overflow-hidden">
-            {/* Panel header */}
-            <div className="flex items-center gap-3 px-6 py-4 border-b border-white/[0.06]">
-              <div className="w-10 h-10 rounded-xl bg-[#D4AF37]/10 flex items-center justify-center">
-                <Icon className="w-5 h-5 text-[#D4AF37]" />
-              </div>
-              <div>
-                <h3 className="font-heading text-lg font-bold text-white">{activeCat.label}</h3>
-                <p className="text-zinc-500 text-xs">{activeCat.services.length} خدمة</p>
-              </div>
+          {isLoading ? (
+            <SkeletonPanel />
+          ) : tabServices.length === 0 ? (
+            <div className="rounded-2xl border border-white/[0.06] bg-[#0e0e0e] p-10 text-center">
+              <p className="text-zinc-500 text-sm">لا توجد خدمات في هذا القسم حالياً</p>
             </div>
+          ) : (
+            <div className="rounded-2xl border border-[#D4AF37]/15 bg-[#0e0e0e] overflow-hidden">
+              {/* Panel header */}
+              <div className="flex items-center gap-3 px-6 py-4 border-b border-white/[0.06]">
+                <div className="w-10 h-10 rounded-xl bg-[#D4AF37]/10 flex items-center justify-center">
+                  <Icon className="w-5 h-5 text-[#D4AF37]" />
+                </div>
+                <div>
+                  <h3 className="font-heading text-lg font-bold text-white">{activeTabMeta.label}</h3>
+                  <p className="text-zinc-500 text-xs">{tabServices.length} خدمة</p>
+                </div>
+              </div>
 
-            {/* Service list */}
-            <ul>
-              {activeCat.services.map((s, i) => (
-                <li key={i}
-                  className={`flex items-center justify-between px-6 py-4 transition-colors hover:bg-white/[0.02]
-                    ${i < activeCat.services.length - 1 ? "border-b border-white/[0.04]" : ""}`}
-                >
-                  <span className="text-zinc-300 text-sm md:text-base">{s.name}</span>
-                  <span className="text-[#D4AF37] font-heading font-bold text-sm md:text-base whitespace-nowrap mr-4">{s.price}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
+              {/* Service list */}
+              <ul>
+                {tabServices.map((s, i) => (
+                  <li key={s.id}
+                    className={`flex items-center justify-between px-6 py-4 transition-colors hover:bg-white/[0.02]
+                      ${i < tabServices.length - 1 ? "border-b border-white/[0.04]" : ""}`}
+                  >
+                    <span className="text-zinc-300 text-sm md:text-base">{s.name}</span>
+                    <span className="text-[#D4AF37] font-heading font-bold text-sm md:text-base whitespace-nowrap mr-4">
+                      {s.price} جنيه
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
 
         {/* CTA */}
