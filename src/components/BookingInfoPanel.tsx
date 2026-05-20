@@ -1,6 +1,6 @@
 "use client";
 
-import { Clock, Scissors, MapPin, Star, CalendarDays, Banknote } from "lucide-react";
+import { Clock, Scissors, MapPin, Star, CalendarDays, Banknote, Zap } from "lucide-react";
 
 interface BarberInfo {
   name: string;
@@ -41,22 +41,31 @@ const BookingInfoPanel = ({ barber, selectedDate, selectedTime, service, service
     <div className="bg-[#0a0a0a] text-white p-6 h-full flex flex-col" dir="rtl">
       {/* Barber Profile */}
       <div className="flex items-start gap-4 mb-6">
-        <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-[#D4AF37]/30 flex-shrink-0 shadow-[0_0_20px_rgba(212,175,55,0.1)]">
-          <img
-            src={barber.image}
-            alt={barber.name}
-            className="w-full h-full object-cover object-top"
-          />
-        </div>
+        {mode === "nearest" ? (
+          <div className="w-16 h-16 rounded-full flex items-center justify-center border-2 border-[#D4AF37]/30 bg-[#D4AF37]/10 flex-shrink-0 shadow-[0_0_20px_rgba(212,175,55,0.1)]">
+            <Zap className="w-7 h-7 text-[#D4AF37]" />
+          </div>
+        ) : (
+          <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-[#D4AF37]/30 flex-shrink-0 shadow-[0_0_20px_rgba(212,175,55,0.1)]">
+            <img
+              src={barber.image}
+              alt={barber.name}
+              className="w-full h-full object-cover object-top"
+            />
+          </div>
+        )}
         <div className="flex-1 min-w-0">
           <h3 className="font-heading font-bold text-xl text-white mb-1">
             {displayName}
           </h3>
           <div className="flex items-center gap-2 text-white/60 text-sm mb-1">
-            <Scissors className="w-3.5 h-3.5 text-[#D4AF37]" />
-            <span>{barber.specialty || barber.role || "حلاق محترف"}</span>
+            {mode === "nearest" ? (
+              <><Zap className="w-3.5 h-3.5 text-[#D4AF37]" /><span>أقرب حلاق متاح</span></>
+            ) : (
+              <><Scissors className="w-3.5 h-3.5 text-[#D4AF37]" /><span>{barber.specialty || barber.role || "حلاق محترف"}</span></>
+            )}
           </div>
-          {barber.rating && (
+          {mode !== "nearest" && barber.rating && (
             <div className="flex items-center gap-1">
               <Star className="w-3.5 h-3.5 fill-[#D4AF37] text-[#D4AF37]" />
               <span className="text-[#D4AF37] font-bold text-sm">{barber.rating}</span>
@@ -78,6 +87,17 @@ const BookingInfoPanel = ({ barber, selectedDate, selectedTime, service, service
         </p>
 
         <div className="space-y-4">
+          {/* Booking mode */}
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 rounded-lg bg-[#D4AF37]/10 flex items-center justify-center flex-shrink-0">
+              {mode === "nearest" ? <Zap className="w-4 h-4 text-[#D4AF37]" /> : <Scissors className="w-4 h-4 text-[#D4AF37]" />}
+            </div>
+            <div>
+              <p className="text-white/40 text-xs mb-0.5">طريقة الحجز</p>
+              <p className="text-white font-medium text-sm">{mode === "nearest" ? "أقرب حلاق متاح" : "اختيار حلاق"}</p>
+            </div>
+          </div>
+
           {/* Service */}
           {service && (
             <div className="flex items-start gap-3">

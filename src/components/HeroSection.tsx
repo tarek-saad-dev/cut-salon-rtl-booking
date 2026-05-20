@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Calendar, Users, Shield, Gem, Clock, Star } from "lucide-react";
+import { Calendar, Zap, Shield, Gem, Clock, Star } from "lucide-react";
 
 const heroImg = "/hero.png";
 const heroVerticalImg = "/hero_vertical.png";
@@ -80,11 +80,11 @@ const HeroSection = () => {
           ))}
         </ul>
 
-        <a href="#barbers" aria-label="احجز الآن"
-          className="hidden md:flex items-center gap-2 px-5 py-2.5 rounded-xl border border-[#D4AF37]/50 text-[#E5C07B] text-sm font-bold hover:bg-[#D4AF37]/15 hover:border-[#D4AF37] hover:shadow-[0_0_24px_rgba(212,175,55,0.15)] transition-all duration-300">
+        <button onClick={() => window.dispatchEvent(new CustomEvent("cut:book-now"))} aria-label="احجز الآن"
+          className="hidden md:flex items-center gap-2 px-5 py-2.5 rounded-xl border border-[#D4AF37]/50 text-[#E5C07B] text-sm font-bold hover:bg-[#D4AF37]/15 hover:border-[#D4AF37] hover:shadow-[0_0_24px_rgba(212,175,55,0.15)] transition-all duration-300 cursor-pointer">
           <Calendar className="w-4 h-4" />
           احجز الآن
-        </a>
+        </button>
       </motion.nav>
 
       {/* ─── Main content ─── */}
@@ -121,17 +121,33 @@ const HeroSection = () => {
               {/* CTA Buttons */}
               <motion.div custom={3} variants={fadeUp} initial="hidden" animate="visible"
                 className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3 w-full sm:w-auto mt-1">
-                <a href="#barbers" aria-label="احجز الآن"
-                  className="group relative inline-flex items-center justify-center gap-2.5 w-full sm:w-auto px-8 py-3.5 rounded-xl font-heading font-bold text-[#050505] text-base overflow-hidden bg-gradient-to-l from-[#C8A96A] to-[#E5C07B] shadow-[0_8px_32px_rgba(212,175,55,0.3)] hover:shadow-[0_12px_48px_rgba(212,175,55,0.5)] hover:scale-[1.03] active:scale-[0.97] transition-all duration-300">
+                <button
+                  onClick={() => window.dispatchEvent(new CustomEvent("cut:book-now"))}
+                  aria-label="احجز الآن"
+                  className="group relative inline-flex items-center justify-center gap-2.5 w-full sm:w-auto px-8 py-3.5 rounded-xl font-heading font-bold text-[#050505] text-base overflow-hidden bg-gradient-to-l from-[#C8A96A] to-[#E5C07B] shadow-[0_8px_32px_rgba(212,175,55,0.3)] hover:shadow-[0_12px_48px_rgba(212,175,55,0.5)] hover:scale-[1.03] active:scale-[0.97] transition-all duration-300 cursor-pointer">
                   <span className="absolute inset-0 bg-gradient-to-l from-white/20 to-transparent translate-x-full group-hover:translate-x-0 transition-transform duration-500" />
                   <Calendar className="w-4 h-4 relative z-10" />
                   <span className="relative z-10">احجز الآن</span>
-                </a>
-                <a href="#barbers" aria-label="شاهد الحلاقين"
-                  className="inline-flex items-center justify-center gap-2.5 w-full sm:w-auto px-8 py-3.5 rounded-xl font-heading font-bold text-white text-base border border-white/15 hover:border-[#D4AF37]/60 hover:bg-[#D4AF37]/10 hover:scale-[1.02] active:scale-[0.97] transition-all duration-300">
-                  <Users className="w-4 h-4" />
-                  شاهد الحلاقين
-                </a>
+                </button>
+                <button
+                  onClick={() => window.dispatchEvent(new CustomEvent("cut:book-nearest"))}
+                  aria-label="أقرب ميعاد متاح"
+                  className="group relative inline-flex items-center justify-center gap-2.5 w-full sm:w-auto px-8 py-3.5 rounded-xl font-heading font-bold text-[#D4AF37] text-base overflow-hidden border border-[#D4AF37]/40 hover:border-[#D4AF37] bg-[#D4AF37]/[0.08] hover:bg-[#D4AF37]/15 hover:shadow-[0_0_32px_rgba(212,175,55,0.15)] hover:scale-[1.02] active:scale-[0.97] transition-all duration-300 cursor-pointer">
+                  <Zap className="w-4 h-4 relative z-10" />
+                  <span className="relative z-10">أقرب ميعاد متاح</span>
+                </button>
+              </motion.div>
+
+              {/* Live availability micro-card */}
+              <motion.div custom={3.5} variants={fadeUp} initial="hidden" animate="visible"
+                className="w-full max-w-md">
+                <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-white/[0.04] backdrop-blur-sm border border-white/[0.08]">
+                  <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse flex-shrink-0" />
+                  <p className="text-white/50 text-xs">
+                    اختار الخدمة لمعرفة أقرب ميعاد
+                  </p>
+                  <Zap className="w-3 h-3 text-[#D4AF37]/60 flex-shrink-0" />
+                </div>
               </motion.div>
 
               {/* Trust badges */}

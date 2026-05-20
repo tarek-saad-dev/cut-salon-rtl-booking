@@ -81,8 +81,60 @@ const PRES: Record<string, ServicePres> = {
   "برفيوم SF": { arabicTitle: "برفيوم SF", description: "لمسة عطر نهائية بعد الخدمة.", icon: Sparkles },
 };
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   FLEXIBLE NAME MATCHING UTILITIES
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/** Normalize a service name for flexible comparison */
+function normalizeName(name: string): string {
+  return name
+    .trim()
+    .toLowerCase()
+    .replace(/[\s_-]+/g, " ")     // collapse whitespace/dashes/underscores
+    .replace(/[&+]/g, " and ")     // normalize & and + to 'and'
+    .replace(/\s+/g, " ")          // collapse again
+    .trim();
+}
+
+/** Build a lookup map once: normalized key → original PRES key */
+const PRES_NORMALIZED: Map<string, string> = new Map(
+  Object.keys(PRES).map(k => [normalizeName(k), k])
+);
+
 function getPres(name: string): ServicePres | null {
-  return PRES[name.trim()] ?? null;
+  // Exact match first
+  if (PRES[name.trim()]) return PRES[name.trim()];
+  // Normalized match
+  const normalKey = normalizeName(name);
+  const match = PRES_NORMALIZED.get(normalKey);
+  if (match) return PRES[match];
+  // Partial/fuzzy: check if a normalized PRES key contains the normalized name or vice versa
+  for (const [nk, origKey] of PRES_NORMALIZED) {
+    if (nk.includes(normalKey) || normalKey.includes(nk)) return PRES[origKey];
+  }
+  return null;
+}
+
+/** Check if a service name flexibly matches any name in a list */
+function flexMatch(serviceName: string, targetNames: string[]): boolean {
+  const norm = normalizeName(serviceName);
+  return targetNames.some(t => {
+    const nt = normalizeName(t);
+    return norm === nt || norm.includes(nt) || nt.includes(norm);
+  });
+}
+
+/**
+ * Determine if a service should be visible in the UI.
+ * IMPORTANT: Do NOT require isBookableOnline === true.
+ * Many real services currently come from API with isBookableOnline=false
+ * (legacy/default value). This field should not hide services until
+ * backend data is fixed.
+ */
+function isServiceVisible(s: BookingService): boolean {
+  const name = s.name?.trim();
+  const price = s.price;
+  return Boolean(name) && Number(price) > 0;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -92,9 +144,9 @@ function getPres(name: string): ServicePres | null {
 // Primary: order matters (Detail Cut → Beard → Hair & Beard)
 // Each slot has an array of name variations, first found wins
 const PRIMARY_SLOTS: { names: string[] }[] = [
-  { names: ["Detailed Cut"] },
-  { names: ["Beard", "Beard Styling & Fade", "Zero Beard Shave"] },
-  { names: ["Hair & Beard", "Haircut & Beard"] },
+  { names: ["Detailed Cut", "Detail Cut", "DetailedCut"] },
+  { names: ["Beard", "Beard Styling & Fade", "Zero Beard Shave", "Beard Styling"] },
+  { names: ["Hair & Beard", "Haircut & Beard", "Hair cut & Beard", "Hair cut + Beard", "Hair and Beard"] },
 ];
 const SECONDARY_NAMES = ["Basic Cut", "Advanced Cut"];
 
@@ -105,7 +157,7 @@ const ALL_MAIN_VARIATIONS = PRIMARY_SLOTS.flatMap(s => s.names).concat(SECONDARY
    ADD-ON CATEGORY TABS
    ═══════════════════════════════════════════════════════════════════════════ */
 
-type AddonCatKey = "skincare" | "masks" | "hair" | "beard_face" | "comfort";
+type AddonCatKey = "skincare" | "masks" | "hair" | "beard_face" | "comfort" | "other";
 
 interface AddonCat {
   key: AddonCatKey;
@@ -335,10 +387,56 @@ const BookingServiceSelect = ({
 }: BookingServiceSelectProps) => {
   const [activeAddonTab, setActiveAddonTab] = useState<AddonCatKey>("skincare");
 
-  // Helper: find first bookable service matching any of the given names
+  // ── DEV LOGGING (comprehensive) ──
+  useMemo(() => {
+    if (process.env.NODE_ENV !== "development" || services.length === 0) return;
+    console.group("[booking] BookingServiceSelect Debug");
+
+    // 1. Raw services
+    console.log("[booking] raw services count:", services.length);
+    console.log("[booking] first service raw keys:", Object.keys(services[0]));
+    console.log("[booking] first service raw:", JSON.parse(JSON.stringify(services[0])));
+    console.table(services.map(s => {
+      const raw = s as unknown as Record<string, unknown>;
+      return {
+        id: raw.id ?? raw.proId ?? raw.ProID ?? raw.ProductID,
+        name: raw.name ?? raw.proName ?? raw.ProName ?? raw.productName ?? raw.ProductName ?? raw.title,
+        category: raw.category ?? raw.categoryName ?? raw.CatName ?? raw.catName,
+        price: raw.price ?? raw.Price ?? raw.salePrice ?? raw.SalePrice,
+        duration: raw.duration ?? raw.Duration ?? raw.durationMinutes ?? raw.DurationMinutes,
+        active: raw.active ?? raw.isActive ?? raw.IsActive,
+        isBookableOnline: s.isBookableOnline,
+      };
+    }));
+
+    // 2. Categories
+    console.log("[booking] unique categories:", [...new Set(services.map(s => s.categoryName))]);
+
+    // 3. Visibility filter
+    const visible = services.filter(isServiceVisible);
+    const hidden = services.filter(s => !isServiceVisible(s));
+    console.log("[booking] visible services (name + price>0):", visible.length);
+    if (hidden.length > 0) {
+      console.log("[booking] hidden services:", hidden.map(s => ({ name: s.name, price: s.price, reason: !s.name?.trim() ? "no name" : "price<=0" })));
+    }
+    const notBookable = services.filter(s => !s.isBookableOnline);
+    if (notBookable.length > 0) {
+      console.log("[booking] note: isBookableOnline=false (IGNORED, not used for filtering):", notBookable.length, "services");
+    }
+
+    console.groupEnd();
+  }, [services]);
+
+  // Helper: find first visible service matching any of the given names (flexible)
   const findByNames = (names: string[]): BookingService | null => {
+    // Exact match first (fast path)
     for (const n of names) {
-      const s = services.find(sv => sv.name.trim() === n && sv.isBookableOnline && sv.price > 0);
+      const s = services.find(sv => sv.name.trim() === n && isServiceVisible(sv));
+      if (s) return s;
+    }
+    // Flexible match (normalized)
+    for (const n of names) {
+      const s = services.find(sv => flexMatch(sv.name, [n]) && isServiceVisible(sv));
       if (s) return s;
     }
     return null;
@@ -358,63 +456,106 @@ const BookingServiceSelect = ({
   /* ── Secondary services ── */
   const mainSecondary = useMemo(() => {
     return SECONDARY_NAMES
-      .map(n => services.find(s => s.name.trim() === n && s.isBookableOnline && s.price > 0))
+      .map(n => {
+        // Exact first
+        const exact = services.find(s => s.name.trim() === n && isServiceVisible(s));
+        if (exact) return exact;
+        // Flexible fallback
+        return services.find(s => flexMatch(s.name, [n]) && isServiceVisible(s)) ?? null;
+      })
       .filter((s): s is BookingService => s != null);
   }, [services]);
 
   /* ── All main IDs for exclusion ── */
   const allMainIds = useMemo(() => {
     const ids = new Set<number>();
-    // All services whose names match any main variation
+    // All services whose names match any main variation (flexible)
     services.forEach(s => {
-      if (ALL_MAIN_VARIATIONS.includes(s.name.trim())) ids.add(s.id);
+      if (flexMatch(s.name, ALL_MAIN_VARIATIONS)) ids.add(s.id);
     });
     // Also the resolved primary/secondary
     mainPrimary.forEach(s => ids.add(s.id));
     mainSecondary.forEach(s => ids.add(s.id));
+
+    if (process.env.NODE_ENV === "development" && services.length > 0) {
+      console.group("[booking] Main service resolution");
+      console.log("[booking] primary resolved:", mainPrimary.length, mainPrimary.map(s => s.name));
+      PRIMARY_SLOTS.forEach(slot => {
+        const found = findByNames(slot.names);
+        console.log(`[booking]   slot [${slot.names[0]}]:`, found ? `✓ matched "${found.name}"` : `✗ NOT FOUND (tried: ${slot.names.join(", ")})`);
+      });
+      console.log("[booking] secondary resolved:", mainSecondary.length, mainSecondary.map(s => s.name));
+      console.log("[booking] total main IDs excluded:", ids.size, [...ids]);
+      // Show services excluded as main with reasons
+      services.forEach(s => {
+        if (ids.has(s.id)) {
+          console.log(`  [booking] excluded as main: "${s.name}" (id=${s.id})`);
+        }
+      });
+      console.groupEnd();
+    }
+
     return ids;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [services, mainPrimary, mainSecondary]);
 
-  /* ── Add-on services: everything bookable that's NOT a main service ── */
+  /* ── Add-on services: everything visible that's NOT a main service ── */
   const addonServices = useMemo(() => {
     return services.filter(s =>
-      s.isBookableOnline && s.price > 0 && !allMainIds.has(s.id)
+      isServiceVisible(s) && !allMainIds.has(s.id)
     );
   }, [services, allMainIds]);
 
   /* ── Group add-ons by category ── */
   const addonGrouped = useMemo(() => {
     const map: Record<AddonCatKey, BookingService[]> = {
-      skincare: [], masks: [], hair: [], beard_face: [], comfort: [],
+      skincare: [], masks: [], hair: [], beard_face: [], comfort: [], other: [],
     };
     const placed = new Set<number>();
 
-    // First pass: place by known service name
+    // First pass: place by flexible name match
     for (const cat of ADDON_CATEGORIES) {
       for (const s of addonServices) {
         if (placed.has(s.id)) continue;
-        if (cat.serviceNames.includes(s.name.trim())) {
+        if (flexMatch(s.name, cat.serviceNames)) {
           map[cat.key].push(s);
           placed.add(s.id);
         }
       }
     }
 
-    // Second pass: unplaced services go to best-guess category or "hair" as fallback
+    // Second pass: unplaced services go to best-guess category or "other"
     for (const s of addonServices) {
       if (placed.has(s.id)) continue;
       const lower = s.name.toLowerCase();
       if (lower.includes("mask") || lower.includes("ماسك")) {
         map.masks.push(s);
-      } else if (lower.includes("skin") || lower.includes("بشرة")) {
+      } else if (lower.includes("skin") || lower.includes("بشرة") || lower.includes("skincare")) {
         map.skincare.push(s);
       } else if (lower.includes("beard") || lower.includes("دقن") || lower.includes("wax") || lower.includes("thread") || lower.includes("فتلة")) {
         map.beard_face.push(s);
       } else if (lower.includes("towel") || lower.includes("فوطة") || lower.includes("باديكير") || lower.includes("برفيوم")) {
         map.comfort.push(s);
       } else {
-        map.hair.push(s);
+        map.other.push(s);
       }
+    }
+
+    if (process.env.NODE_ENV === "development" && addonServices.length > 0) {
+      console.group("[booking] Add-on grouping");
+      console.log("[booking] add-on services total:", addonServices.length);
+      console.log("[booking] skincare tab:", map.skincare.length, map.skincare.map(s => s.name));
+      console.log("[booking] masks tab:", map.masks.length, map.masks.map(s => s.name));
+      console.log("[booking] hair tab:", map.hair.length, map.hair.map(s => s.name));
+      console.log("[booking] beard_face tab:", map.beard_face.length, map.beard_face.map(s => s.name));
+      console.log("[booking] comfort tab:", map.comfort.length, map.comfort.map(s => s.name));
+      console.log("[booking] other (unmatched addons):", map.other.length, map.other.map(s => s.name));
+      if (map.other.length > 0) {
+        map.other.forEach(s => {
+          console.log(`  [booking] unmatched addon: "${s.name}" category="${s.categoryName}" → placed in 'other'`);
+        });
+      }
+      console.groupEnd();
     }
 
     return map;
@@ -422,7 +563,17 @@ const BookingServiceSelect = ({
 
   /* ── Tabs with counts (only show tabs that have services) ── */
   const visibleTabs = useMemo(() => {
-    return ADDON_CATEGORIES.filter(c => addonGrouped[c.key].length > 0);
+    const tabs = ADDON_CATEGORIES.filter(c => addonGrouped[c.key].length > 0);
+    // Add "other" tab if there are unclassified services
+    if (addonGrouped.other.length > 0) {
+      tabs.push({
+        key: "other",
+        label: "إضافات أخرى",
+        icon: Plus,
+        serviceNames: [],
+      });
+    }
+    return tabs;
   }, [addonGrouped]);
 
   /* ── Selected main ID ── */
@@ -454,8 +605,8 @@ const BookingServiceSelect = ({
     );
   }
 
-  /* Empty */
-  if (totalMain === 0) {
+  /* Empty — only if API returned 0 services total */
+  if (services.length === 0) {
     return (
       <div className="p-6 text-center" dir="rtl">
         <div className="w-16 h-16 rounded-full bg-gray-50 flex items-center justify-center mx-auto mb-4">
@@ -465,6 +616,10 @@ const BookingServiceSelect = ({
       </div>
     );
   }
+
+  /* If we have services from API but no main resolved, show all visible as fallback */
+  const visibleServices = services.filter(isServiceVisible);
+  const showFallbackList = totalMain === 0 && visibleServices.length > 0;
 
   return (
     <div className="p-5 md:p-6" dir="rtl">
@@ -476,8 +631,17 @@ const BookingServiceSelect = ({
         <p className="text-gray-400 text-xs">ابدأ بالخدمة الرئيسية المناسبة لك</p>
       </div>
 
+      {/* Fallback: if no main resolved but API has bookable services, show them all */}
+      {showFallbackList && (
+        <div className="space-y-3 mt-4">
+          {visibleServices.map(s => (
+            <PrimaryCard key={s.id} service={s} isSelected={selectedIds.includes(s.id)} onSelect={() => handleMainSelect(s.id)} />
+          ))}
+        </div>
+      )}
+
       {/* Primary — 3 large cards */}
-      {mainPrimary.length > 0 && (
+      {!showFallbackList && mainPrimary.length > 0 && (
         <div className="space-y-3 mt-4">
           {mainPrimary.map(s => (
             <PrimaryCard key={s.id} service={s} isSelected={selectedIds.includes(s.id)} onSelect={() => handleMainSelect(s.id)} />
@@ -486,7 +650,7 @@ const BookingServiceSelect = ({
       )}
 
       {/* Secondary — smaller cards under divider */}
-      {mainSecondary.length > 0 && (
+      {!showFallbackList && mainSecondary.length > 0 && (
         <div className="mt-4">
           <div className="flex items-center gap-2 mb-2.5">
             <div className="h-px flex-1 bg-gray-100" />
@@ -545,7 +709,7 @@ const BookingServiceSelect = ({
 
           {/* Active category cards */}
           <div className="space-y-2">
-            {addonGrouped[effectiveTab]?.map(s => (
+            {(addonGrouped[effectiveTab] ?? []).map(s => (
               <UpsellCard key={s.id} service={s} isSelected={selectedIds.includes(s.id)} onToggle={() => handleAddonToggle(s.id)} />
             ))}
           </div>

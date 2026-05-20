@@ -64,12 +64,68 @@ const ServicesSection = () => {
   const grouped = useMemo(() => {
     const map: Record<string, BookingService[]> = {};
     TABS.forEach(t => (map[t.key] = []));
+
+    // ── DEV DEBUG LOGS ──
+    if (process.env.NODE_ENV === "development" && allServices.length > 0) {
+      console.group("[booking] ServicesSection Debug");
+      console.log("[booking] raw services count:", allServices.length);
+      // Log raw object keys from first service to detect field name differences
+      console.log("[booking] first service raw keys:", Object.keys(allServices[0]));
+      console.log("[booking] first service raw:", JSON.parse(JSON.stringify(allServices[0])));
+      console.table(allServices.map(s => {
+        const raw = s as unknown as Record<string, unknown>;
+        return {
+          id: raw.id ?? raw.proId ?? raw.ProID ?? raw.ProductID,
+          name: raw.name ?? raw.proName ?? raw.ProName ?? raw.productName ?? raw.ProductName ?? raw.title,
+          category: raw.category ?? raw.categoryName ?? raw.CatName ?? raw.catName,
+          price: raw.price ?? raw.Price ?? raw.salePrice ?? raw.SalePrice,
+          duration: raw.duration ?? raw.Duration ?? raw.durationMinutes ?? raw.DurationMinutes,
+          active: raw.active ?? raw.isActive ?? raw.IsActive,
+          isBookableOnline: s.isBookableOnline,
+        };
+      }));
+      console.log("[booking] unique categories:", [...new Set(allServices.map(s => s.categoryName))]);
+    }
+
+    const excluded: { name: string; reason: string }[] = [];
+    const unmatched: BookingService[] = [];
+
     allServices.forEach(s => {
-      if (!s.isBookableOnline) return;
-      if (s.price <= 0) return;
+      // Visibility: name must exist and price > 0
+      // IMPORTANT: isBookableOnline is NOT used as a filter (legacy/default value from API)
+      if (!s.name?.trim()) {
+        excluded.push({ name: s.name ?? "(empty)", reason: "no name" });
+        return;
+      }
+      if (s.price <= 0) {
+        excluded.push({ name: s.name, reason: "price <= 0 (price=" + s.price + ")" });
+        return;
+      }
       const key = getTabKey(s.categoryName);
-      if (key && map[key]) map[key].push(s);
+      if (key && map[key]) {
+        map[key].push(s);
+      } else {
+        excluded.push({ name: s.name, reason: "category mismatch (categoryName='" + s.categoryName + "' → getTabKey returned: " + key + ")" });
+        unmatched.push(s);
+      }
     });
+
+    if (process.env.NODE_ENV === "development" && allServices.length > 0) {
+      const notBookable = allServices.filter(s => !s.isBookableOnline);
+      if (notBookable.length > 0) {
+        console.log("[booking] note: isBookableOnline=false (IGNORED, not used for filtering):", notBookable.length, "services");
+      }
+      console.log("[booking] haircut tab (حلاقة) services:", map["حلاقة"].length, map["حلاقة"].map(s => s.name));
+      console.log("[booking] hair services tab (خدمات الشعر) services:", map["خدمات الشعر"].length, map["خدمات الشعر"].map(s => s.name));
+      console.log("[booking] skincare tab (تنظيف) services:", map["تنظيف"].length, map["تنظيف"].map(s => s.name));
+      console.log("[booking] unmatched services (no tab):", unmatched.length, unmatched.map(s => ({ name: s.name, category: s.categoryName })));
+      if (excluded.length > 0) {
+        console.log("[booking] excluded services:");
+        excluded.forEach(e => console.log("  [booking] excluded:", e.name, "reason:", e.reason));
+      }
+      console.groupEnd();
+    }
+
     return map;
   }, [allServices]);
 

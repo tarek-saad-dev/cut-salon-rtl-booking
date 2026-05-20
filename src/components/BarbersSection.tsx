@@ -2,8 +2,8 @@
 
 import { useState, useCallback, useEffect } from "react";
 import useEmblaCarousel from "embla-carousel-react";
-import { ChevronLeft, ChevronRight, Scissors, Clock } from "lucide-react";
-import BookingModal, { type BarberBookingInfo } from "./BookingModal";
+import { ChevronLeft, ChevronRight, Scissors, Clock, Zap } from "lucide-react";
+import BookingModal, { type BarberBookingInfo, type BookingMode } from "./BookingModal";
 import { getBookingBarbers, type BookingBarber } from "@/lib/publicBookingApi";
 
 type DisplayBarber = BarberBookingInfo & { buttonText: string };
@@ -123,10 +123,40 @@ const BarberCard = ({
 /* ════════════════════════════════════════════
    MAIN BARBERS SECTION
    ════════════════════════════════════════════ */
+const NEAREST_PLACEHOLDER_BARBER: DisplayBarber = {
+  name: "أقرب حلاق متاح",
+  image: "/cutsalon.png",
+  role: "أقرب حلاق متاح",
+  location: "Cut Salon · الإسكندرية",
+  buttonText: "احجز أقرب ميعاد",
+};
+
 const BarbersSection = () => {
   const [selectedBarber, setSelectedBarber] = useState<DisplayBarber | null>(null);
+  const [bookingMode, setBookingMode] = useState<BookingMode | undefined>(undefined);
   const [barbers, setBarbers] = useState<DisplayBarber[]>(FALLBACK_BARBERS);
   const [isLoadingBarbers, setIsLoadingBarbers] = useState(true);
+
+  // Listen for hero section booking events
+  useEffect(() => {
+    const handleBookNow = () => {
+      // Open modal with first barber in normal mode (mode choice step)
+      const first = barbers[0] ?? FALLBACK_BARBERS[0];
+      setBookingMode(undefined);
+      setSelectedBarber(first);
+    };
+    const handleBookNearest = () => {
+      // Open modal directly in nearest mode, skip mode choice
+      setBookingMode("nearest");
+      setSelectedBarber(NEAREST_PLACEHOLDER_BARBER);
+    };
+    window.addEventListener("cut:book-now", handleBookNow);
+    window.addEventListener("cut:book-nearest", handleBookNearest);
+    return () => {
+      window.removeEventListener("cut:book-now", handleBookNow);
+      window.removeEventListener("cut:book-nearest", handleBookNearest);
+    };
+  }, [barbers]);
 
   useEffect(() => {
     getBookingBarbers()
@@ -181,6 +211,33 @@ const BarbersSection = () => {
           <h2 className="font-heading text-3xl md:text-4xl lg:text-5xl font-black text-white">
             اختَر <span className="text-gold-gradient">حلاقك المفضل</span>
           </h2>
+        </div>
+
+        {/* Nearest Available CTA */}
+        <div className="max-w-2xl mx-auto mb-8">
+          <button
+            onClick={() => {
+              setBookingMode("nearest");
+              setSelectedBarber(NEAREST_PLACEHOLDER_BARBER);
+            }}
+            className="w-full rounded-2xl border border-[#D4AF37]/20 bg-gradient-to-l from-[#D4AF37]/[0.08] to-[#0a0a0a]/80 backdrop-blur-sm p-5 md:p-6 transition-all duration-300 cursor-pointer hover:border-[#D4AF37]/40 hover:shadow-[0_0_32px_rgba(212,175,55,0.1)] group"
+          >
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-[#D4AF37]/10 flex items-center justify-center flex-shrink-0 group-hover:bg-[#D4AF37]/20 transition-colors">
+                <Zap className="w-6 h-6 text-[#D4AF37]" />
+              </div>
+              <div className="text-right flex-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <p className="text-white font-heading font-bold text-sm md:text-base">مش فارق معاك مين؟ احجز أقرب ميعاد</p>
+                  <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-[#D4AF37]/15 text-[#D4AF37] border border-[#D4AF37]/20">أسرع</span>
+                </div>
+                <p className="text-zinc-500 text-xs md:text-sm">النظام يختارلك أقرب حلاق متاح وأقرب وقت</p>
+              </div>
+              <div className="hidden sm:flex items-center gap-1 px-4 py-2 rounded-xl bg-[#D4AF37]/10 border border-[#D4AF37]/20 group-hover:bg-[#D4AF37]/20 transition-colors flex-shrink-0">
+                <span className="text-[#D4AF37] font-bold text-xs">احجز الآن</span>
+              </div>
+            </div>
+          </button>
         </div>
 
         {/* Booking notice — premium card */}
@@ -253,8 +310,14 @@ const BarbersSection = () => {
       {selectedBarber && (
         <BookingModal
           open={!!selectedBarber}
-          onOpenChange={(open) => !open && setSelectedBarber(null)}
+          onOpenChange={(open) => {
+            if (!open) {
+              setSelectedBarber(null);
+              setBookingMode(undefined);
+            }
+          }}
           barber={selectedBarber}
+          initialMode={bookingMode}
         />
       )}
     </section>

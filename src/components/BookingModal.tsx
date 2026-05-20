@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
-import { ArrowLeft, Check, Loader2, AlertCircle, WifiOff } from "lucide-react";
+import { ArrowLeft, Check, Loader2, AlertCircle, WifiOff, Zap, UserCheck } from "lucide-react";
 import BookingStepHeader from "./BookingStepHeader";
 import BookingInfoPanel from "./BookingInfoPanel";
 import BookingCalendar from "./BookingCalendar";
@@ -38,19 +38,21 @@ interface BookingModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   barber: BarberBookingInfo;
+  initialMode?: BookingMode;
 }
 
-type BookingStep = "service" | "date" | "time" | "confirm" | "success";
-type BookingMode = "specific" | "nearest";
+type BookingStep = "mode" | "service" | "date" | "time" | "confirm" | "success";
+export type BookingMode = "specific" | "nearest";
 
 const steps = [
-  { id: "service", label: "الخدمة", number: 1 },
-  { id: "date", label: "الموعد", number: 2 },
-  { id: "time", label: "الوقت", number: 3 },
-  { id: "confirm", label: "تأكيد", number: 4 },
+  { id: "mode", label: "الطريقة", number: 1 },
+  { id: "service", label: "الخدمة", number: 2 },
+  { id: "date", label: "الموعد", number: 3 },
+  { id: "time", label: "الوقت", number: 4 },
+  { id: "confirm", label: "تأكيد", number: 5 },
 ];
 
-const BookingModal = ({ open, onOpenChange, barber }: BookingModalProps) => {
+const BookingModal = ({ open, onOpenChange, barber, initialMode }: BookingModalProps) => {
   // ── API state ──────────────────────────────────────────────────────────────
   const [config, setConfig] = useState<BookingConfigResponse | null>(null);
   const [services, setServices] = useState<BookingService[]>([]);
@@ -67,12 +69,12 @@ const BookingModal = ({ open, onOpenChange, barber }: BookingModalProps) => {
   const [isLoadingSlots, setIsLoadingSlots] = useState(false);
 
   // ── Booking state ──────────────────────────────────────────────────────────
-  const [currentStep, setCurrentStep] = useState<BookingStep>("service");
+  const [currentStep, setCurrentStep] = useState<BookingStep>(initialMode ? "service" : "mode");
   const [selectedServiceIds, setSelectedServiceIds] = useState<number[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date>();
   const [selectedTime, setSelectedTime] = useState<string>();
   const [selectedSlot, setSelectedSlot] = useState<AvailableSlot | undefined>();
-  const [selectedMode, setSelectedMode] = useState<BookingMode>("specific");
+  const [selectedMode, setSelectedMode] = useState<BookingMode>(initialMode ?? "specific");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [confirmedBooking, setConfirmedBooking] = useState<CreatedBooking | null>(null);
@@ -152,12 +154,12 @@ const BookingModal = ({ open, onOpenChange, barber }: BookingModalProps) => {
   const handleClose = () => {
     onOpenChange(false);
     setTimeout(() => {
-      setCurrentStep("service");
+      setCurrentStep(initialMode ? "service" : "mode");
       setSelectedServiceIds([]);
       setSelectedDate(undefined);
       setSelectedTime(undefined);
       setSelectedSlot(undefined);
-      setSelectedMode("specific");
+      setSelectedMode(initialMode ?? "specific");
       setAvailableDays([]);
       setAvailableSlots([]);
       setApiError(null);
@@ -175,8 +177,14 @@ const BookingModal = ({ open, onOpenChange, barber }: BookingModalProps) => {
 
   const handleServiceSelect = (id: number) => {
     // Main service selection: keep add-on IDs that are not the new main
-    const mainNames = ["Detail Cut", "Haircut & Beard", "Hair & Beard", "Beard", "Beard Styling & Fade", "Zero Beard Shave", "Basic Cut", "Advanced Cut"];
-    const mainIds = services.filter(s => mainNames.includes(s.name.trim())).map(s => s.id);
+    const mainNames = ["Detailed Cut", "Detail Cut", "DetailedCut", "Haircut & Beard", "Hair & Beard", "Hair cut & Beard", "Hair cut + Beard", "Hair and Beard", "Beard", "Beard Styling & Fade", "Beard Styling", "Zero Beard Shave", "Basic Cut", "Advanced Cut"];
+    const mainIds = services.filter(s => {
+      const norm = s.name.trim().toLowerCase().replace(/[\s_-]+/g, " ").replace(/[&+]/g, " and ").replace(/\s+/g, " ").trim();
+      return mainNames.some(mn => {
+        const nmn = mn.toLowerCase().replace(/[\s_-]+/g, " ").replace(/[&+]/g, " and ").replace(/\s+/g, " ").trim();
+        return norm === nmn || norm.includes(nmn) || nmn.includes(norm);
+      });
+    }).map(s => s.id);
     // Remove any existing main, keep addons
     const addonIds = selectedServiceIds.filter(sid => !mainIds.includes(sid));
     setSelectedServiceIds([id, ...addonIds]);
@@ -219,7 +227,11 @@ const BookingModal = ({ open, onOpenChange, barber }: BookingModalProps) => {
   };
 
   const handleBack = () => {
-    if (currentStep === "date") {
+    if (currentStep === "service") {
+      if (!initialMode) {
+        setCurrentStep("mode");
+      }
+    } else if (currentStep === "date") {
       setCurrentStep("service");
       setSelectedDate(undefined);
     } else if (currentStep === "time") {
@@ -231,6 +243,11 @@ const BookingModal = ({ open, onOpenChange, barber }: BookingModalProps) => {
       setSelectedTime(undefined);
       setSelectedSlot(undefined);
     }
+  };
+
+  const handleModeSelect = (mode: BookingMode) => {
+    setSelectedMode(mode);
+    setCurrentStep("service");
   };
 
   const handleConfirm = async () => {
@@ -284,6 +301,8 @@ const BookingModal = ({ open, onOpenChange, barber }: BookingModalProps) => {
 
   // ── Step active id for header ──────────────────────────────────────────────
   const activeStepId = currentStep === "success" ? "confirm" : currentStep;
+  const isNearestMode = selectedMode === "nearest";
+  const displayBarberName = isNearestMode ? (selectedSlot?.barberName ?? "أقرب حلاق متاح") : barber.name;
 
   // ── Inner render ───────────────────────────────────────────────────────────
   const renderContent = () => {
@@ -329,6 +348,60 @@ const BookingModal = ({ open, onOpenChange, barber }: BookingModalProps) => {
     }
 
     switch (currentStep) {
+      case "mode":
+        return (
+          <div className="p-5 md:p-6" dir="rtl">
+            <div className="mb-5">
+              <h3 className="text-lg font-heading font-bold text-gray-900 mb-1">تحب تحجز إزاي؟</h3>
+              <p className="text-gray-400 text-xs">اختار الطريقة اللي تناسبك</p>
+            </div>
+
+            <div className="space-y-3">
+              {/* Nearest barber card */}
+              <button
+                onClick={() => handleModeSelect("nearest")}
+                className="w-full rounded-2xl border border-[#D4AF37]/20 bg-gradient-to-l from-[#D4AF37]/[0.06] to-transparent p-5 text-right transition-all duration-200 group cursor-pointer hover:border-[#D4AF37]/50 hover:shadow-[0_0_24px_rgba(212,175,55,0.12)]"
+              >
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 md:w-14 md:h-14 rounded-xl bg-[#D4AF37]/10 flex items-center justify-center flex-shrink-0 group-hover:bg-[#D4AF37]/20 transition-colors">
+                    <Zap className="w-6 h-6 text-[#D4AF37]" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <h4 className="font-heading font-bold text-base text-gray-900">أقرب حلاق متاح</h4>
+                      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-[#D4AF37]/10 text-[#D4AF37] border border-[#D4AF37]/15">أسرع</span>
+                    </div>
+                    <p className="text-gray-500 text-xs leading-relaxed">النظام يختارلك أقرب ميعاد حسب المتاح.</p>
+                    <p className="text-gray-400 text-[11px] mt-2 bg-gray-50 rounded-lg px-3 py-1.5 border border-gray-100">مناسب لو مش فارق معاك مين الحلاق وعاوز أقرب وقت.</p>
+                  </div>
+                </div>
+              </button>
+
+              {/* Specific barber card */}
+              <button
+                onClick={() => handleModeSelect("specific")}
+                className="w-full rounded-2xl border border-gray-150 bg-white p-5 text-right transition-all duration-200 group cursor-pointer hover:border-[#D4AF37]/40 hover:shadow-sm"
+              >
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 md:w-14 md:h-14 rounded-xl bg-gray-50 flex items-center justify-center flex-shrink-0 group-hover:bg-[#D4AF37]/10 transition-colors">
+                    <UserCheck className="w-6 h-6 text-gray-400 group-hover:text-[#D4AF37] transition-colors" />
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="font-heading font-bold text-base text-gray-900 mb-1">اختار الحلاق بنفسك</h4>
+                    <p className="text-gray-500 text-xs leading-relaxed">لو عندك حلاق مفضل، اختاره واحجز معاه.</p>
+                    {barber.name && (
+                      <div className="flex items-center gap-2 mt-2">
+                        <img src={barber.image} alt={barber.name} className="w-6 h-6 rounded-full object-cover object-top border border-[#D4AF37]/20" />
+                        <span className="text-gray-600 text-xs font-medium">{barber.name}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </button>
+            </div>
+          </div>
+        );
+
       case "service":
         return (
           <div dir="rtl">
@@ -357,6 +430,15 @@ const BookingModal = ({ open, onOpenChange, barber }: BookingModalProps) => {
               >
                 متابعة
               </button>
+              {!initialMode && (
+                <button
+                  onClick={handleBack}
+                  className="w-full mt-2 py-2.5 rounded-xl border border-gray-200 text-gray-500 font-medium hover:bg-gray-50 transition-colors flex items-center justify-center gap-2 text-sm"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  رجوع لاختيار الطريقة
+                </button>
+              )}
             </div>
           </div>
         );
@@ -410,7 +492,7 @@ const BookingModal = ({ open, onOpenChange, barber }: BookingModalProps) => {
         );
 
       case "confirm": {
-        const confirmBarberName = selectedSlot?.barberName ?? barber.name;
+        const confirmBarberName = isNearestMode ? (selectedSlot?.barberName ?? "أقرب حلاق متاح") : (selectedSlot?.barberName ?? barber.name);
         const slotDuration = selectedSlot?.durationMinutes ?? selectedService?.durationMinutes;
         const slotLabel = selectedSlot?.label ?? selectedTime;
         const canSubmit =
@@ -448,15 +530,29 @@ const BookingModal = ({ open, onOpenChange, barber }: BookingModalProps) => {
             <div className="bg-gray-50 rounded-xl p-5 mb-4 border border-gray-100 space-y-4">
               {/* Barber */}
               <div className="flex items-center gap-4">
-                <img
-                  src={barber.image}
-                  alt={confirmBarberName}
-                  className="w-12 h-12 rounded-full object-cover object-top border-2 border-[#D4AF37]/30"
-                />
+                {isNearestMode ? (
+                  <div className="w-12 h-12 rounded-full bg-[#D4AF37]/10 flex items-center justify-center border-2 border-[#D4AF37]/30">
+                    <Zap className="w-5 h-5 text-[#D4AF37]" />
+                  </div>
+                ) : (
+                  <img
+                    src={barber.image}
+                    alt={confirmBarberName}
+                    className="w-12 h-12 rounded-full object-cover object-top border-2 border-[#D4AF37]/30"
+                  />
+                )}
                 <div>
                   <h4 className="font-bold text-gray-900 text-sm">{confirmBarberName}</h4>
-                  <p className="text-gray-400 text-xs">{barber.specialty || barber.role || "حلاق محترف"}</p>
+                  <p className="text-gray-400 text-xs">{isNearestMode ? "أقرب حلاق متاح" : (barber.specialty || barber.role || "حلاق محترف")}</p>
                 </div>
+              </div>
+
+              {/* Booking mode */}
+              <div className="flex justify-between items-center pt-2">
+                <span className="font-medium text-gray-800 text-sm">
+                  {isNearestMode ? "أقرب حلاق متاح" : "اختيار حلاق"}
+                </span>
+                <span className="text-gray-400 text-xs">طريقة الحجز</span>
               </div>
 
               <div className="pt-3 border-t border-gray-200 space-y-2.5">
@@ -602,7 +698,7 @@ const BookingModal = ({ open, onOpenChange, barber }: BookingModalProps) => {
         dir="rtl"
       >
         <VisuallyHidden>
-          <DialogTitle>احجز مع {barber.name}</DialogTitle>
+          <DialogTitle>{isNearestMode ? "احجز أقرب ميعاد" : `احجز مع ${barber.name}`}</DialogTitle>
         </VisuallyHidden>
         <DialogDescription className="sr-only">
           واجهة حجز موعد في Cut Salon لاختيار الخدمة والحلاق واليوم والساعة.
@@ -610,9 +706,9 @@ const BookingModal = ({ open, onOpenChange, barber }: BookingModalProps) => {
 
         {/* Dark Header */}
         <BookingStepHeader
-          steps={steps}
+          steps={initialMode ? steps.filter(s => s.id !== "mode") : steps}
           currentStep={activeStepId}
-          barberName={barber.name}
+          barberName={displayBarberName}
           onClose={handleClose}
         />
 
@@ -628,6 +724,7 @@ const BookingModal = ({ open, onOpenChange, barber }: BookingModalProps) => {
               service={selectedServices.map(s => s.name).join(" + ") || undefined}
               servicePrice={totalPrice || undefined}
               serviceDuration={totalDuration || undefined}
+              mode={selectedMode}
             />
           </div>
 
@@ -666,14 +763,20 @@ const BookingModal = ({ open, onOpenChange, barber }: BookingModalProps) => {
         {/* Mobile bottom barber bar */}
         <div className="md:hidden flex-shrink-0 border-t border-gray-100 bg-[#0a0a0a] px-4 py-3">
           <div className="flex items-center gap-3" dir="rtl">
-            <img
-              src={barber.image}
-              alt={barber.name}
-              className="w-9 h-9 rounded-full object-cover object-top border border-[#D4AF37]/30 flex-shrink-0"
-            />
+            {isNearestMode ? (
+              <div className="w-9 h-9 rounded-full bg-[#D4AF37]/10 flex items-center justify-center border border-[#D4AF37]/30 flex-shrink-0">
+                <Zap className="w-4 h-4 text-[#D4AF37]" />
+              </div>
+            ) : (
+              <img
+                src={barber.image}
+                alt={barber.name}
+                className="w-9 h-9 rounded-full object-cover object-top border border-[#D4AF37]/30 flex-shrink-0"
+              />
+            )}
             <div className="flex-1 min-w-0">
-              <p className="font-bold text-white text-sm leading-none">{barber.name}</p>
-              <p className="text-white/50 text-xs mt-0.5">{barber.specialty || barber.role || "حلاق محترف"}</p>
+              <p className="font-bold text-white text-sm leading-none">{displayBarberName}</p>
+              <p className="text-white/50 text-xs mt-0.5">{isNearestMode ? "أقرب حلاق متاح" : (barber.specialty || barber.role || "حلاق محترف")}</p>
             </div>
             {selectedDate && selectedTime && currentStep === "time" && (
               <button
