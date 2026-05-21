@@ -139,24 +139,16 @@ const BarbersSection = () => {
 
   // Listen for hero section booking events
   useEffect(() => {
-    const handleBookNow = () => {
-      // Open modal with first barber in normal mode (mode choice step)
-      const first = barbers[0] ?? FALLBACK_BARBERS[0];
-      setBookingMode(undefined);
-      setSelectedBarber(first);
-    };
     const handleBookNearest = () => {
       // Open modal directly in nearest mode, skip mode choice
       setBookingMode("nearest");
       setSelectedBarber(NEAREST_PLACEHOLDER_BARBER);
     };
-    window.addEventListener("cut:book-now", handleBookNow);
     window.addEventListener("cut:book-nearest", handleBookNearest);
     return () => {
-      window.removeEventListener("cut:book-now", handleBookNow);
       window.removeEventListener("cut:book-nearest", handleBookNearest);
     };
-  }, [barbers]);
+  }, []);
 
   useEffect(() => {
     getBookingBarbers()

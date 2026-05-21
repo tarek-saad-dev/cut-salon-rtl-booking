@@ -80,7 +80,7 @@ const HeroSection = () => {
           ))}
         </ul>
 
-        <button onClick={() => window.dispatchEvent(new CustomEvent("cut:book-now"))} aria-label="احجز الآن"
+        <button onClick={() => document.getElementById("barbers")?.scrollIntoView({ behavior: "smooth", block: "start" })} aria-label="احجز الآن"
           className="hidden md:flex items-center gap-2 px-5 py-2.5 rounded-xl border border-[#D4AF37]/50 text-[#E5C07B] text-sm font-bold hover:bg-[#D4AF37]/15 hover:border-[#D4AF37] hover:shadow-[0_0_24px_rgba(212,175,55,0.15)] transition-all duration-300 cursor-pointer">
           <Calendar className="w-4 h-4" />
           احجز الآن
@@ -122,7 +122,7 @@ const HeroSection = () => {
               <motion.div custom={3} variants={fadeUp} initial="hidden" animate="visible"
                 className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3 w-full sm:w-auto mt-1">
                 <button
-                  onClick={() => window.dispatchEvent(new CustomEvent("cut:book-now"))}
+                  onClick={() => document.getElementById("barbers")?.scrollIntoView({ behavior: "smooth", block: "start" })}
                   aria-label="احجز الآن"
                   className="group relative inline-flex items-center justify-center gap-2.5 w-full sm:w-auto px-8 py-3.5 rounded-xl font-heading font-bold text-[#050505] text-base overflow-hidden bg-gradient-to-l from-[#C8A96A] to-[#E5C07B] shadow-[0_8px_32px_rgba(212,175,55,0.3)] hover:shadow-[0_12px_48px_rgba(212,175,55,0.5)] hover:scale-[1.03] active:scale-[0.97] transition-all duration-300 cursor-pointer">
                   <span className="absolute inset-0 bg-gradient-to-l from-white/20 to-transparent translate-x-full group-hover:translate-x-0 transition-transform duration-500" />
