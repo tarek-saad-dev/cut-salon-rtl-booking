@@ -144,11 +144,35 @@ const BarbersSection = () => {
       setBookingMode("nearest");
       setSelectedBarber(NEAREST_PLACEHOLDER_BARBER);
     };
+    const handleBookBarber = (e: Event) => {
+      const detail = (e as CustomEvent<{ name: string; image: string }>).detail;
+      if (!detail?.name) return;
+      // Find matching barber from loaded list (flexible name match)
+      const match = barbers.find(b =>
+        b.name === detail.name || b.name.includes(detail.name) || detail.name.includes(b.name)
+      );
+      if (match) {
+        setBookingMode(undefined);
+        setSelectedBarber(match);
+      } else {
+        // Fallback: create a display barber from the event data
+        setBookingMode(undefined);
+        setSelectedBarber({
+          name: detail.name,
+          image: detail.image,
+          role: "حلاق محترف",
+          location: "Cut Salon · الإسكندرية",
+          buttonText: `احجز مع ${detail.name}`,
+        });
+      }
+    };
     window.addEventListener("cut:book-nearest", handleBookNearest);
+    window.addEventListener("cut:book-barber", handleBookBarber);
     return () => {
       window.removeEventListener("cut:book-nearest", handleBookNearest);
+      window.removeEventListener("cut:book-barber", handleBookBarber);
     };
-  }, []);
+  }, [barbers]);
 
   useEffect(() => {
     getBookingBarbers()

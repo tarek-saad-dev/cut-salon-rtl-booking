@@ -183,9 +183,9 @@ const HeroSection = () => {
           <div className="flex gap-3 overflow-x-auto px-6 md:px-16 lg:px-24 scroll-smooth snap-x snap-mandatory scrollbar-hide"
             aria-label="حلاقين متاحين" role="list">
             {barberStrip.map((b, i) => (
-              <motion.a
+              <motion.button
                 key={b.name}
-                href="#barbers"
+                onClick={() => window.dispatchEvent(new CustomEvent("cut:book-barber", { detail: { name: b.name, image: b.image } }))}
                 initial={{ opacity: 0, x: 30 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.45, delay: 0.75 + i * 0.08, ease: [0.25, 0.46, 0.45, 0.94] }}
@@ -203,7 +203,7 @@ const HeroSection = () => {
                     <Star className="w-3 h-3 text-[#E5C07B] fill-[#E5C07B]" />
                   </div>
                 </div>
-              </motion.a>
+              </motion.button>
             ))}
           </div>
         </motion.div>
