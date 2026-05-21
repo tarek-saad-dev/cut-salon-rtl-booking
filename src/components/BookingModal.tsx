@@ -233,7 +233,7 @@ const BookingModal = ({ open, onOpenChange, barber, initialMode }: BookingModalP
 
   const handleServiceSelect = (id: number) => {
     // Main service selection: keep add-on IDs that are not the new main
-    const mainNames = ["Detailed Cut", "Detail Cut", "DetailedCut", "Haircut & Beard", "Hair & Beard", "Hair cut & Beard", "Hair cut + Beard", "Hair and Beard", "Beard", "Beard Styling & Fade", "Beard Styling", "Zero Beard Shave", "Basic Cut", "Advanced Cut"];
+    const mainNames = ["Hair Cut", "Haircut", "Detailed Cut", "Detail Cut", "DetailedCut", "Haircut & Beard", "Hair & Beard", "Hair cut & Beard", "Hair cut + Beard", "Hair and Beard", "Beard", "Beard Styling & Fade", "Beard Styling", "Zero Beard Shave", "Basic Cut", "Advanced Cut", "Fade Cut"];
     const mainIds = services.filter(s => {
       const norm = s.name.trim().toLowerCase().replace(/[\s_-]+/g, " ").replace(/[&+]/g, " and ").replace(/\s+/g, " ").trim();
       return mainNames.some(mn => {

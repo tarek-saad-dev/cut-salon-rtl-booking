@@ -26,14 +26,16 @@ interface ServicePres {
 
 const PRES: Record<string, ServicePres> = {
   // ── Main primary ──
-  "Detailed Cut": { arabicTitle: "Detailed Cut", description: "قصة مضبوطة بتفاصيل أوضح وتدريج أنضف.", salesText: "مناسبة لمعظم العملاء اللي عاوزين نتيجة مرتبة وواضحة.", icon: Scissors, badge: "الأكثر طلبًا" },
-  "Beard": { arabicTitle: "Beard", description: "تظبيط وتحديد الدقن بشكل أنيق.", salesText: "اختيار مناسب لو محتاج تظبيط الدقن فقط بدون حلاقة شعر.", icon: Scissors },
-  "Beard Styling & Fade": { arabicTitle: "Beard", description: "تظبيط وتحديد الدقن بشكل أنيق.", salesText: "اختيار مناسب لو محتاج تظبيط الدقن فقط بدون حلاقة شعر.", icon: Scissors },
-  "Hair & Beard": { arabicTitle: "Hair & Beard", description: "باكدج كامل للشعر والدقن في زيارة واحدة.", salesText: "أفضل اختيار لو عاوز لوك كامل ومتناسق.", icon: Scissors, badge: "باكدج مميز" },
-  "Haircut & Beard": { arabicTitle: "Hair & Beard", description: "باكدج كامل للشعر والدقن في زيارة واحدة.", salesText: "أفضل اختيار لو عاوز لوك كامل ومتناسق.", icon: Scissors, badge: "باكدج مميز" },
+  "Hair Cut": { arabicTitle: "Hair Cut", description: "تدريج وقص الشعر من الأعلى بشكل مرتب ومناسب لستايلك.", salesText: "مناسبة لمعظم العملاء اللي عاوزين نتيجة مرتبة وواضحة.", icon: Scissors, badge: "الأكثر طلبًا" },
+  "Detailed Cut": { arabicTitle: "Hair Cut", description: "تدريج وقص الشعر من الأعلى بشكل مرتب ومناسب لستايلك.", salesText: "مناسبة لمعظم العملاء اللي عاوزين نتيجة مرتبة وواضحة.", icon: Scissors, badge: "الأكثر طلبًا" },
+  "Beard Styling & Fade": { arabicTitle: "Beard Styling & Fade", description: "تظبيط وتدريج الدقن وتحديدها بشكل احترافي.", salesText: "اختيار مناسب لو محتاج تظبيط الدقن فقط بدون حلاقة شعر.", icon: Scissors },
+  "Beard": { arabicTitle: "Beard Styling & Fade", description: "تظبيط وتدريج الدقن وتحديدها بشكل احترافي.", salesText: "اختيار مناسب لو محتاج تظبيط الدقن فقط بدون حلاقة شعر.", icon: Scissors },
+  "Haircut & Beard": { arabicTitle: "Haircut & Beard", description: "باكدج كامل للشعر والدقن في زيارة واحدة لستايل متناسق.", salesText: "أفضل اختيار لو عاوز لوك كامل ومتناسق.", icon: Scissors, badge: "باكدج مميز" },
+  "Hair & Beard": { arabicTitle: "Haircut & Beard", description: "باكدج كامل للشعر والدقن في زيارة واحدة لستايل متناسق.", salesText: "أفضل اختيار لو عاوز لوك كامل ومتناسق.", icon: Scissors, badge: "باكدج مميز" },
   // ── Main secondary ──
-  "Basic Cut": { arabicTitle: "حلاقة Basic", description: "للقصات البسيطة والسريعة.", icon: Scissors },
-  "Advanced Cut": { arabicTitle: "حلاقة Advanced", description: "للشعر الأطول أو القصات التي تحتاج وقت وعناية أكثر.", icon: Sparkles },
+  "Advanced Cut": { arabicTitle: "Advanced Cut", description: "للشعر الطويل أو القصات التي تحتاج وقت وتفاصيل أكثر.", icon: Sparkles },
+  "Fade Cut": { arabicTitle: "Fade Cut", description: "لتدريج الجوانب فقط مثل Taper Fade أو Fade بسيط.", icon: Scissors },
+  "Basic Cut": { arabicTitle: "Basic Cut", description: "للقصات البسيطة والسريعة.", icon: Scissors },
   // ── عناية البشرة ──
   "Basic Skin Care": { arabicTitle: "تنظيف بشرة Basic", description: "تنظيف خفيف للبشرة مناسب كإضافة سريعة.", icon: Droplets },
   "Deep SkinCare": { arabicTitle: "تنظيف بشرة Deep", description: "عناية أعمق للبشرة لمن يريد نتيجة أوضح.", icon: Droplets, badge: "ينصح بها" },
@@ -144,11 +146,11 @@ function isServiceVisible(s: BookingService): boolean {
 // Primary: order matters (Detail Cut → Beard → Hair & Beard)
 // Each slot has an array of name variations, first found wins
 const PRIMARY_SLOTS: { names: string[] }[] = [
-  { names: ["Detailed Cut", "Detail Cut", "DetailedCut"] },
-  { names: ["Beard", "Beard Styling & Fade", "Zero Beard Shave", "Beard Styling"] },
-  { names: ["Hair & Beard", "Haircut & Beard", "Hair cut & Beard", "Hair cut + Beard", "Hair and Beard"] },
+  { names: ["Hair Cut", "Haircut", "Detailed Cut", "Detail Cut", "DetailedCut"] },
+  { names: ["Beard Styling & Fade", "Beard Styling", "Beard"] },
+  { names: ["Haircut & Beard", "Hair & Beard", "Hair cut & Beard", "Hair cut + Beard", "Hair and Beard"] },
 ];
-const SECONDARY_NAMES = ["Basic Cut", "Advanced Cut"];
+const SECONDARY_NAMES = ["Advanced Cut", "Fade Cut"];
 
 // Collect all possible main names for exclusion
 const ALL_MAIN_VARIATIONS = PRIMARY_SLOTS.flatMap(s => s.names).concat(SECONDARY_NAMES);
