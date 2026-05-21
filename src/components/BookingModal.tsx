@@ -193,6 +193,11 @@ const BookingModal = ({ open, onOpenChange, barber, initialMode }: BookingModalP
           console.groupEnd();
         }
 
+        if (process.env.NODE_ENV === "development" && selectedMode === "nearest") {
+          const sample = res.slots.filter(s => s.available).slice(0, 5);
+          console.log("[nearest frontend] available slots sample:", sample.map(s => ({ time: s.time, empId: s.empId, barberName: s.barberName, available: s.available, dayOffset: s.dayOffset })));
+        }
+
         setAvailableSlots(res.slots);
       })
       .catch(() => { if (!cancelled) setAvailableSlots([]); })
@@ -327,36 +332,52 @@ const BookingModal = ({ open, onOpenChange, barber, initialMode }: BookingModalP
   const handleConfirm = async () => {
     if (!selectedDate || !selectedTime || selectedServiceIds.length === 0) return;
 
-    // Determine the empId to send — prefer slot.empId if present (covers both modes)
-    const empIdToUse = selectedSlot?.empId ?? barber.id;
+    // Determine empId based on mode:
+    // - nearest: use selectedSlot.empId (backend assigns barber per slot)
+    // - specific: use barber.id (user chose barber explicitly)
+    const empIdToUse =
+      selectedMode === "nearest"
+        ? selectedSlot?.empId ?? undefined
+        : (selectedSlot?.empId ?? barber.id);
 
     const actualDate = getActualBookingDate(selectedDate, selectedSlot);
     const dateStr = `${actualDate.getFullYear()}-${String(actualDate.getMonth() + 1).padStart(2, "0")}-${String(actualDate.getDate()).padStart(2, "0")}`;
     const dayOffset = selectedSlot?.dayOffset ?? 0;
 
     if (process.env.NODE_ENV === "development") {
-      console.log("[booking submit] selectedDate:", selectedDate.toISOString().slice(0, 10));
-      console.log("[booking submit] selectedSlot:", selectedSlot);
+      console.log("[nearest frontend] selected mode:", selectedMode);
+      console.log("[nearest frontend] selected slot:", selectedSlot);
+      console.log("[nearest frontend] selectedSlot empId:", selectedSlot?.empId);
+      console.log("[nearest frontend] selectedSlot barberName:", selectedSlot?.barberName);
+      console.log("[nearest frontend] selectedSlot available:", selectedSlot?.available);
       console.log("[booking submit] dayOffset:", dayOffset);
       console.log("[booking submit] actualBookingDate:", dateStr);
       console.log("[booking submit] serviceIds:", selectedServiceIds);
-      console.log("[booking submit] mode:", selectedMode);
-      console.log("[booking submit] empId:", empIdToUse);
+      console.log("[booking submit] empIdToUse:", empIdToUse);
+      if (selectedMode === "nearest" && !selectedSlot?.empId) {
+        console.warn("[nearest frontend] ⚠️ nearest slot missing empId! Full slot:", selectedSlot);
+      }
+    }
+
+    const payload = {
+      customer: { name: customerName.trim(), phone: customerPhone.trim() },
+      serviceIds: selectedServiceIds,
+      date: dateStr,
+      time: selectedTime,
+      dayOffset,
+      mode: selectedMode,
+      empId: empIdToUse,
+      notes: "",
+    };
+
+    if (process.env.NODE_ENV === "development") {
+      console.log("[nearest frontend] submit payload:", payload);
     }
 
     setIsSubmitting(true);
     setSubmitError(null);
     try {
-      const res = await createBookingPlan({
-        customer: { name: customerName.trim(), phone: customerPhone.trim() },
-        serviceIds: selectedServiceIds,
-        date: dateStr,
-        time: selectedTime,
-        dayOffset,
-        mode: selectedMode,
-        empId: empIdToUse ?? undefined,
-        notes: "",
-      });
+      const res = await createBookingPlan(payload);
 
       if (process.env.NODE_ENV === "development") {
         console.log("[booking submit] plan response:", res);
@@ -366,6 +387,13 @@ const BookingModal = ({ open, onOpenChange, barber, initialMode }: BookingModalP
       setCurrentStep("success");
       setConfettiTrigger(prev => prev + 1);
     } catch (err) {
+      if (process.env.NODE_ENV === "development") {
+        console.error("[nearest frontend] booking plan error:", err);
+        console.log("[nearest frontend] error type:", err instanceof BookingConflictError ? "BookingConflictError" : err instanceof BookingPlanError ? "BookingPlanError" : "Unknown");
+        if (err instanceof BookingConflictError || err instanceof BookingPlanError) {
+          console.log("[nearest frontend] server message:", (err as { serverMessage?: string }).serverMessage);
+        }
+      }
       if (err instanceof BookingConflictError) {
         setAvailableSlots([]);
         setCurrentStep("time");
@@ -604,24 +632,24 @@ const BookingModal = ({ open, onOpenChange, barber, initialMode }: BookingModalP
             {/* Customer fields */}
             <div className="space-y-3 mb-5">
               <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1">الاسم</label>
+                <label className="block text-xs font-medium text-[#a1a1aa] mb-1">الاسم</label>
                 <input
                   type="text"
                   value={customerName}
                   onChange={e => setCustomerName(e.target.value)}
-                  placeholder="مثال: تارق سعد"
-                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-800 placeholder-gray-300 focus:outline-none focus:border-[#D4AF37] focus:ring-1 focus:ring-[#D4AF37]/30 transition-colors"
+                  placeholder="طارق سعد"
+                  className="w-full px-4 py-2.5 rounded-xl border border-white/10 bg-[#1a1a1a] text-sm text-[#f7f7f2] placeholder-[#a1a1aa] focus:outline-none focus:border-[#D4AF37] focus:ring-1 focus:ring-[#D4AF37]/30 transition-colors"
                   dir="rtl"
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1">رقم الهاتف</label>
+                <label className="block text-xs font-medium text-[#a1a1aa] mb-1">رقم الهاتف</label>
                 <input
                   type="tel"
                   value={customerPhone}
                   onChange={e => setCustomerPhone(e.target.value)}
-                  placeholder="مثال: 01XXXXXXXXX"
-                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-800 placeholder-gray-300 focus:outline-none focus:border-[#D4AF37] focus:ring-1 focus:ring-[#D4AF37]/30 transition-colors"
+                  placeholder="01xxxxxxxxx"
+                  className="w-full px-4 py-2.5 rounded-xl border border-white/10 bg-[#1a1a1a] text-sm text-[#f7f7f2] placeholder-[#a1a1aa] focus:outline-none focus:border-[#D4AF37] focus:ring-1 focus:ring-[#D4AF37]/30 transition-colors"
                   dir="ltr"
                 />
               </div>
