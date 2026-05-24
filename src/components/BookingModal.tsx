@@ -124,13 +124,34 @@ const BookingModal = ({ open, onOpenChange, barber, initialMode }: BookingModalP
     let cancelled = false;
     setIsLoadingDays(true);
     setAvailableDays([]);
-    getAvailableDays({
+    const daysParams = {
       serviceIds: selectedServiceIds,
       mode: selectedMode,
       empId: selectedMode === "specific" ? barber.id : undefined,
-    })
-      .then(res => { if (!cancelled) setAvailableDays(res.days); })
-      .catch(() => { if (!cancelled) setAvailableDays([]); })
+    };
+    if (process.env.NODE_ENV === "development") {
+      console.log("[frontend available-days request]", daysParams);
+    }
+    getAvailableDays(daysParams)
+      .then(res => {
+        if (cancelled) return;
+        if (process.env.NODE_ENV === "development") {
+          console.log("[frontend available-days response]", res);
+          const day24 = res.days.find(d => d.date === "2026-05-24");
+          console.log("[frontend day 2026-05-24]", day24 ?? "NOT FOUND in response");
+          const availCount = res.days.filter(d => d.available).length;
+          console.log("[frontend available-days] total days:", res.days.length, "available:", availCount);
+        }
+        setAvailableDays(res.days);
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          if (process.env.NODE_ENV === "development") {
+            console.error("[frontend available-days] fetch FAILED — setAvailableDays([])", err);
+          }
+          setAvailableDays([]);
+        }
+      })
       .finally(() => { if (!cancelled) setIsLoadingDays(false); });
     return () => { cancelled = true; };
   }, [currentStep, selectedServiceIds, selectedMode, barber.id]);
@@ -157,6 +178,12 @@ const BookingModal = ({ open, onOpenChange, barber, initialMode }: BookingModalP
       console.log("[booking slots] selected services:", selectedServiceIds, selectedServices.map(s => ({ name: s.name, duration: s.durationMinutes })));
       console.log("[booking slots] total duration:", totalDuration, "minutes");
       console.log("[booking slots] request params:", params);
+      console.log("[frontend available-slots request]", {
+        date: params.date,
+        mode: params.mode,
+        empId: params.empId,
+        serviceIds: params.serviceIds,
+      });
     }
 
     getAvailableSlots(params)
@@ -193,6 +220,21 @@ const BookingModal = ({ open, onOpenChange, barber, initialMode }: BookingModalP
           console.groupEnd();
         }
 
+        if (process.env.NODE_ENV === "development") {
+          const availSlots = res.slots.filter(s => s.available);
+          console.log("[frontend available-slots response]", {
+            ok: res.ok,
+            date: res.date,
+            mode: res.mode,
+            empId: res.empId,
+            totalSlots: res.slots.length,
+            availableSlots: availSlots.length,
+            sampleAvailable: availSlots.slice(0, 3).map(s => ({ time: s.time, empId: s.empId, barberName: s.barberName })),
+          });
+          if (availSlots.length === 0) {
+            console.warn("[frontend available-slots] ⚠️ NO available slots returned — backend returned empty/all-unavailable. Check backend for this date+empId.");
+          }
+        }
         if (process.env.NODE_ENV === "development" && selectedMode === "nearest") {
           const sample = res.slots.filter(s => s.available).slice(0, 5);
           console.log("[nearest frontend] available slots sample:", sample.map(s => ({ time: s.time, empId: s.empId, barberName: s.barberName, available: s.available, dayOffset: s.dayOffset })));
@@ -330,6 +372,7 @@ const BookingModal = ({ open, onOpenChange, barber, initialMode }: BookingModalP
   };
 
   const handleConfirm = async () => {
+    if (isSubmitting) return;
     if (!selectedDate || !selectedTime || selectedServiceIds.length === 0) return;
 
     // Determine empId based on mode:
@@ -371,7 +414,18 @@ const BookingModal = ({ open, onOpenChange, barber, initialMode }: BookingModalP
     };
 
     if (process.env.NODE_ENV === "development") {
-      console.log("[nearest frontend] submit payload:", payload);
+      console.log("[booking submit]", {
+        submitSource: "final_confirm",
+        payloadToPlan: {
+          date: dateStr,
+          time: selectedTime,
+          dayOffset,
+          mode: selectedMode,
+          empId: empIdToUse,
+          serviceIds: selectedServiceIds,
+          customer: { name: customerName.trim(), phone: customerPhone.trim() },
+        },
+      });
     }
 
     setIsSubmitting(true);

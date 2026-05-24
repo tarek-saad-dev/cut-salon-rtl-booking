@@ -288,8 +288,22 @@ export async function createBookingPlan(
       body: JSON.stringify(body),
     });
     if (res.status === 409) {
-      const data = await res.json().catch(() => ({}));
-      throw new BookingConflictError(data?.message);
+      const raw = await res.text().catch(() => "{}");
+      if (process.env.NODE_ENV === "development") {
+        console.error("[booking plan] 409 response body (raw):", raw);
+        try {
+          console.error("[booking plan] 409 parsed:", JSON.parse(raw));
+        } catch {
+          /* not JSON */
+        }
+      }
+      let data: Record<string, unknown> = {};
+      try {
+        data = JSON.parse(raw);
+      } catch {
+        /* ignore */
+      }
+      throw new BookingConflictError(data?.message as string | undefined);
     }
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));

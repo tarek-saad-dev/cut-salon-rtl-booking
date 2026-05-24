@@ -133,6 +133,18 @@ const BookingCalendar = ({
     return { available: entry.available, reason: entry.reason };
   };
 
+  if (process.env.NODE_ENV === "development" && availableDays.length > 0) {
+    const todayKey = toKey(today);
+    console.log("[calendar] availableMap keys (first 10):", [...availableMap.keys()].slice(0, 10));
+    console.log("[calendar] today key:", todayKey, "→ getDayInfo:", getDayInfo(today));
+    console.log("[calendar] today < today?", today < today, "| isOutOfRange(today):", isOutOfRange(today));
+    const day24 = availableMap.get("2026-05-24");
+    if (day24) {
+      const d24 = new Date(2026, 4, 24);
+      console.log("[calendar] 2026-05-24 entry:", day24, "| isOutOfRange:", isOutOfRange(d24), "| getDayInfo:", getDayInfo(d24));
+    }
+  }
+
   if (isLoading) return <CalendarSkeleton />;
 
   const cells = getCells();
