@@ -1,7 +1,9 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Calendar, Zap, Shield, Gem, Clock, Star, User } from "lucide-react";
+import { Calendar, Zap, Shield, Gem, Clock, Star } from "lucide-react";
+import ClientProfileWidget from "./ClientProfileWidget";
+import CustomerUpcomingBookings from "./CustomerUpcomingBookings";
 
 const heroImg = "/hero.png";
 const heroVerticalImg = "/hero_vertical.png";
@@ -87,12 +89,14 @@ const HeroSection = () => {
             <Calendar className="w-4 h-4" />
             احجز الآن
           </button>
-          <a href="/client" aria-label="حسابي"
-            className="flex items-center justify-center w-10 h-10 rounded-xl border border-white/10 text-white/60 hover:border-[#D4AF37]/50 hover:text-[#E5C07B] transition-all duration-300">
-            <User className="w-4 h-4" />
-          </a>
+          <ClientProfileWidget />
         </div>
       </motion.nav>
+
+      {/* ─── Upcoming bookings reminder (auto-loads from localStorage) ─── */}
+      <div className="relative z-20 px-5 md:px-12 lg:px-20 pt-2">
+        <CustomerUpcomingBookings />
+      </div>
 
       {/* ─── Main content ─── */}
       <div className="relative z-10 flex flex-col justify-center min-h-[calc(100vh-72px)] md:min-h-[calc(100vh-80px)]">

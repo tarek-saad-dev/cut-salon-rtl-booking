@@ -122,10 +122,12 @@ function BookingCard({
   booking,
   phone,
   onCancelled,
+  isPrimary = false,
 }: {
   booking: UpcomingBooking;
   phone: string;
   onCancelled: () => void;
+  isPrimary?: boolean;
 }) {
   const [showConfirm, setShowConfirm] = useState(false);
 
@@ -139,10 +141,13 @@ function BookingCard({
 
   return (
     <>
-      <div className="rounded-xl bg-[#0f0f0f] border border-[#D4AF37]/15 overflow-hidden">
+      <div className={`rounded-xl overflow-hidden border ${isPrimary
+        ? "bg-gradient-to-b from-[#D4AF37]/[0.07] to-[#0f0f0f] border-[#D4AF37]/30 shadow-[0_0_24px_rgba(212,175,55,0.08)]"
+        : "bg-[#0f0f0f] border-[#D4AF37]/15"
+        }`}>
         {/* Header stripe */}
         <div className="px-4 py-2 bg-[#D4AF37]/5 border-b border-[#D4AF37]/10 flex items-center justify-between">
-          <span className="text-[#D4AF37] text-xs font-bold">حجز قادم</span>
+          <span className="text-[#D4AF37] text-xs font-bold">{isPrimary ? "حجزك القادم" : "حجز قادم"}</span>
           <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full border ${badge.cls}`}>{badge.text}</span>
         </div>
 
@@ -283,6 +288,9 @@ export default function CustomerUpcomingBookings({ phone: phoneProp, onCancelled
 
   useEffect(() => {
     if (!initialized || !phone) return;
+    if (process.env.NODE_ENV === "development") {
+      console.log("[upcoming] auto load start:", phone);
+    }
     fetchBookings(phone);
   }, [initialized, phone, fetchBookings]);
 
@@ -306,6 +314,8 @@ export default function CustomerUpcomingBookings({ phone: phoneProp, onCancelled
   // No bookings — silent
   if (bookings.length === 0) return null;
 
+  const title = bookings.length === 1 ? "تذكير بحجزك القادم" : "حجوزاتك القادمة";
+
   return (
     <div className="px-6 pt-4 pb-2" dir="rtl">
       {/* Section header with collapse toggle */}
@@ -313,7 +323,12 @@ export default function CustomerUpcomingBookings({ phone: phoneProp, onCancelled
         onClick={() => setExpanded(v => !v)}
         className="flex items-center justify-between w-full mb-3 group"
       >
-        <span className="text-white/50 text-xs font-medium">حجوزاتك القادمة ({bookings.length})</span>
+        <div className="flex items-center gap-2">
+          <span className="text-white/70 text-xs font-bold">{title}</span>
+          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-[#D4AF37]/15 text-[#D4AF37] border border-[#D4AF37]/20">
+            {bookings.length}
+          </span>
+        </div>
         {expanded
           ? <ChevronUp className="w-3.5 h-3.5 text-white/30 group-hover:text-white/50 transition-colors" />
           : <ChevronDown className="w-3.5 h-3.5 text-white/30 group-hover:text-white/50 transition-colors" />
@@ -322,12 +337,13 @@ export default function CustomerUpcomingBookings({ phone: phoneProp, onCancelled
 
       {expanded && (
         <div className="space-y-3">
-          {bookings.map(b => (
+          {bookings.map((b, i) => (
             <BookingCard
               key={String(b.id)}
               booking={b}
               phone={phone}
               onCancelled={handleCancelled}
+              isPrimary={i === 0}
             />
           ))}
         </div>

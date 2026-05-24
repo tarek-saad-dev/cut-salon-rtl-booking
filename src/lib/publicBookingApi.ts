@@ -296,6 +296,55 @@ export class BookingPlanError extends Error {
   }
 }
 
+// ─── Client Profile ───────────────────────────────────────────────────────────
+
+export interface ClientProfile {
+  id: number | string;
+  name: string;
+  phone: string;
+  registeredAt?: string | null;
+}
+
+export interface ClientProfileResponse {
+  ok: boolean;
+  client: ClientProfile | null;
+  upcomingBookingsCount: number;
+}
+
+export async function getClientProfile(
+  phone: string,
+): Promise<ClientProfileResponse> {
+  const url = buildBookingApiUrl("/api/public/client/profile");
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ phone }),
+    });
+    const data = await res.json().catch(() => null);
+    if (!res.ok || !data?.ok) {
+      if (process.env.NODE_ENV === "development") {
+        console.warn(
+          "[publicBookingApi] getClientProfile non-ok:",
+          res.status,
+          data,
+        );
+      }
+      return { ok: false, client: null, upcomingBookingsCount: 0 };
+    }
+    return {
+      ok: true,
+      client: data.client ?? null,
+      upcomingBookingsCount: data.upcomingBookingsCount ?? 0,
+    };
+  } catch (error) {
+    if (process.env.NODE_ENV === "development") {
+      console.warn("[publicBookingApi] getClientProfile error:", error);
+    }
+    return { ok: false, client: null, upcomingBookingsCount: 0 };
+  }
+}
+
 // ─── Upcoming bookings ────────────────────────────────────────────────────────
 
 export interface UpcomingBookingService {
