@@ -256,22 +256,6 @@ const BarbersSection = () => {
           </button>
         </div>
 
-        {/* Booking notice — premium card */}
-        <div className="max-w-2xl mx-auto mb-12 rounded-2xl border border-[#D4AF37]/15 bg-[#0a0a0a]/80 backdrop-blur-sm p-5 md:p-6">
-          <div className="flex items-start gap-4">
-            <div className="w-10 h-10 rounded-xl bg-[#D4AF37]/10 flex items-center justify-center flex-shrink-0 mt-0.5">
-              <Clock className="w-5 h-5 text-[#D4AF37]" />
-            </div>
-            <div className="text-right">
-              <p className="text-white font-medium text-sm md:text-base mb-1.5">
-                علشان نحافظ على جودة الخدمة، الحجز بيكون قبلها بـ <span className="text-[#D4AF37] font-bold">4 ساعات</span>
-              </p>
-              <p className="text-zinc-500 text-xs md:text-sm">
-                ولو حابب تيجي فورًا، بتاخد دور وبتدخل في دورك علطول
-              </p>
-            </div>
-          </div>
-        </div>
 
         {/* ─── Mobile Carousel ─── */}
         <div className="md:hidden relative">
