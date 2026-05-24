@@ -9,6 +9,7 @@ interface BookingTimeSlotsProps {
   selectedSlot?: AvailableSlot;
   onTimeSelect: (slot: AvailableSlot) => void;
   onNextDay?: () => void;
+  onSwitchToNearest?: () => void;
   slots: AvailableSlot[];
   isLoading?: boolean;
 }
@@ -167,6 +168,7 @@ const BookingTimeSlots = ({
   selectedSlot: selectedSlotProp,
   onTimeSelect,
   onNextDay,
+  onSwitchToNearest,
   slots,
   isLoading = false,
 }: BookingTimeSlotsProps) => {
@@ -190,22 +192,37 @@ const BookingTimeSlots = ({
 
   if (availableSlots.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-16 gap-4 text-center px-6" dir="rtl">
+      <div className="flex flex-col items-center justify-center py-14 gap-4 text-center px-6" dir="rtl">
         <div className="w-16 h-16 rounded-full bg-[#111111] border border-[rgba(212,175,55,0.18)] flex items-center justify-center">
           <CalendarX className="w-7 h-7 text-[#71717a]" />
         </div>
         <div>
-          <p className="text-[#f7f7f2] font-heading font-bold text-sm mb-1">لا توجد أوقات متاحة لهذا اليوم</p>
-          <p className="text-[#71717a] text-xs">جرب اختيار يوم آخر</p>
+          <p className="text-red-400 font-heading font-bold text-sm mb-2">لا توجد أوقات متاحة لهذا اليوم</p>
+          {onSwitchToNearest && (
+            <p className="text-[#a1a1aa] text-xs leading-relaxed max-w-[240px] mx-auto">
+              الحلاق مش متاح في اليوم ده، بس فيه حلاقين تانيين بجودة عالية في نفس اليوم
+            </p>
+          )}
         </div>
-        {onNextDay && (
-          <button
-            onClick={onNextDay}
-            className="mt-3 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border border-[rgba(212,175,55,0.18)] bg-[#111111] text-[#d4af37] text-sm font-heading font-bold hover:bg-[#171717] hover:border-[rgba(212,175,55,0.4)] transition-all duration-200"
-          >
-            <span>عرض مواعيد اليوم التالي</span>
-          </button>
-        )}
+        <div className="flex flex-col gap-2 w-full max-w-[260px]">
+          {onSwitchToNearest && (
+            <button
+              onClick={onSwitchToNearest}
+              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-[#D4AF37] text-black text-sm font-heading font-bold hover:bg-[#C4A030] transition-all duration-200"
+            >
+              <Zap className="w-4 h-4" />
+              اختيار حلاق آخر بجودة عالية
+            </button>
+          )}
+          {onNextDay && (
+            <button
+              onClick={onNextDay}
+              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl border border-[rgba(212,175,55,0.18)] bg-[#111111] text-[#d4af37] text-sm font-heading font-bold hover:bg-[#171717] hover:border-[rgba(212,175,55,0.4)] transition-all duration-200"
+            >
+              <span>عرض مواعيد اليوم التالي</span>
+            </button>
+          )}
+        </div>
       </div>
     );
   }

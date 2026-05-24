@@ -1,3 +1,10 @@
+// ─── Timezone Contract ───────────────────────────────────────────────────────
+// Official timezone: Africa/Cairo
+// Dates MUST be sent as YYYY-MM-DD (local Cairo date, never ISO UTC)
+// Times MUST be sent as HH:mm (24h)
+// DayOfWeek: 0=Sunday … 6=Saturday
+// ─────────────────────────────────────────────────────────────────────────────
+
 // ─── Base URL ─────────────────────────────────────────────────────────────────
 
 const BOOKING_API_BASE_URL = process.env.NEXT_PUBLIC_BOOKING_API_BASE_URL || "";
@@ -158,9 +165,22 @@ export interface GetAvailableSlotsParams {
   empId?: number;
 }
 
+function assertLocalDate(date: string, ctx: string): void {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    throw new Error(`[${ctx}] date must be YYYY-MM-DD, got: "${date}"`);
+  }
+}
+
+function assertLocalTime(time: string, ctx: string): void {
+  if (!/^\d{2}:\d{2}$/.test(time)) {
+    throw new Error(`[${ctx}] time must be HH:mm, got: "${time}"`);
+  }
+}
+
 export async function getAvailableSlots(
   params: GetAvailableSlotsParams,
 ): Promise<AvailableSlotsResponse> {
+  assertLocalDate(params.date, "getAvailableSlots");
   const qs = new URLSearchParams();
   qs.set("date", params.date);
   qs.set("serviceIds", params.serviceIds.join(","));
@@ -276,9 +296,96 @@ export class BookingPlanError extends Error {
   }
 }
 
+// ─── Upcoming bookings ────────────────────────────────────────────────────────
+
+export interface UpcomingBookingService {
+  id?: number | string;
+  name: string;
+  price?: number | null;
+  duration?: number | null;
+}
+
+export interface UpcomingBooking {
+  id: number | string;
+  customerName?: string | null;
+  phone: string;
+  date: string;
+  time: string;
+  barberId?: number | string | null;
+  barberName?: string | null;
+  services?: UpcomingBookingService[] | string[] | null;
+  totalPrice?: number | null;
+  totalDuration?: number | null;
+  status?: string | null;
+  canCancel?: boolean | null;
+}
+
+export interface UpcomingBookingsResponse {
+  ok: boolean;
+  bookings: UpcomingBooking[];
+}
+
+export interface CancelBookingResponse {
+  ok: boolean;
+  message?: string;
+}
+
+export async function getUpcomingBookings(
+  phone: string,
+): Promise<UpcomingBookingsResponse> {
+  const url = buildBookingApiUrl("/api/public/booking/upcoming");
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ phone }),
+    });
+    const data = await res.json().catch(() => null);
+    if (!res.ok || !data?.ok) {
+      if (process.env.NODE_ENV === "development") {
+        console.warn(
+          "[publicBookingApi] getUpcomingBookings non-ok:",
+          res.status,
+          data,
+        );
+      }
+      return { ok: false, bookings: [] };
+    }
+    return { ok: true, bookings: data.bookings ?? [] };
+  } catch (error) {
+    if (process.env.NODE_ENV === "development") {
+      console.warn("[publicBookingApi] getUpcomingBookings error:", error);
+    }
+    return { ok: false, bookings: [] };
+  }
+}
+
+export async function cancelBooking(input: {
+  bookingId: number | string;
+  phone: string;
+}): Promise<CancelBookingResponse> {
+  const url = buildBookingApiUrl("/api/public/booking/cancel");
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ bookingId: input.bookingId, phone: input.phone }),
+  });
+  const data = (await res.json().catch(() => ({}))) as {
+    ok?: boolean;
+    message?: string;
+    error?: string;
+  };
+  if (!res.ok || !data?.ok) {
+    throw new Error(data?.message ?? data?.error ?? `HTTP ${res.status}`);
+  }
+  return { ok: true, message: data.message };
+}
+
 export async function createBookingPlan(
   body: BookingPlanRequest,
 ): Promise<BookingPlanResponse> {
+  assertLocalDate(body.date, "createBookingPlan");
+  if (body.time) assertLocalTime(body.time, "createBookingPlan");
   const url = buildBookingApiUrl("/api/public/booking/plan");
   try {
     const res = await fetch(url, {

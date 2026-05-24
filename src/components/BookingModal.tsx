@@ -1,10 +1,12 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { ArrowLeft, Check, Loader2, AlertCircle, WifiOff, Zap, UserCheck, UserX } from "lucide-react";
+import { format } from "date-fns";
 import { getSavedClient, saveClient, clearClient } from "@/lib/clientStorage";
+import CustomerUpcomingBookings from "./CustomerUpcomingBookings";
 import ConfettiBurst from "./ConfettiBurst";
 import BookingStepHeader from "./BookingStepHeader";
 import BookingInfoPanel from "./BookingInfoPanel";
@@ -56,6 +58,27 @@ const steps = [
   { id: "confirm", label: "تأكيد", number: 5 },
 ];
 
+// ─── Phone helpers ───────────────────────────────────────────────────────────
+
+function normalizePhoneForLookup(input: string): string {
+  const trimmed = input.trim();
+  const hasPlus = trimmed.startsWith("+");
+  const digits = trimmed.replace(/[^\d]/g, "");
+  return hasPlus ? `+${digits}` : digits;
+}
+
+function isPhoneReadyForLookup(input: string): boolean {
+  const trimmed = input.trim();
+  // No letters allowed
+  if (/[a-zA-Z]/.test(trimmed)) return false;
+  // + only allowed at start
+  if (trimmed.indexOf("+") > 0) return false;
+  const digits = trimmed.replace(/[^\d]/g, "");
+  return digits.length >= 10 && digits.length <= 15;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 const BookingModal = ({ open, onOpenChange, barber, initialMode }: BookingModalProps) => {
   // ── API state ──────────────────────────────────────────────────────────────
   const [config, setConfig] = useState<BookingConfigResponse | null>(null);
@@ -90,6 +113,8 @@ const BookingModal = ({ open, onOpenChange, barber, initialMode }: BookingModalP
   const [lookupStatus, setLookupStatus] = useState<"idle" | "loading" | "found" | "new" | "returning">("idle");
   const [lookedUpName, setLookedUpName] = useState<string | null>(null);
   const [savedClient, setSavedClient] = useState<{ name: string; phone: string } | null>(null);
+  const lastLookedUpPhoneRef = useRef<string | null>(null);
+  const lookupAbortRef = useRef<AbortController | null>(null);
 
   // ── Load saved client when confirm step opens ───────────────────────────────
   useEffect(() => {
@@ -99,37 +124,55 @@ const BookingModal = ({ open, onOpenChange, barber, initialMode }: BookingModalP
     }
   }, [currentStep]);
 
-  // ── Client phone lookup (debounced) ────────────────────────────────────────
+  // ── Client phone lookup (debounced, validated, cached, international) ──────
   useEffect(() => {
     if (lookupStatus === "returning") return;
-    const digits = customerPhone.replace(/\D/g, "");
-    if (digits.length < 8) {
+
+    if (!isPhoneReadyForLookup(customerPhone)) {
       setLookupStatus("idle");
       setLookedUpName(null);
-      setCustomerName("");
       return;
     }
-    setLookupStatus("loading");
+
+    const normalized = normalizePhoneForLookup(customerPhone);
+
+    // Skip if same normalized phone already looked up
+    if (lastLookedUpPhoneRef.current === normalized) return;
+
     const timer = setTimeout(async () => {
+      // Cancel any in-flight request
+      lookupAbortRef.current?.abort();
+      const controller = new AbortController();
+      lookupAbortRef.current = controller;
+
+      lastLookedUpPhoneRef.current = normalized;
+      setLookupStatus("loading");
       try {
-        const res = await fetch(`/api/client/lookup?mobile=${encodeURIComponent(digits)}`);
+        const res = await fetch(
+          `/api/client/lookup?mobile=${encodeURIComponent(normalized)}`,
+          { signal: controller.signal },
+        );
         const data = await res.json();
         if (data.ok && data.found) {
           setLookedUpName(data.client.name);
-          setCustomerName(data.client.name);
+          if (!customerName.trim()) setCustomerName(data.client.name);
           setLookupStatus("found");
-          saveClient({ name: data.client.name, phone: digits });
+          saveClient({ name: data.client.name, phone: normalized });
         } else {
           setLookedUpName(null);
-          setCustomerName("");
           setLookupStatus("new");
         }
-      } catch {
+      } catch (err: unknown) {
+        if (err instanceof Error && err.name === "AbortError") return;
+        if (process.env.NODE_ENV === "development") {
+          console.warn("[lookup] error:", err);
+        }
         setLookupStatus("idle");
       }
     }, 600);
+
     return () => clearTimeout(timer);
-  }, [customerPhone, lookupStatus]);
+  }, [customerPhone]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Fetch config + services when modal opens ───────────────────────────────
   useEffect(() => {
@@ -208,7 +251,7 @@ const BookingModal = ({ open, onOpenChange, barber, initialMode }: BookingModalP
     let cancelled = false;
     setIsLoadingSlots(true);
     setAvailableSlots([]);
-    const dateStr = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, "0")}-${String(selectedDate.getDate()).padStart(2, "0")}`;
+    const dateStr = format(selectedDate, "yyyy-MM-dd");
 
     const params = {
       date: dateStr,
@@ -433,7 +476,7 @@ const BookingModal = ({ open, onOpenChange, barber, initialMode }: BookingModalP
         : (selectedSlot?.empId ?? barber.id);
 
     const actualDate = getActualBookingDate(selectedDate, selectedSlot);
-    const dateStr = `${actualDate.getFullYear()}-${String(actualDate.getMonth() + 1).padStart(2, "0")}-${String(actualDate.getDate()).padStart(2, "0")}`;
+    const dateStr = format(actualDate, "yyyy-MM-dd");
     const dayOffset = selectedSlot?.dayOffset ?? 0;
 
     if (process.env.NODE_ENV === "development") {
@@ -488,7 +531,11 @@ const BookingModal = ({ open, onOpenChange, barber, initialMode }: BookingModalP
         console.log("[booking submit] plan response:", res);
       }
 
-      saveClient({ name: resolvedName, phone: resolvedPhone.replace(/\D/g, "") });
+      const cleanPhone = resolvedPhone.replace(/\D/g, "");
+      saveClient({ name: resolvedName, phone: cleanPhone });
+      if (typeof window !== "undefined") {
+        localStorage.setItem("cut_customer_phone", cleanPhone);
+      }
       setConfirmedPlan(res);
       setCurrentStep("success");
       setConfettiTrigger(prev => prev + 1);
@@ -710,6 +757,15 @@ const BookingModal = ({ open, onOpenChange, barber, initialMode }: BookingModalP
               selectedSlot={selectedSlot}
               onTimeSelect={handleTimeSelect}
               onNextDay={handleNextDay}
+              onSwitchToNearest={selectedMode === "specific" ? () => {
+                setSelectedMode("nearest");
+                setSelectedDate(undefined);
+                setSelectedTime(undefined);
+                setSelectedSlot(undefined);
+                setAvailableSlots([]);
+                setAvailableDays([]);
+                setCurrentStep("date");
+              } : undefined}
               slots={availableSlots}
               isLoading={isLoadingSlots}
             />
@@ -1147,6 +1203,9 @@ const BookingModal = ({ open, onOpenChange, barber, initialMode }: BookingModalP
               )}
 
               <div className="flex-1 overflow-y-auto bg-white">
+                {(currentStep === "mode" || currentStep === "service") && (
+                  <CustomerUpcomingBookings />
+                )}
                 {renderContent()}
               </div>
             </div>
@@ -1184,6 +1243,6 @@ const BookingModal = ({ open, onOpenChange, barber, initialMode }: BookingModalP
       </Dialog>
     </>
   );
-};
+}
 
 export default BookingModal;

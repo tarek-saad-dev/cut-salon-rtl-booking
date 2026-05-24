@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { format } from "date-fns";
 import { ChevronLeft, ChevronRight, CalendarX } from "lucide-react";
 import type { AvailableDay } from "@/lib/publicBookingApi";
 
@@ -113,8 +114,7 @@ const BookingCalendar = ({
     return cells;
   };
 
-  const toKey = (date: Date) =>
-    `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+  const toKey = (date: Date) => format(date, "yyyy-MM-dd");
 
   const isSelected = (date: Date) =>
     selectedDate?.toDateString() === date.toDateString();
