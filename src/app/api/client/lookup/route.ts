@@ -17,8 +17,15 @@ export async function GET(req: NextRequest) {
     const result = await pool
       .request()
       .input("Mobile", sql.NVarChar(50), mobile)
-      .query<{ ClientID: number; Name: string; Mobile: string }>(
-        `SELECT ClientID, Name, Mobile FROM dbo.TblClient
+      .query<{
+        ClientID: number;
+        Name: string;
+        Mobile: string;
+        Phone: string | null;
+        Address: string | null;
+        Email: string | null;
+      }>(
+        `SELECT ClientID, Name, Mobile, Phone, Address, Email FROM dbo.TblClient
          WHERE REPLACE(REPLACE(REPLACE(Mobile, ' ', ''), '-', ''), '+2', '')
                LIKE '%' + @Mobile + '%'`,
       );
@@ -27,14 +34,17 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ ok: true, found: false, client: null });
     }
 
-    const client = result.recordset[0];
+    const c = result.recordset[0];
     return NextResponse.json({
       ok: true,
       found: true,
       client: {
-        id: client.ClientID,
-        name: client.Name,
-        mobile: client.Mobile,
+        id: c.ClientID,
+        name: c.Name,
+        mobile: c.Mobile,
+        phone: c.Phone ?? "",
+        address: c.Address ?? "",
+        email: c.Email ?? "",
       },
     });
   } catch (err) {

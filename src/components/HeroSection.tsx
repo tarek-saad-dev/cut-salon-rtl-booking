@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Calendar, Zap, Shield, Gem, Clock, Star } from "lucide-react";
+import { Calendar, Zap, Shield, Gem, Clock, Star, User } from "lucide-react";
 
 const heroImg = "/hero.png";
 const heroVerticalImg = "/hero_vertical.png";
@@ -69,6 +69,7 @@ const HeroSection = () => {
             { label: "الخدمات", href: "#services" },
             { label: "الحلاقين", href: "#barbers" },
             { label: "الفروع", href: "#branches" },
+            { label: "حسابي", href: "/client" },
           ].map((link) => (
             <li key={link.label} role="none">
               <a href={link.href} role="menuitem"
@@ -80,11 +81,17 @@ const HeroSection = () => {
           ))}
         </ul>
 
-        <button onClick={() => document.getElementById("barbers")?.scrollIntoView({ behavior: "smooth", block: "start" })} aria-label="احجز الآن"
-          className="hidden md:flex items-center gap-2 px-5 py-2.5 rounded-xl border border-[#D4AF37]/50 text-[#E5C07B] text-sm font-bold hover:bg-[#D4AF37]/15 hover:border-[#D4AF37] hover:shadow-[0_0_24px_rgba(212,175,55,0.15)] transition-all duration-300 cursor-pointer">
-          <Calendar className="w-4 h-4" />
-          احجز الآن
-        </button>
+        <div className="flex items-center gap-2">
+          <button onClick={() => document.getElementById("barbers")?.scrollIntoView({ behavior: "smooth", block: "start" })} aria-label="احجز الآن"
+            className="hidden md:flex items-center gap-2 px-5 py-2.5 rounded-xl border border-[#D4AF37]/50 text-[#E5C07B] text-sm font-bold hover:bg-[#D4AF37]/15 hover:border-[#D4AF37] hover:shadow-[0_0_24px_rgba(212,175,55,0.15)] transition-all duration-300 cursor-pointer">
+            <Calendar className="w-4 h-4" />
+            احجز الآن
+          </button>
+          <a href="/client" aria-label="حسابي"
+            className="flex items-center justify-center w-10 h-10 rounded-xl border border-white/10 text-white/60 hover:border-[#D4AF37]/50 hover:text-[#E5C07B] transition-all duration-300">
+            <User className="w-4 h-4" />
+          </a>
+        </div>
       </motion.nav>
 
       {/* ─── Main content ─── */}

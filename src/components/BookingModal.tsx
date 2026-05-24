@@ -3,7 +3,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
-import { ArrowLeft, Check, Loader2, AlertCircle, WifiOff, Zap, UserCheck } from "lucide-react";
+import { ArrowLeft, Check, Loader2, AlertCircle, WifiOff, Zap, UserCheck, UserX } from "lucide-react";
+import { getSavedClient, saveClient, clearClient } from "@/lib/clientStorage";
 import ConfettiBurst from "./ConfettiBurst";
 import BookingStepHeader from "./BookingStepHeader";
 import BookingInfoPanel from "./BookingInfoPanel";
@@ -86,11 +87,21 @@ const BookingModal = ({ open, onOpenChange, barber, initialMode }: BookingModalP
   const [confettiTrigger, setConfettiTrigger] = useState(0);
 
   // ── Client lookup state ────────────────────────────────────────────────────
-  const [lookupStatus, setLookupStatus] = useState<"idle" | "loading" | "found" | "new">("idle");
+  const [lookupStatus, setLookupStatus] = useState<"idle" | "loading" | "found" | "new" | "returning">("idle");
   const [lookedUpName, setLookedUpName] = useState<string | null>(null);
+  const [savedClient, setSavedClient] = useState<{ name: string; phone: string } | null>(null);
+
+  // ── Load saved client when confirm step opens ───────────────────────────────
+  useEffect(() => {
+    if (currentStep === "confirm") {
+      const stored = getSavedClient();
+      if (stored) setSavedClient(stored);
+    }
+  }, [currentStep]);
 
   // ── Client phone lookup (debounced) ────────────────────────────────────────
   useEffect(() => {
+    if (lookupStatus === "returning") return;
     const digits = customerPhone.replace(/\D/g, "");
     if (digits.length < 8) {
       setLookupStatus("idle");
@@ -107,6 +118,7 @@ const BookingModal = ({ open, onOpenChange, barber, initialMode }: BookingModalP
           setLookedUpName(data.client.name);
           setCustomerName(data.client.name);
           setLookupStatus("found");
+          saveClient({ name: data.client.name, phone: digits });
         } else {
           setLookedUpName(null);
           setCustomerName("");
@@ -117,7 +129,7 @@ const BookingModal = ({ open, onOpenChange, barber, initialMode }: BookingModalP
       }
     }, 600);
     return () => clearTimeout(timer);
-  }, [customerPhone]);
+  }, [customerPhone, lookupStatus]);
 
   // ── Fetch config + services when modal opens ───────────────────────────────
   useEffect(() => {
@@ -301,6 +313,7 @@ const BookingModal = ({ open, onOpenChange, barber, initialMode }: BookingModalP
       setCustomerPhone("");
       setLookupStatus("idle");
       setLookedUpName(null);
+      setSavedClient(null);
     }, 300);
   };
 
@@ -438,8 +451,10 @@ const BookingModal = ({ open, onOpenChange, barber, initialMode }: BookingModalP
       }
     }
 
+    const resolvedName = customerName.trim() || (savedClient?.name ?? "");
+    const resolvedPhone = customerPhone.trim() || (savedClient?.phone ?? "");
     const payload = {
-      customer: { name: customerName.trim(), phone: customerPhone.trim() },
+      customer: { name: resolvedName, phone: resolvedPhone },
       serviceIds: selectedServiceIds,
       date: dateStr,
       time: selectedTime,
@@ -473,6 +488,7 @@ const BookingModal = ({ open, onOpenChange, barber, initialMode }: BookingModalP
         console.log("[booking submit] plan response:", res);
       }
 
+      saveClient({ name: resolvedName, phone: resolvedPhone.replace(/\D/g, "") });
       setConfirmedPlan(res);
       setCurrentStep("success");
       setConfettiTrigger(prev => prev + 1);
@@ -714,33 +730,81 @@ const BookingModal = ({ open, onOpenChange, barber, initialMode }: BookingModalP
         const slotDuration = selectedSlot?.durationMinutes ?? selectedService?.durationMinutes;
         const slotLabel = selectedSlot?.label ?? selectedTime;
         const canSubmit =
-          customerName.trim().length >= 2 && customerPhone.trim().length >= 8;
+          (customerName.trim().length >= 2 && customerPhone.trim().length >= 8) ||
+          (savedClient != null && lookupStatus === "idle");
         return (
           <div className="p-6" dir="rtl">
             <h3 className="text-xl font-heading font-bold text-gray-900 mb-4">تأكيد الحجز</h3>
 
-            {/* Customer fields */}
-            <div className="space-y-3 mb-5">
-              {/* Phone first */}
-              <div>
-                <label className="block text-xs font-medium text-[#a1a1aa] mb-1">رقم الهاتف</label>
-                <div className="relative">
-                  <input
-                    type="tel"
-                    value={customerPhone}
-                    onChange={e => setCustomerPhone(e.target.value)}
-                    placeholder="01xxxxxxxxx"
-                    className="w-full px-4 py-2.5 rounded-xl border border-white/10 bg-[#1a1a1a] text-sm text-[#f7f7f2] placeholder-[#a1a1aa] focus:outline-none focus:border-[#D4AF37] focus:ring-1 focus:ring-[#D4AF37]/30 transition-colors pr-10"
-                    dir="ltr"
-                  />
-                  {lookupStatus === "loading" && (
-                    <Loader2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#D4AF37] animate-spin" />
-                  )}
-                  {lookupStatus === "found" && (
-                    <UserCheck className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald-400" />
-                  )}
+            {/* Returning client card */}
+            {savedClient && lookupStatus === "idle" && (
+              <div className="mb-4 rounded-xl bg-gray-900 border border-gray-700 overflow-hidden">
+                <div className="px-4 py-3 flex items-center justify-between">
+                  <div>
+                    <p className="text-gray-400 text-[11px] mb-0.5">آخر مرة حجزت كـ:</p>
+                    <p className="text-white font-bold text-sm">{savedClient.name}</p>
+                    <p className="text-gray-400 text-xs" dir="ltr">{savedClient.phone}</p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setCustomerName(savedClient.name);
+                      setCustomerPhone(savedClient.phone);
+                      setLookedUpName(savedClient.name);
+                      setLookupStatus("returning");
+                      setSavedClient(null);
+                    }}
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#D4AF37] text-black text-xs font-bold hover:bg-[#C4A030] transition-colors flex-shrink-0"
+                  >
+                    <UserCheck className="w-3.5 h-3.5" />
+                    نعم، أنا
+                  </button>
                 </div>
               </div>
+            )}
+
+            {/* Customer fields */}
+            <div className="space-y-3 mb-5">
+              {/* "Book for someone else" toggle — only shown when saved client is active */}
+              {savedClient && lookupStatus === "idle" && (
+                <button
+                  onClick={() => { clearClient(); setSavedClient(null); }}
+                  className="flex items-center gap-1.5 text-gray-400 hover:text-gray-200 text-xs transition-colors w-full text-right"
+                >
+                  <UserX className="w-3.5 h-3.5 flex-shrink-0" />
+                  حجز لشخص آخر؟
+                </button>
+              )}
+
+              {/* Welcome message after confirming returning client */}
+              {lookupStatus === "returning" && lookedUpName && (
+                <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+                  <UserCheck className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                  <span className="text-emerald-300 text-sm font-medium">مرحباً، {lookedUpName} 👋</span>
+                </div>
+              )}
+
+              {/* Phone field — hidden while saved-client prompt or returning */}
+              {!(savedClient && lookupStatus === "idle") && lookupStatus !== "returning" && (
+                <div>
+                  <label className="block text-xs font-medium text-[#a1a1aa] mb-1">رقم الهاتف</label>
+                  <div className="relative">
+                    <input
+                      type="tel"
+                      value={customerPhone}
+                      onChange={e => setCustomerPhone(e.target.value)}
+                      placeholder="01xxxxxxxxx"
+                      className="w-full px-4 py-2.5 rounded-xl border border-white/10 bg-[#1a1a1a] text-sm text-[#f7f7f2] placeholder-[#a1a1aa] focus:outline-none focus:border-[#D4AF37] focus:ring-1 focus:ring-[#D4AF37]/30 transition-colors pr-10"
+                      dir="ltr"
+                    />
+                    {lookupStatus === "loading" && (
+                      <Loader2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#D4AF37] animate-spin" />
+                    )}
+                    {lookupStatus === "found" && (
+                      <UserCheck className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald-400" />
+                    )}
+                  </div>
+                </div>
+              )}
 
               {/* Lookup result */}
               {lookupStatus === "found" && lookedUpName && (
@@ -756,8 +820,8 @@ const BookingModal = ({ open, onOpenChange, barber, initialMode }: BookingModalP
                 </div>
               )}
 
-              {/* Name field — auto-filled if found, editable if new */}
-              {(lookupStatus === "found" || lookupStatus === "new") && (
+              {/* Name field — only for new clients who need to enter their name */}
+              {lookupStatus === "new" && (
                 <div>
                   <label className="block text-xs font-medium text-[#a1a1aa] mb-1">الاسم</label>
                   <input
@@ -765,11 +829,7 @@ const BookingModal = ({ open, onOpenChange, barber, initialMode }: BookingModalP
                     value={customerName}
                     onChange={e => setCustomerName(e.target.value)}
                     placeholder="اكتب اسمك"
-                    readOnly={lookupStatus === "found"}
-                    className={`w-full px-4 py-2.5 rounded-xl border text-sm text-[#f7f7f2] placeholder-[#a1a1aa] focus:outline-none transition-colors ${lookupStatus === "found"
-                      ? "border-emerald-500/30 bg-emerald-500/5 cursor-default"
-                      : "border-white/10 bg-[#1a1a1a] focus:border-[#D4AF37] focus:ring-1 focus:ring-[#D4AF37]/30"
-                      }`}
+                    className="w-full px-4 py-2.5 rounded-xl border border-white/10 bg-[#1a1a1a] text-sm text-[#f7f7f2] placeholder-[#a1a1aa] focus:outline-none focus:border-[#D4AF37] focus:ring-1 focus:ring-[#D4AF37]/30 transition-colors"
                     dir="rtl"
                   />
                 </div>
