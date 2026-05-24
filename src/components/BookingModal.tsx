@@ -85,6 +85,40 @@ const BookingModal = ({ open, onOpenChange, barber, initialMode }: BookingModalP
   const [customerPhone, setCustomerPhone] = useState("");
   const [confettiTrigger, setConfettiTrigger] = useState(0);
 
+  // ── Client lookup state ────────────────────────────────────────────────────
+  const [lookupStatus, setLookupStatus] = useState<"idle" | "loading" | "found" | "new">("idle");
+  const [lookedUpName, setLookedUpName] = useState<string | null>(null);
+
+  // ── Client phone lookup (debounced) ────────────────────────────────────────
+  useEffect(() => {
+    const digits = customerPhone.replace(/\D/g, "");
+    if (digits.length < 8) {
+      setLookupStatus("idle");
+      setLookedUpName(null);
+      setCustomerName("");
+      return;
+    }
+    setLookupStatus("loading");
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/client/lookup?mobile=${encodeURIComponent(digits)}`);
+        const data = await res.json();
+        if (data.ok && data.found) {
+          setLookedUpName(data.client.name);
+          setCustomerName(data.client.name);
+          setLookupStatus("found");
+        } else {
+          setLookedUpName(null);
+          setCustomerName("");
+          setLookupStatus("new");
+        }
+      } catch {
+        setLookupStatus("idle");
+      }
+    }, 600);
+    return () => clearTimeout(timer);
+  }, [customerPhone]);
+
   // ── Fetch config + services when modal opens ───────────────────────────────
   useEffect(() => {
     if (!open) return;
@@ -265,6 +299,8 @@ const BookingModal = ({ open, onOpenChange, barber, initialMode }: BookingModalP
       setConfirmedPlan(null);
       setCustomerName("");
       setCustomerPhone("");
+      setLookupStatus("idle");
+      setLookedUpName(null);
     }, 300);
   };
 
@@ -685,28 +721,59 @@ const BookingModal = ({ open, onOpenChange, barber, initialMode }: BookingModalP
 
             {/* Customer fields */}
             <div className="space-y-3 mb-5">
-              <div>
-                <label className="block text-xs font-medium text-[#a1a1aa] mb-1">الاسم</label>
-                <input
-                  type="text"
-                  value={customerName}
-                  onChange={e => setCustomerName(e.target.value)}
-                  placeholder="طارق سعد"
-                  className="w-full px-4 py-2.5 rounded-xl border border-white/10 bg-[#1a1a1a] text-sm text-[#f7f7f2] placeholder-[#a1a1aa] focus:outline-none focus:border-[#D4AF37] focus:ring-1 focus:ring-[#D4AF37]/30 transition-colors"
-                  dir="rtl"
-                />
-              </div>
+              {/* Phone first */}
               <div>
                 <label className="block text-xs font-medium text-[#a1a1aa] mb-1">رقم الهاتف</label>
-                <input
-                  type="tel"
-                  value={customerPhone}
-                  onChange={e => setCustomerPhone(e.target.value)}
-                  placeholder="01xxxxxxxxx"
-                  className="w-full px-4 py-2.5 rounded-xl border border-white/10 bg-[#1a1a1a] text-sm text-[#f7f7f2] placeholder-[#a1a1aa] focus:outline-none focus:border-[#D4AF37] focus:ring-1 focus:ring-[#D4AF37]/30 transition-colors"
-                  dir="ltr"
-                />
+                <div className="relative">
+                  <input
+                    type="tel"
+                    value={customerPhone}
+                    onChange={e => setCustomerPhone(e.target.value)}
+                    placeholder="01xxxxxxxxx"
+                    className="w-full px-4 py-2.5 rounded-xl border border-white/10 bg-[#1a1a1a] text-sm text-[#f7f7f2] placeholder-[#a1a1aa] focus:outline-none focus:border-[#D4AF37] focus:ring-1 focus:ring-[#D4AF37]/30 transition-colors pr-10"
+                    dir="ltr"
+                  />
+                  {lookupStatus === "loading" && (
+                    <Loader2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#D4AF37] animate-spin" />
+                  )}
+                  {lookupStatus === "found" && (
+                    <UserCheck className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald-400" />
+                  )}
+                </div>
               </div>
+
+              {/* Lookup result */}
+              {lookupStatus === "found" && lookedUpName && (
+                <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+                  <UserCheck className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                  <span className="text-emerald-300 text-sm font-medium">{lookedUpName}</span>
+                </div>
+              )}
+              {lookupStatus === "new" && (
+                <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[#D4AF37]/10 border border-[#D4AF37]/20">
+                  <AlertCircle className="w-4 h-4 text-[#D4AF37] flex-shrink-0" />
+                  <span className="text-[#D4AF37] text-sm">عميل جديد — أول مرة؟ 👋</span>
+                </div>
+              )}
+
+              {/* Name field — auto-filled if found, editable if new */}
+              {(lookupStatus === "found" || lookupStatus === "new") && (
+                <div>
+                  <label className="block text-xs font-medium text-[#a1a1aa] mb-1">الاسم</label>
+                  <input
+                    type="text"
+                    value={customerName}
+                    onChange={e => setCustomerName(e.target.value)}
+                    placeholder="اكتب اسمك"
+                    readOnly={lookupStatus === "found"}
+                    className={`w-full px-4 py-2.5 rounded-xl border text-sm text-[#f7f7f2] placeholder-[#a1a1aa] focus:outline-none transition-colors ${lookupStatus === "found"
+                      ? "border-emerald-500/30 bg-emerald-500/5 cursor-default"
+                      : "border-white/10 bg-[#1a1a1a] focus:border-[#D4AF37] focus:ring-1 focus:ring-[#D4AF37]/30"
+                      }`}
+                    dir="rtl"
+                  />
+                </div>
+              )}
             </div>
 
             <div className="bg-gray-50 rounded-xl p-5 mb-4 border border-gray-100 space-y-4">
