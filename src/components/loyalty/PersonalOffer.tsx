@@ -1,8 +1,28 @@
 "use client";
 
 import { Zap, Calendar } from "lucide-react";
+import type { ApiPersonalOffer } from "./clientLoyaltyApi";
 
-export function PersonalOffer({ onBook }: { onBook?: () => void }) {
+// Default fallback offer shown when API returns no offer
+const DEFAULT_OFFER = {
+  title: "احجز Haircut & Beard الأسبوع ده",
+  description: "وخد Double Points 🔥",
+  expiry: "العرض سارى حتى نهاية الأسبوع.",
+};
+
+export function PersonalOffer({
+  offer,
+  onBook,
+}: {
+  offer?: ApiPersonalOffer | null;
+  onBook?: () => void;
+}) {
+  // If type is NONE or null, don't render
+  if (offer !== undefined && (offer === null || offer.type === "NONE")) return null;
+
+  const title = offer?.title ?? DEFAULT_OFFER.title;
+  const description = offer?.description ?? DEFAULT_OFFER.description;
+
   return (
     <div
       className="relative overflow-hidden rounded-2xl p-5 md:p-6"
@@ -29,15 +49,18 @@ export function PersonalOffer({ onBook }: { onBook?: () => void }) {
         </div>
 
         {/* Offer text */}
-        <h3 className="text-white text-base font-black leading-snug mb-1">
-          احجز Haircut & Beard الأسبوع ده
-        </h3>
-        <p className="text-[#D4AF37] text-sm font-bold mb-1">
-          وخد Double Points 🔥
-        </p>
-        <p className="text-white/40 text-xs leading-relaxed mb-4">
-          العرض سارى حتى نهاية الأسبوع. لا تفوّت الفرصة.
-        </p>
+        <h3 className="text-white text-base font-black leading-snug mb-1">{title}</h3>
+        <p className="text-[#D4AF37] text-sm font-bold mb-1">{description}</p>
+        {offer?.expiresAt && (
+          <p className="text-white/40 text-xs leading-relaxed mb-4">
+            العرض سارى حتى {new Date(offer.expiresAt).toLocaleDateString("ar-EG", { day: "numeric", month: "long" })}.
+          </p>
+        )}
+        {!offer?.expiresAt && (
+          <p className="text-white/40 text-xs leading-relaxed mb-4">
+            العرض سارى حتى نهاية الأسبوع. لا تفوّت الفرصة.
+          </p>
+        )}
 
         {/* CTA */}
         <button

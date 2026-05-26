@@ -3,7 +3,15 @@
 import { useState } from "react";
 import { Copy, Check, MessageCircle, Users } from "lucide-react";
 
-export function ReferralCard({ code }: { code: string }) {
+export function ReferralCard({
+  code,
+  shareUrl,
+  rewardPoints,
+}: {
+  code: string;
+  shareUrl?: string;
+  rewardPoints?: number;
+}) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
@@ -16,10 +24,10 @@ export function ReferralCard({ code }: { code: string }) {
     }
   };
 
-  const waText = encodeURIComponent(
-    `انضم معايا في CUT CLUB واستخدم كودي ${code} عند أول حجز 💈`
-  );
-  const waLink = `https://wa.me/?text=${waText}`;
+  const waMessage = shareUrl
+    ? `جرب Cut Salon من خلال دعوتي واستخدم الكود ${code} 💈\n${shareUrl}`
+    : `انضم معايا في CUT CLUB واستخدم كودي ${code} عند أول حجز 💈`;
+  const waLink = `https://wa.me/?text=${encodeURIComponent(waMessage)}`;
 
   return (
     <div
@@ -38,7 +46,7 @@ export function ReferralCard({ code }: { code: string }) {
           <div>
             <h3 className="text-white text-sm font-black">شارك Cut مع أصحابك</h3>
             <p className="text-white/40 text-[11px] mt-0.5">
-              ادعُ صديقك وخد 100 نقطة لما يعمل أول حجز
+              ادعُ صديقك وخد {rewardPoints ?? 100} نقطة لما يعمل أول حجز
             </p>
           </div>
         </div>
@@ -54,11 +62,10 @@ export function ReferralCard({ code }: { code: string }) {
           </div>
           <button
             onClick={handleCopy}
-            className={`flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl border transition-all ${
-              copied
-                ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-400"
-                : "border-[#D4AF37]/20 bg-[#D4AF37]/[0.06] text-[#D4AF37] hover:bg-[#D4AF37]/12 hover:border-[#D4AF37]/35"
-            }`}
+            className={`flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl border transition-all ${copied
+              ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-400"
+              : "border-[#D4AF37]/20 bg-[#D4AF37]/[0.06] text-[#D4AF37] hover:bg-[#D4AF37]/12 hover:border-[#D4AF37]/35"
+              }`}
             title="نسخ الكود"
           >
             {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}

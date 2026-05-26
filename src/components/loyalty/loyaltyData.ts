@@ -1,4 +1,4 @@
-// ─── CUT CLUB — Loyalty Types & Mock Data ────────────────────────────────────
+// ─── CUT CLUB — Loyalty Types, Mock Data & Helpers ───────────────────────────
 
 export type MemberLevel = "Bronze" | "Silver" | "Gold" | "Black VIP";
 
@@ -7,7 +7,7 @@ export interface LoyaltyReward {
   title: string;
   titleAr: string;
   points: number;
-  status: "available" | "locked" | "redeemed";
+  status: "available" | "locked" | "tier_locked" | "redeemed";
   remainingPoints?: number;
   icon: "scissors" | "sparkles" | "gift" | "star" | "crown";
 }
@@ -49,7 +49,13 @@ export interface ClientLoyalty {
 
 export const LEVEL_CONFIG: Record<
   MemberLevel,
-  { color: string; border: string; bg: string; minPoints: number; maxPoints: number }
+  {
+    color: string;
+    border: string;
+    bg: string;
+    minPoints: number;
+    maxPoints: number;
+  }
 > = {
   Bronze: {
     color: "#cd7f32",
@@ -80,6 +86,44 @@ export const LEVEL_CONFIG: Record<
     maxPoints: 9999,
   },
 };
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+export function tierCodeToMemberLevel(tierCode: string): MemberLevel {
+  const map: Record<string, MemberLevel> = {
+    Bronze: "Bronze",
+    BRONZE: "Bronze",
+    Silver: "Silver",
+    SILVER: "Silver",
+    Gold: "Gold",
+    GOLD: "Gold",
+    "Black VIP": "Black VIP",
+    BLACK_VIP: "Black VIP",
+    BLACKVIP: "Black VIP",
+    VIP: "Black VIP",
+  };
+  return map[tierCode] ?? "Bronze";
+}
+
+export function formatPoints(value: number): string {
+  if (!Number.isFinite(value)) return "0";
+  const rounded = Number.isInteger(value)
+    ? value
+    : Math.round(value * 100) / 100;
+  return rounded.toLocaleString("en-US");
+}
+
+export function formatActivityDate(dateStr: string): string {
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
+    return d.toLocaleDateString("ar-EG", { day: "numeric", month: "short" });
+  } catch {
+    return dateStr;
+  }
+}
+
+// ─── Mock Data (dev only) ─────────────────────────────────────────────────────
 
 export const mockLoyalty: ClientLoyalty = {
   clientName: "أحمد محمد",
@@ -137,7 +181,19 @@ export const mockLoyalty: ClientLoyalty = {
   ],
   activity: [
     { id: "a1", type: "earn", label: "Hair Cut", points: 25, date: "20 May" },
-    { id: "a2", type: "earn", label: "Haircut & Beard", points: 40, date: "12 May" },
-    { id: "a3", type: "redeem", label: "50 EGP Discount", points: -220, date: "3 May" },
+    {
+      id: "a2",
+      type: "earn",
+      label: "Haircut & Beard",
+      points: 40,
+      date: "12 May",
+    },
+    {
+      id: "a3",
+      type: "redeem",
+      label: "50 EGP Discount",
+      points: -220,
+      date: "3 May",
+    },
   ],
 };
