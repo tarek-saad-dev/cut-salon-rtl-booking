@@ -1,7 +1,6 @@
 "use client";
 
-import { useRef } from "react";
-import { Clock, CalendarX, Zap, MoonStar, ChevronDown } from "lucide-react";
+import { Clock, CalendarX, Zap, MoonStar } from "lucide-react";
 import type { AvailableSlot } from "@/lib/publicBookingApi";
 
 interface BookingTimeSlotsProps {
@@ -44,6 +43,25 @@ function formatSlotDisplay(time: string): string {
   const ampm = h >= 12 ? "م" : "ص";
   return `${h12}:${m} ${ampm}`;
 }
+
+// ─── After-midnight filter (client-side only, temporary) ────────────────────
+
+function timeToMinutes(time: string): number {
+  const [h, m] = time.split(":").map(Number);
+  return (Number.isFinite(h) ? h : 0) * 60 + (Number.isFinite(m) ? m : 0);
+}
+
+function isClientVisibleSlot(slot: AvailableSlot): boolean {
+  const start = timeToMinutes(slot.time);
+  // hide slots that start between 00:00 and 03:59 (after-midnight)
+  if (start < 4 * 60) return false;
+  // hide slots whose service crosses midnight
+  const duration = (slot as { durationMinutes?: number }).durationMinutes ?? 0;
+  if (duration > 0 && start + duration > 24 * 60) return false;
+  return true;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 function slotKey(slot: AvailableSlot): string {
   return `${getDayOffset(slot)}-${slot.time}`;
@@ -172,11 +190,13 @@ const BookingTimeSlots = ({
   slots,
   isLoading = false,
 }: BookingTimeSlotsProps) => {
-  const midnightRef = useRef<HTMLDivElement>(null);
-
   if (isLoading) return <SlotsSkeleton />;
 
   const availableSlots = slots.filter(s => s.available);
+
+  // Client-facing: hide after-midnight slots temporarily
+  const visibleSlots = availableSlots.filter(isClientVisibleSlot);
+  const hiddenAfterMidnightCount = availableSlots.length - visibleSlots.length;
 
   // Dev logs
   if (process.env.NODE_ENV === "development" && slots.length > 0) {
@@ -190,18 +210,30 @@ const BookingTimeSlots = ({
     }
   }
 
-  if (availableSlots.length === 0) {
+  // All slots hidden (either all after midnight, or truly empty)
+  if (visibleSlots.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-14 gap-4 text-center px-6" dir="rtl">
         <div className="w-16 h-16 rounded-full bg-[#111111] border border-[rgba(212,175,55,0.18)] flex items-center justify-center">
           <CalendarX className="w-7 h-7 text-[#71717a]" />
         </div>
         <div>
-          <p className="text-red-400 font-heading font-bold text-sm mb-2">لا توجد أوقات متاحة لهذا اليوم</p>
-          {onSwitchToNearest && (
-            <p className="text-[#a1a1aa] text-xs leading-relaxed max-w-[240px] mx-auto">
-              الحلاق مش متاح في اليوم ده، بس فيه حلاقين تانيين بجودة عالية في نفس اليوم
-            </p>
+          {hiddenAfterMidnightCount > 0 ? (
+            <>
+              <p className="text-[#a1a1aa] font-heading font-bold text-sm mb-1">لا توجد مواعيد متاحة قبل منتصف الليل في هذا اليوم</p>
+              <p className="text-[#71717a] text-xs leading-relaxed max-w-[260px] mx-auto">
+                للحجز بعد الساعة 12 منتصف الليل، يرجى التواصل معنا مباشرة.
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="text-red-400 font-heading font-bold text-sm mb-2">لا توجد أوقات متاحة لهذا اليوم</p>
+              {onSwitchToNearest && (
+                <p className="text-[#a1a1aa] text-xs leading-relaxed max-w-[240px] mx-auto">
+                  الحلاق مش متاح في اليوم ده، بس فيه حلاقين تانيين بجودة عالية في نفس اليوم
+                </p>
+              )}
+            </>
           )}
         </div>
         <div className="flex flex-col gap-2 w-full max-w-[260px]">
@@ -227,25 +259,14 @@ const BookingTimeSlots = ({
     );
   }
 
-  // Split by dayOffset: today slots vs after-midnight slots
-  const todaySlots = availableSlots.filter(s => getDayOffset(s) === 0);
-  const midnightSlots = availableSlots
-    .filter(s => getDayOffset(s) === 1)
-    .sort((a, b) => a.time.localeCompare(b.time));
-
-  // Nearest available (always first available from today, or midnight if no today)
-  const nearest = todaySlots[0] ?? midnightSlots[0];
+  // Split by dayOffset — use visibleSlots only for display
+  const todaySlots = visibleSlots.filter(s => getDayOffset(s) === 0);
+  // Nearest available from visible slots only
+  const nearest = todaySlots[0];
 
   // Group today slots only (dayOffset=0) into periods
   const hourGroups = groupSlotsByHour(todaySlots);
   const periods = organizePeriods(hourGroups);
-
-  // Group midnight slots by hour
-  const midnightHourGroups = groupSlotsByHour(midnightSlots);
-
-  const scrollToMidnight = () => {
-    midnightRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-  };
 
   return (
     <div className="p-5 md:p-6 space-y-5" dir="rtl">
@@ -333,61 +354,26 @@ const BookingTimeSlots = ({
         </div>
       ))}
 
-      {/* ── After Midnight Section (dayOffset=1) ── */}
-      {midnightSlots.length > 0 && (
-        <div ref={midnightRef} className="space-y-3 pt-1">
-          {/* Midnight period header */}
-          <div className="flex items-center gap-2.5">
-            <MoonStar className="w-4 h-4 text-[#d4af37]/60" />
-            <span className="text-sm font-heading font-bold text-[#a1a1aa]">بعد منتصف الليل</span>
-            <div className="flex-1 h-px bg-gradient-to-l from-transparent via-[rgba(212,175,55,0.1)] to-transparent" />
-          </div>
-          <p className="text-[#71717a] text-[11px] pr-6">هذه المواعيد تُسجل بتاريخ اليوم التالي</p>
-
-          {/* Midnight hour groups */}
-          {midnightHourGroups.map(group => (
-            <div
-              key={`mn-${group.hour}`}
-              className="rounded-2xl bg-[#111111] border border-[rgba(212,175,55,0.08)] p-4 md:p-5 transition-all duration-200 hover:border-[rgba(212,175,55,0.18)]"
+      {/* ── After Midnight Notice ── */}
+      {hiddenAfterMidnightCount > 0 && (
+        <div className="rounded-2xl bg-[#0d0d0d] border border-[rgba(212,175,55,0.12)] p-4 flex items-start gap-3">
+          <MoonStar className="w-4 h-4 text-[#d4af37]/50 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="text-[#a1a1aa] text-xs font-bold mb-0.5">مواعيد بعد منتصف الليل</p>
+            <p className="text-[#71717a] text-[11px] leading-relaxed">
+              للحجز بعد الساعة 12 منتصف الليل، يرجى التواصل معنا مباشرة لتأكيد الموعد.
+            </p>
+            <a
+              href="tel:035861483"
+              className="inline-flex items-center gap-1.5 mt-2 text-[#d4af37] text-xs font-bold hover:text-[#e7c766] transition-colors"
             >
-              <div className="flex items-center gap-2.5 mb-3.5">
-                <span className="font-heading font-black text-2xl text-[#f7f7f2] leading-none">
-                  {formatHourLabel(group.hour)}
-                </span>
-                <span className="text-[#a1a1aa] text-sm font-medium">بعد منتصف الليل</span>
-                <span className="text-[#71717a] text-[11px] mr-auto bg-[#171717] px-2 py-0.5 rounded-md">
-                  {group.slots.length} {group.slots.length === 1 ? "ميعاد" : "مواعيد"}
-                </span>
-              </div>
-
-              <div className="flex flex-wrap gap-2.5">
-                {group.slots.map(slot => (
-                  <SlotPill
-                    key={slotKey(slot)}
-                    slot={slot}
-                    selected={isSlotSelected(slot, selectedTime, selectedSlotProp)}
-                    onSelect={() => onTimeSelect(slot)}
-                  />
-                ))}
-              </div>
-            </div>
-          ))}
+              اتصل للحجز بعد 12
+            </a>
+          </div>
         </div>
       )}
 
-      {/* ── Midnight CTA / Next Day CTA ── */}
-      {midnightSlots.length > 0 && todaySlots.length > 0 && (
-        <div className="pt-2">
-          <button
-            onClick={scrollToMidnight}
-            className="w-full inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl border border-[rgba(212,175,55,0.12)] bg-[#111111] text-[#a1a1aa] text-xs font-medium hover:bg-[#171717] hover:text-[#d4af37] hover:border-[rgba(212,175,55,0.25)] transition-all duration-200"
-          >
-            <MoonStar className="w-3.5 h-3.5" />
-            <span>انتقل لمواعيد بعد منتصف الليل</span>
-            <ChevronDown className="w-3.5 h-3.5" />
-          </button>
-        </div>
-      )}
+      {/* midnight scroll CTA removed — midnight slots hidden */}
       {onNextDay && (
         <div className="pt-2 space-y-3">
           <div className="h-px bg-gradient-to-l from-transparent via-[rgba(212,175,55,0.12)] to-transparent" />
