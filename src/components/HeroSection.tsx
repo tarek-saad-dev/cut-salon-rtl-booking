@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Calendar, Zap, Shield, Gem, Clock, Star, MessageCircle } from "lucide-react";
+import { Calendar, Zap, Shield, Gem, Clock, Star } from "lucide-react";
 import ClientProfileWidget from "./ClientProfileWidget";
 import CustomerUpcomingBookings from "./CustomerUpcomingBookings";
 
@@ -147,15 +147,6 @@ const HeroSection = () => {
                   <Zap className="w-4 h-4 relative z-10" />
                   <span className="relative z-10">أقرب ميعاد متاح</span>
                 </button>
-                <a
-                  href="https://wa.me/201012126899"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label="احجز عبر واتساب"
-                  className="group relative inline-flex items-center justify-center gap-2.5 w-full sm:w-auto px-8 py-3.5 rounded-xl font-heading font-bold text-white text-base overflow-hidden border border-[#25D366]/40 hover:border-[#25D366] bg-[#25D366]/[0.08] hover:bg-[#25D366]/15 hover:shadow-[0_0_32px_rgba(37,211,102,0.15)] hover:scale-[1.02] active:scale-[0.97] transition-all duration-300">
-                  <MessageCircle className="w-4 h-4 relative z-10" />
-                  <span className="relative z-10">احجز عبر واتساب</span>
-                </a>
               </motion.div>
 
               {/* Live availability micro-card */}

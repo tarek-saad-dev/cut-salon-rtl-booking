@@ -363,14 +363,22 @@ const BookingTimeSlots = ({
             <p className="text-[#71717a] text-[11px] leading-relaxed">
               للحجز بعد الساعة 12 منتصف الليل، يرجى التواصل معنا مباشرة لتأكيد الموعد.
             </p>
-            <a
-              href="https://wa.me/201012126899"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 mt-2 text-[#25D366] text-xs font-bold hover:text-[#20c05c] transition-colors"
-            >
-              احجز بعد 12 عبر واتساب
-            </a>
+            <div className="flex items-center gap-2 mt-2 flex-wrap">
+              <a
+                href="tel:035861483"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-white/10 text-white/60 text-xs font-bold hover:border-white/20 hover:text-white/80 transition-colors"
+              >
+                اتصل للحجز بعد 12
+              </a>
+              <a
+                href="https://wa.me/201012126899"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#25D366]/30 text-[#25D366] text-xs font-bold hover:bg-[#25D366]/10 hover:border-[#25D366]/60 transition-colors"
+              >
+                واتساب
+              </a>
+            </div>
           </div>
         </div>
       )}
