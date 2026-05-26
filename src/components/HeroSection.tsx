@@ -1,7 +1,8 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { Calendar, Zap, Shield, Gem, Clock, Star } from "lucide-react";
+import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Calendar, Zap, Shield, Gem, Clock, Star, Menu, X } from "lucide-react";
 import ClientProfileWidget from "./ClientProfileWidget";
 import CustomerUpcomingBookings from "./CustomerUpcomingBookings";
 
@@ -26,7 +27,31 @@ const fadeUp = {
   }),
 };
 
+const NAV_LINKS: { label: string; href: string; active?: boolean; isClub?: boolean }[] = [
+  { label: "الرئيسية", href: "#", active: true },
+  { label: "الخدمات", href: "#services" },
+  { label: "الحلاقين", href: "#barbers" },
+  { label: "الفروع", href: "#branches" },
+  { label: "حسابي", href: "/client" },
+  { label: "CUT CLUB", href: "/client/loyalty", isClub: true },
+];
+
 const HeroSection = () => {
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  // Close on resize to desktop
+  useEffect(() => {
+    const onResize = () => { if (window.innerWidth >= 768) setMobileOpen(false); };
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
+  // Lock body scroll when drawer open
+  useEffect(() => {
+    document.body.style.overflow = mobileOpen ? "hidden" : "";
+    return () => { document.body.style.overflow = ""; };
+  }, [mobileOpen]);
+
   return (
     <section className="relative min-h-[700px] md:min-h-screen overflow-hidden bg-[#050505]" dir="rtl" aria-label="القسم الرئيسي">
 
@@ -66,18 +91,11 @@ const HeroSection = () => {
         </a>
 
         <ul className="hidden md:flex items-center gap-8" role="menubar">
-          {[
-            { label: "الرئيسية", href: "#", active: true },
-            { label: "الخدمات", href: "#services" },
-            { label: "الحلاقين", href: "#barbers" },
-            { label: "الفروع", href: "#branches" },
-            { label: "حسابي", href: "/client" },
-            { label: "CUT CLUB", href: "/client/loyalty", isClub: true },
-          ].map((link) => (
+          {NAV_LINKS.map((link) => (
             <li key={link.label} role="none">
               <a href={link.href} role="menuitem"
                 className={
-                  (link as { isClub?: boolean }).isClub
+                  link.isClub
                     ? "text-sm font-black tracking-wider text-[#D4AF37] border border-[#D4AF37]/30 rounded-lg px-3 py-1 hover:bg-[#D4AF37]/10 hover:border-[#D4AF37]/60 hover:shadow-[0_0_12px_rgba(212,175,55,0.15)] transition-all duration-300"
                     : `text-sm font-semibold transition-all duration-300 ${link.active
                       ? "text-[#E5C07B] border-b-2 border-[#D4AF37] pb-0.5"
@@ -95,8 +113,113 @@ const HeroSection = () => {
             احجز الآن
           </button>
           <ClientProfileWidget />
+          {/* Hamburger — mobile only */}
+          <button
+            onClick={() => setMobileOpen((v) => !v)}
+            aria-label={mobileOpen ? "إغلاق القائمة" : "فتح القائمة"}
+            aria-expanded={mobileOpen}
+            className="md:hidden flex items-center justify-center w-9 h-9 rounded-lg border border-white/10 bg-white/[0.05] text-white/70 hover:text-white hover:border-white/25 transition-all"
+          >
+            {mobileOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
+          </button>
         </div>
       </motion.nav>
+
+      {/* ─── Mobile drawer ─── */}
+      <AnimatePresence>
+        {mobileOpen && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              key="backdrop"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm md:hidden"
+              onClick={() => setMobileOpen(false)}
+            />
+            {/* Drawer */}
+            <motion.div
+              key="drawer"
+              initial={{ x: "100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "100%" }}
+              transition={{ type: "spring", stiffness: 320, damping: 32 }}
+              className="fixed top-0 right-0 bottom-0 z-50 w-72 flex flex-col bg-[#0a0a0a] border-l border-white/[0.07] shadow-2xl md:hidden"
+              dir="rtl"
+            >
+              {/* Drawer header */}
+              <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.07]">
+                <a href="#" className="flex items-center gap-1 select-none" aria-label="CUT Salon">
+                  <span className="text-[#D4AF37] text-base font-black tracking-widest">—</span>
+                  <div className="text-center mx-1">
+                    <span className="text-white text-xl font-black tracking-[0.25em] leading-none">CUT</span>
+                    <div className="text-[8px] text-[#D4AF37] tracking-[0.5em] font-semibold -mt-0.5">SALON</div>
+                  </div>
+                  <span className="text-[#D4AF37] text-base font-black tracking-widest">—</span>
+                </a>
+                <button
+                  onClick={() => setMobileOpen(false)}
+                  aria-label="إغلاق القائمة"
+                  className="flex items-center justify-center w-8 h-8 rounded-lg border border-white/10 text-white/50 hover:text-white transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Nav links */}
+              <nav className="flex-1 overflow-y-auto px-4 py-5 space-y-1">
+                {NAV_LINKS.map((link, i) =>
+                  link.isClub ? (
+                    <motion.a
+                      key={link.label}
+                      href={link.href}
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: i * 0.05 }}
+                      onClick={() => setMobileOpen(false)}
+                      className="flex items-center justify-between w-full px-4 py-3 rounded-xl border border-[#D4AF37]/30 bg-[#D4AF37]/[0.06] text-[#D4AF37] text-sm font-black tracking-wider hover:bg-[#D4AF37]/12 hover:border-[#D4AF37]/55 transition-all"
+                    >
+                      {link.label}
+                      <span className="text-[9px] font-black tracking-widest border border-[#D4AF37]/40 rounded px-1.5 py-0.5">CLUB</span>
+                    </motion.a>
+                  ) : (
+                    <motion.a
+                      key={link.label}
+                      href={link.href}
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: i * 0.05 }}
+                      onClick={() => setMobileOpen(false)}
+                      className={`flex items-center w-full px-4 py-3 rounded-xl text-sm font-semibold transition-all ${link.active
+                        ? "text-[#E5C07B] bg-[#D4AF37]/[0.07] border border-[#D4AF37]/20"
+                        : "text-white/60 hover:text-white hover:bg-white/[0.05]"
+                        }`}
+                    >
+                      {link.label}
+                    </motion.a>
+                  )
+                )}
+              </nav>
+
+              {/* Book CTA */}
+              <div className="px-4 pb-8 pt-3 border-t border-white/[0.07]">
+                <button
+                  onClick={() => {
+                    setMobileOpen(false);
+                    setTimeout(() => document.getElementById("barbers")?.scrollIntoView({ behavior: "smooth", block: "start" }), 300);
+                  }}
+                  className="w-full flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-b from-[#e7c766] to-[#b88916] text-[#050505] text-sm font-black shadow-[0_8px_24px_rgba(212,175,55,0.25)] hover:brightness-110 active:scale-[0.97] transition-all"
+                >
+                  <Calendar className="w-4 h-4" />
+                  احجز الآن
+                </button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       {/* ─── Upcoming bookings reminder (auto-loads from localStorage) ─── */}
       <div className="relative z-20 px-5 md:px-12 lg:px-20 pt-2">
