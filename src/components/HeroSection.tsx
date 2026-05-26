@@ -72,12 +72,17 @@ const HeroSection = () => {
             { label: "الحلاقين", href: "#barbers" },
             { label: "الفروع", href: "#branches" },
             { label: "حسابي", href: "/client" },
+            { label: "CUT CLUB", href: "/client/loyalty", isClub: true },
           ].map((link) => (
             <li key={link.label} role="none">
               <a href={link.href} role="menuitem"
-                className={`text-sm font-semibold transition-all duration-300 ${link.active
-                  ? "text-[#E5C07B] border-b-2 border-[#D4AF37] pb-0.5"
-                  : "text-white/55 hover:text-white"}`}
+                className={
+                  (link as { isClub?: boolean }).isClub
+                    ? "text-sm font-black tracking-wider text-[#D4AF37] border border-[#D4AF37]/30 rounded-lg px-3 py-1 hover:bg-[#D4AF37]/10 hover:border-[#D4AF37]/60 hover:shadow-[0_0_12px_rgba(212,175,55,0.15)] transition-all duration-300"
+                    : `text-sm font-semibold transition-all duration-300 ${link.active
+                      ? "text-[#E5C07B] border-b-2 border-[#D4AF37] pb-0.5"
+                      : "text-white/55 hover:text-white"}`
+                }
               >{link.label}</a>
             </li>
           ))}
