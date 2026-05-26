@@ -1,4 +1,4 @@
-import { Calendar } from "lucide-react";
+import { Calendar, MessageCircle } from "lucide-react";
 
 const BookingCTA = () => {
   return (
@@ -15,14 +15,25 @@ const BookingCTA = () => {
           <p className="text-zinc-500 text-sm md:text-base mb-8 max-w-md mx-auto">
             اختَر الحلاق المناسب وحدد الوقت اللي يريّحك. الحجز سهل وسريع.
           </p>
-          <a
-            href="#barbers"
-            className="group relative inline-flex items-center justify-center gap-3 px-10 md:px-14 py-4 md:py-5 rounded-2xl font-heading font-black text-[#050505] text-base md:text-lg overflow-hidden bg-gradient-to-l from-[#C8A96A] to-[#E5C07B] shadow-[0_10px_48px_rgba(212,175,55,0.3)] hover:shadow-[0_16px_64px_rgba(212,175,55,0.45)] hover:scale-[1.03] active:scale-[0.97] transition-all duration-300"
-          >
-            <span className="absolute inset-0 bg-gradient-to-l from-white/25 to-transparent translate-x-full group-hover:translate-x-0 transition-transform duration-500" />
-            <Calendar className="w-5 h-5 relative z-10" />
-            <span className="relative z-10">احجز الآن</span>
-          </a>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+            <a
+              href="#barbers"
+              className="group relative inline-flex items-center justify-center gap-3 w-full sm:w-auto px-10 md:px-14 py-4 md:py-5 rounded-2xl font-heading font-black text-[#050505] text-base md:text-lg overflow-hidden bg-gradient-to-l from-[#C8A96A] to-[#E5C07B] shadow-[0_10px_48px_rgba(212,175,55,0.3)] hover:shadow-[0_16px_64px_rgba(212,175,55,0.45)] hover:scale-[1.03] active:scale-[0.97] transition-all duration-300"
+            >
+              <span className="absolute inset-0 bg-gradient-to-l from-white/25 to-transparent translate-x-full group-hover:translate-x-0 transition-transform duration-500" />
+              <Calendar className="w-5 h-5 relative z-10" />
+              <span className="relative z-10">احجز الآن</span>
+            </a>
+            <a
+              href="https://wa.me/201012126899"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group inline-flex items-center justify-center gap-3 w-full sm:w-auto px-10 md:px-14 py-4 md:py-5 rounded-2xl font-heading font-black text-white text-base md:text-lg border border-[#25D366]/40 bg-[#25D366]/[0.08] hover:bg-[#25D366]/15 hover:border-[#25D366] hover:shadow-[0_10px_48px_rgba(37,211,102,0.2)] hover:scale-[1.03] active:scale-[0.97] transition-all duration-300"
+            >
+              <MessageCircle className="w-5 h-5" />
+              <span>احجز عبر واتساب</span>
+            </a>
+          </div>
         </div>
       </div>
     </section>

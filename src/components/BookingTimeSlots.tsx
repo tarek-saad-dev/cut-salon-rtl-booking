@@ -364,10 +364,12 @@ const BookingTimeSlots = ({
               للحجز بعد الساعة 12 منتصف الليل، يرجى التواصل معنا مباشرة لتأكيد الموعد.
             </p>
             <a
-              href="tel:035861483"
-              className="inline-flex items-center gap-1.5 mt-2 text-[#d4af37] text-xs font-bold hover:text-[#e7c766] transition-colors"
+              href="https://wa.me/201012126899"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 mt-2 text-[#25D366] text-xs font-bold hover:text-[#20c05c] transition-colors"
             >
-              اتصل للحجز بعد 12
+              احجز بعد 12 عبر واتساب
             </a>
           </div>
         </div>
