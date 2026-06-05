@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { Providers } from "@/components/providers";
+import MainNav from "@/components/MainNav";
 
 export const metadata: Metadata = {
   title: "Cut Salon - أفضل صالون حلاقة في الإسكندرية",
@@ -20,7 +21,10 @@ export default function RootLayout({
   return (
     <html lang="ar" dir="rtl" suppressHydrationWarning>
       <body className="antialiased">
-        <Providers>{children}</Providers>
+        <Providers>
+          <MainNav />
+          {children}
+        </Providers>
       </body>
     </html>
   );

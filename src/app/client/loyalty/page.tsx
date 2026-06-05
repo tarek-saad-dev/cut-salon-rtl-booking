@@ -3,12 +3,14 @@
 import { useState, useEffect, useCallback, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { ArrowRight, Calendar, Scissors, AlertTriangle, RefreshCw } from "lucide-react";
+import { Calendar, Scissors, AlertTriangle, RefreshCw } from "lucide-react";
+import { getSavedClient } from "@/lib/clientStorage";
 
-import { MembershipCard } from "@/components/loyalty/MembershipCard";
+import { CompactMembershipCard } from "@/components/loyalty/CompactMembershipCard";
+import { WalletCard } from "@/components/loyalty/WalletCard";
 import { ProgressToReward } from "@/components/loyalty/ProgressToReward";
-import { QuickStats } from "@/components/loyalty/QuickStats";
-import { RewardsGrid } from "@/components/loyalty/RewardsGrid";
+import { CutClubStore } from "@/components/loyalty/CutClubStore";
+import { MyInventory } from "@/components/loyalty/MyInventory";
 import { PersonalOffer } from "@/components/loyalty/PersonalOffer";
 import { MembershipLevels } from "@/components/loyalty/MembershipLevels";
 import { ReferralCard } from "@/components/loyalty/ReferralCard";
@@ -72,6 +74,23 @@ function mapApiToComponentData(
     }
     : null;
 
+  // Format memberSince date to readable Arabic format
+  let memberSinceFormatted = "2026";
+  if (api.membership.memberSince) {
+    try {
+      const date = new Date(api.membership.memberSince);
+      if (!isNaN(date.getTime())) {
+        memberSinceFormatted = date.toLocaleDateString("ar-EG", {
+          year: "numeric",
+          month: "long",
+          day: "numeric"
+        });
+      }
+    } catch {
+      memberSinceFormatted = "2026";
+    }
+  }
+
   return {
     clientId,
     clientName: api.client.name,
@@ -79,7 +98,7 @@ function mapApiToComponentData(
     level,
     points: api.membership.pointsBalance,
     lastVisitPoints: api.membership.lastVisitPoints ?? 0,
-    memberSince: api.membership.memberSince ?? "2026",
+    memberSince: memberSinceFormatted,
     nextReward: nextReward ?? {
       name: "—",
       requiredPoints: 0,
@@ -119,22 +138,38 @@ function LoadingSkeleton() {
 
 // ─── Error State ──────────────────────────────────────────────────────────────
 function ErrorState({ message, onRetry }: { message: string; onRetry: () => void }) {
+  const isAuthError = message.includes("تسجيل الدخول") || message.includes("لم يتم العثور");
+
   return (
     <div className="flex flex-col items-center justify-center py-16 px-6 text-center" dir="rtl">
       <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-amber-500/20 bg-amber-500/[0.06] mb-4">
         <AlertTriangle className="h-6 w-6 text-amber-500/70" />
       </div>
-      <h3 className="text-white text-base font-black mb-1">تعذر تحميل بيانات CUT CLUB</h3>
+      <h3 className="text-white text-base font-black mb-1">
+        {isAuthError ? "يرجى تسجيل الدخول أولاً" : "تعذر تحميل بيانات CUT CLUB"}
+      </h3>
       <p className="text-white/40 text-sm leading-relaxed max-w-xs mb-6">
-        {message || "حاول تحديث الصفحة أو الرجوع لاحقًا"}
+        {isAuthError
+          ? "للوصول إلى حسابك في CUT CLUB، يرجى تسجيل الدخول أولاً"
+          : (message || "حاول تحديث الصفحة أو الرجوع لاحقًا")
+        }
       </p>
-      <button
-        onClick={onRetry}
-        className="inline-flex items-center gap-2 rounded-xl border border-[#D4AF37]/30 bg-[#D4AF37]/[0.08] px-5 py-2.5 text-sm font-bold text-[#D4AF37] transition-all hover:bg-[#D4AF37]/15 hover:border-[#D4AF37]/50 active:scale-[0.97]"
-      >
-        <RefreshCw className="h-3.5 w-3.5" />
-        إعادة المحاولة
-      </button>
+      {isAuthError ? (
+        <Link
+          href="/client"
+          className="inline-flex items-center gap-2 rounded-xl border border-[#D4AF37]/30 bg-[#D4AF37]/[0.08] px-5 py-2.5 text-sm font-bold text-[#D4AF37] transition-all hover:bg-[#D4AF37]/15 hover:border-[#D4AF37]/50 active:scale-[0.97]"
+        >
+          تسجيل الدخول
+        </Link>
+      ) : (
+        <button
+          onClick={onRetry}
+          className="inline-flex items-center gap-2 rounded-xl border border-[#D4AF37]/30 bg-[#D4AF37]/[0.08] px-5 py-2.5 text-sm font-bold text-[#D4AF37] transition-all hover:bg-[#D4AF37]/15 hover:border-[#D4AF37]/50 active:scale-[0.97]"
+        >
+          <RefreshCw className="h-3.5 w-3.5" />
+          إعادة المحاولة
+        </button>
+      )}
     </div>
   );
 }
@@ -165,9 +200,6 @@ function PageHeader({ accentColor, border, bg }: { accentColor: string; border: 
 function LoyaltyPageInner() {
   const searchParams = useSearchParams();
 
-  // TODO: Replace with authenticated session / OTP token — hardcoded fallback for development only
-  const clientId = searchParams.get("clientId") ?? "1";
-
   const [data, setData] = useState<(ClientLoyalty & { clientId: string | number }) | null>(null);
   const [apiResponse, setApiResponse] = useState<ClientLoyaltyDashboardResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -176,6 +208,24 @@ function LoyaltyPageInner() {
   const fetchDashboard = useCallback(async () => {
     setLoading(true);
     setError(null);
+
+    const savedClient = getSavedClient();
+    const clientIdFromUrl = searchParams.get("clientId");
+
+    let clientId: string | number;
+
+    if (clientIdFromUrl) {
+      clientId = clientIdFromUrl;
+    } else if (savedClient?.id) {
+      clientId = savedClient.id;
+    } else if (savedClient?.phone) {
+      clientId = savedClient.phone;
+    } else {
+      setError("يرجى تسجيل الدخول أولاً");
+      setLoading(false);
+      return;
+    }
+
     const apiBase = (process.env.NEXT_PUBLIC_BOOKING_API_BASE_URL ?? "").replace(/\/$/, "");
     try {
       const res = await fetch(
@@ -183,27 +233,50 @@ function LoyaltyPageInner() {
         { cache: "no-store" }
       );
       const json: unknown = await res.json().catch(() => null);
+
+      if (!res.ok) {
+        if (res.status === 401 || res.status === 403) {
+          throw new Error("يرجى تسجيل الدخول أولاً");
+        }
+        if (res.status === 404) {
+          throw new Error("لم يتم العثور على حسابك في CUT CLUB. يرجى تسجيل الدخول أولاً");
+        }
+        const msg =
+          json !== null && typeof json === "object"
+            ? ((json as Record<string, unknown>).error as string | undefined) ??
+            ((json as Record<string, unknown>).message as string | undefined) ??
+            "فشل تحميل البيانات"
+            : "فشل تحميل البيانات";
+        throw new Error(msg);
+      }
+
       if (
-        !res.ok ||
         json === null ||
         typeof json !== "object" ||
         (json as Record<string, unknown>).ok === false
       ) {
         const msg =
           json !== null && typeof json === "object"
-            ? ((json as Record<string, unknown>).error as string | undefined) ?? "فشل تحميل البيانات"
-            : "فشل تحميل البيانات";
+            ? ((json as Record<string, unknown>).error as string | undefined) ??
+            ((json as Record<string, unknown>).message as string | undefined) ??
+            "لم يتم العثور على بيانات حسابك. يرجى تسجيل الدخول أولاً"
+            : "لم يتم العثور على بيانات حسابك. يرجى تسجيل الدخول أولاً";
         throw new Error(msg);
       }
+
       const typed = json as ClientLoyaltyDashboardResponse;
       setApiResponse(typed);
       setData(mapApiToComponentData(typed, clientId));
     } catch (e) {
-      setError(e instanceof Error ? e.message : "حدث خطأ غير متوقع");
+      if (e instanceof Error) {
+        setError(e.message);
+      } else {
+        setError("حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى");
+      }
     } finally {
       setLoading(false);
     }
-  }, [clientId]);
+  }, [searchParams]);
 
   useEffect(() => {
     fetchDashboard();
@@ -253,21 +326,19 @@ function LoyaltyPageInner() {
         />
       </div>
 
-      <div className="relative z-10 mx-auto max-w-4xl px-4 pb-16 pt-6">
-
-        {/* ── Back nav ────────────────────────────────────────────────── */}
-        <div className="mb-6">
-          <Link
-            href="/client"
-            className="inline-flex items-center gap-1.5 text-white/30 text-xs font-medium hover:text-white/60 transition-colors"
-          >
-            <ArrowRight className="h-3.5 w-3.5" />
-            حسابي
-          </Link>
-        </div>
+      <div className="relative z-10 mx-auto max-w-4xl px-4 pb-16 pt-24">
 
         {/* ── Page header ─────────────────────────────────────────────── */}
         <PageHeader accentColor={cfg.color} border={cfg.border} bg={cfg.bg} />
+
+        {/* ── Welcome message ─────────────────────────────────────────── */}
+        {!loading && !error && data && (
+          <div className="mb-6 text-center" dir="rtl">
+            <h2 className="text-white text-xl md:text-2xl font-bold">
+              أهلاً عميلنا المميز، <span style={{ color: cfg.color }}>{data.clientName}</span>
+            </h2>
+          </div>
+        )}
 
         {/* ── States ──────────────────────────────────────────────────── */}
         {loading && <LoadingSkeleton />}
@@ -277,17 +348,24 @@ function LoyaltyPageInner() {
         )}
 
         {!loading && !error && data && (
-          <div className="space-y-5">
+          <div className="space-y-6">
 
-            {/* 1 — Membership card */}
-            <MembershipCard data={data} />
+            {/* 1 — Compact Membership Card with Stats */}
+            <CompactMembershipCard data={data} stats={data.stats} />
 
-            {/* 2 — Progress to next reward */}
+            {/* 2 — Wallet Card */}
+            <WalletCard balance={data.points} lastVisitPoints={data.lastVisitPoints} />
+
+            {/* 3 — Progress to next reward */}
             {data.nextReward.requiredPoints > 0 ? (
-              <ProgressToReward nextReward={data.nextReward} onBook={handleBook} />
+              <ProgressToReward
+                nextReward={data.nextReward}
+                onBook={handleBook}
+              />
             ) : (
               <div
-                className="rounded-2xl border border-[rgba(212,175,55,0.18)] bg-[#111111] p-5 text-center"
+                className="rounded-2xl border px-5 py-4 text-center"
+                style={{ borderColor: cfg.border, background: cfg.bg }}
                 dir="rtl"
               >
                 <p className="text-[#D4AF37] text-sm font-bold mb-1">كل المكافآت الأساسية متاحة لك الآن 🎉</p>
@@ -295,19 +373,20 @@ function LoyaltyPageInner() {
               </div>
             )}
 
-            {/* 3 — Quick stats */}
-            <QuickStats stats={data.stats} level={data.level} />
-
-            {/* 4 — Rewards */}
-            <div className="pt-2">
-              <RewardsGrid
+            {/* 4 — CUT CLUB STORE */}
+            <div className="pt-6">
+              <CutClubStore
                 rewards={data.rewards}
-                clientId={clientId}
-                onRedeemed={handleRedeemed}
+                currentBalance={data.points}
+                clientId={data.clientId}
+                onPurchased={handleRedeemed}
               />
             </div>
 
-            {/* 5 — Personal offer */}
+            {/* 5 — My Inventory */}
+            <MyInventory items={[]} />
+
+            {/* 6 — Personal offer */}
             <PersonalOffer
               offer={apiResponse?.personalOffer ?? undefined}
               onBook={handleBook}
@@ -387,13 +466,7 @@ export default function LoyaltyPage() {
     <Suspense
       fallback={
         <div className="min-h-screen bg-[#050505] text-white" dir="rtl">
-          <div className="relative z-10 mx-auto max-w-4xl px-4 pb-16 pt-6">
-            <div className="mb-6">
-              <span className="inline-flex items-center gap-1.5 text-white/30 text-xs font-medium">
-                <ArrowRight className="h-3.5 w-3.5" />
-                حسابي
-              </span>
-            </div>
+          <div className="relative z-10 mx-auto max-w-4xl px-4 pb-16 pt-24">
             <PageHeader
               accentColor={LEVEL_CONFIG["Gold"].color}
               border={LEVEL_CONFIG["Gold"].border}

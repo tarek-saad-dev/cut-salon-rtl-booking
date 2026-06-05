@@ -144,6 +144,16 @@ export interface ActivityPageResponse {
   page: number;
 }
 
+export type MovementType = "EARN" | "REDEEM" | "ADJUST" | "EXPIRE";
+
+export interface ActivityFilterOptions {
+  page?: number;
+  limit?: number;
+  movementType?: MovementType;
+  dateFrom?: string;
+  dateTo?: string;
+}
+
 // ── API Functions ─────────────────────────────────────────────────────────────
 
 export async function fetchClientLoyaltyDashboard(
@@ -158,13 +168,28 @@ export async function fetchClientLoyaltyDashboard(
 
 export async function fetchClientLoyaltyActivity(
   clientId: string | number,
-  page = 1,
-  limit = 10,
+  options: ActivityFilterOptions = {},
 ): Promise<ActivityPageResponse> {
+  const { page = 1, limit = 10, movementType, dateFrom, dateTo } = options;
+
+  const params = new URLSearchParams({
+    clientId: String(clientId),
+    page: String(page),
+    limit: String(limit),
+  });
+
+  if (movementType) {
+    params.append("movementType", movementType);
+  }
+  if (dateFrom) {
+    params.append("dateFrom", dateFrom);
+  }
+  if (dateTo) {
+    params.append("dateTo", dateTo);
+  }
+
   return apiGet<ActivityPageResponse>(
-    buildLoyaltyUrl(
-      `/api/public/client/loyalty/activity?clientId=${encodeURIComponent(clientId)}&page=${page}&limit=${limit}`,
-    ),
+    buildLoyaltyUrl(`/api/public/client/loyalty/activity?${params.toString()}`),
   );
 }
 

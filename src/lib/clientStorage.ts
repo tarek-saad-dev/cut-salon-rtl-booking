@@ -1,6 +1,7 @@
 const KEY = "cut_client";
 
 export interface StoredClient {
+  id?: number;
   name: string;
   phone: string;
 }

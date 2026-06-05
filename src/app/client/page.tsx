@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { saveClient, clearClient } from "@/lib/clientStorage";
-import { User, Phone, Edit3, Check, X, ArrowRight, Loader2, LogOut, Mail, MapPin } from "lucide-react";
+import { User, Phone, Edit3, Check, X, Loader2, LogOut, Mail, MapPin } from "lucide-react";
 
 interface ClientData {
   id: number;
@@ -41,7 +41,11 @@ export default function ClientPage() {
       if (data.ok && data.found) {
         setClient(data.client);
         setEditForm(data.client);
-        saveClient({ name: data.client.name, phone: data.client.mobile });
+        saveClient({
+          id: data.client.id,
+          name: data.client.name,
+          phone: data.client.mobile
+        });
         setPageState("profile");
       } else {
         setLoginError("لم يتم العثور على حساب بهذا الرقم. هل أنت عميل جديد؟");
@@ -89,14 +93,6 @@ export default function ClientPage() {
 
   return (
     <main className="min-h-screen bg-[#050505] flex flex-col items-center justify-center px-4 py-16" dir="rtl">
-      {/* Back to home */}
-      <div className="w-full max-w-md mb-6">
-        <a href="/" className="flex items-center gap-2 text-white/40 hover:text-[#D4AF37] text-sm transition-colors">
-          <ArrowRight className="w-4 h-4" />
-          الرئيسية
-        </a>
-      </div>
-
       {/* Logo */}
       <div className="text-center mb-8">
         <span className="text-[#D4AF37] text-2xl font-black tracking-[0.3em]">CUT</span>
