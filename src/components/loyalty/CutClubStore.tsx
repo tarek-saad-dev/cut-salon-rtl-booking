@@ -80,17 +80,34 @@ export function CutClubStore({
         onCategoryChange={setActiveCategory}
       />
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {filteredItems.map((item) => (
-          <StoreItemCard
-            key={item.id}
-            item={item}
-            currentBalance={currentBalance}
-            onPurchase={() => setSelectedItem(item)}
-            featured={item.isFeatured}
-          />
-        ))}
-      </div>
+      {filteredItems.length === 0 ? (
+        <div
+          className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-12 text-center"
+          dir="rtl"
+        >
+          <div className="flex justify-center mb-4">
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white/[0.05] border border-white/[0.08]">
+              <Store className="h-8 w-8 text-white/20" />
+            </div>
+          </div>
+          <p className="text-white/40 text-sm mb-2">لا توجد عناصر متاحة حالياً</p>
+          <p className="text-[#D4AF37]/60 text-xs font-bold">
+            قريباً سيتم إضافة مكافآت ومزايا حصرية
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {filteredItems.map((item) => (
+            <StoreItemCard
+              key={item.id}
+              item={item}
+              currentBalance={currentBalance}
+              onPurchase={() => setSelectedItem(item)}
+              featured={item.isFeatured}
+            />
+          ))}
+        </div>
+      )}
 
       <AnimatePresence>
         {selectedItem && (
