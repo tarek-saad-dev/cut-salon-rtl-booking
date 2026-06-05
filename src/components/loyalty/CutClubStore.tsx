@@ -5,72 +5,51 @@ import { StoreCategories, type StoreCategory } from "./StoreCategories";
 import { StoreItemCard } from "./StoreItemCard";
 import { PurchaseDrawer, PurchaseSuccessToast } from "./PurchaseDrawer";
 import { AnimatePresence } from "framer-motion";
-import type { LoyaltyReward } from "./loyaltyData";
+import type { StoreItem } from "./storeApi";
+import { purchaseStoreItem } from "./storeApi";
 import { Store } from "lucide-react";
 
 export function CutClubStore({
-  rewards,
+  items,
   currentBalance,
   clientId,
   onPurchased,
 }: {
-  rewards: LoyaltyReward[];
+  items: StoreItem[];
   currentBalance: number;
   clientId: string | number;
-  onPurchased: (rewardId: string, redeemCode?: string, newBalance?: number) => void;
+  onPurchased: (itemId: number, voucherCode?: string, newBalance?: number) => void;
 }) {
   const [activeCategory, setActiveCategory] = useState<StoreCategory>("all");
-  const [selectedReward, setSelectedReward] = useState<LoyaltyReward | null>(null);
+  const [selectedItem, setSelectedItem] = useState<StoreItem | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
   const [purchasedItemName, setPurchasedItemName] = useState("");
 
-  const filteredRewards = rewards.filter((reward) => {
+  const filteredItems = items.filter((item) => {
     if (activeCategory === "all") return true;
-    // Add category filtering logic based on reward properties
+    if (activeCategory === "popular") return item.isFeatured;
+    if (activeCategory === "services") return item.itemType === "FREE_SERVICE";
+    if (activeCategory === "discounts") return item.itemType === "DISCOUNT_AMOUNT" || item.itemType === "DISCOUNT_PERCENT";
+    if (activeCategory === "vip") return item.itemType === "VIP_UPGRADE";
+    if (activeCategory === "exclusive") return item.itemType === "MYSTERY_BOX" || item.itemType === "DOUBLE_POINTS" || item.itemType === "BONUS_POINTS";
     return true;
   });
 
   const handlePurchase = async () => {
-    if (!selectedReward) return;
+    if (!selectedItem) return;
 
     setLoading(true);
     setError(null);
-    const apiBase = (process.env.NEXT_PUBLIC_BOOKING_API_BASE_URL ?? "").replace(/\/$/, "");
 
     try {
-      const res = await fetch(
-        `${apiBase}/api/public/client/loyalty/rewards/${encodeURIComponent(selectedReward.id)}/redeem?clientId=${encodeURIComponent(clientId)}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ confirm: true }),
-        }
-      );
-
-      const data: unknown = await res.json().catch(() => null);
-
-      if (
-        !res.ok ||
-        (data !== null && typeof data === "object" && (data as Record<string, unknown>).ok === false)
-      ) {
-        const msg =
-          data !== null && typeof data === "object"
-            ? ((data as Record<string, unknown>).error as string | undefined) ??
-            ((data as Record<string, unknown>).message as string | undefined) ??
-            "فشل الشراء"
-            : "فشل الشراء";
-        setError(msg);
-        return;
-      }
-
-      const typed = data as { redeemCode?: string; newBalance?: number };
-      setPurchasedItemName(selectedReward.titleAr);
-      setSelectedReward(null);
+      const result = await purchaseStoreItem(clientId, selectedItem.id);
+      setPurchasedItemName(selectedItem.nameAr);
+      setSelectedItem(null);
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 4000);
-      onPurchased(selectedReward.id, typed.redeemCode, typed.newBalance);
+      onPurchased(selectedItem.id, result.voucherCode, result.newBalance);
     } catch (e) {
       setError(e instanceof Error ? e.message : "حدث خطأ غير متوقع");
     } finally {
@@ -102,25 +81,25 @@ export function CutClubStore({
       />
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {filteredRewards.map((reward, index) => (
+        {filteredItems.map((item) => (
           <StoreItemCard
-            key={reward.id}
-            reward={reward}
+            key={item.id}
+            item={item}
             currentBalance={currentBalance}
-            onPurchase={() => setSelectedReward(reward)}
-            featured={index === 0 || index === 1}
+            onPurchase={() => setSelectedItem(item)}
+            featured={item.isFeatured}
           />
         ))}
       </div>
 
       <AnimatePresence>
-        {selectedReward && (
+        {selectedItem && (
           <PurchaseDrawer
-            reward={selectedReward}
+            item={selectedItem}
             currentBalance={currentBalance}
             onConfirm={handlePurchase}
             onCancel={() => {
-              setSelectedReward(null);
+              setSelectedItem(null);
               setError(null);
             }}
             loading={loading}

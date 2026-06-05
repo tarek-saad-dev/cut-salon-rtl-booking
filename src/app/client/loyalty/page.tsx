@@ -28,6 +28,7 @@ import {
 } from "@/components/loyalty/loyaltyData";
 
 import type { ClientLoyaltyDashboardResponse } from "@/components/loyalty/clientLoyaltyApi";
+import { fetchStore, fetchClientInventory, type StoreItem, type InventoryItem as ApiInventoryItem } from "@/components/loyalty/storeApi";
 
 // ─── TODO: Replace hardcoded clientId fallback with authenticated session / OTP token ───
 
@@ -202,6 +203,8 @@ function LoyaltyPageInner() {
 
   const [data, setData] = useState<(ClientLoyalty & { clientId: string | number }) | null>(null);
   const [apiResponse, setApiResponse] = useState<ClientLoyaltyDashboardResponse | null>(null);
+  const [storeItems, setStoreItems] = useState<StoreItem[]>([]);
+  const [inventoryItems, setInventoryItems] = useState<ApiInventoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -267,6 +270,20 @@ function LoyaltyPageInner() {
       const typed = json as ClientLoyaltyDashboardResponse;
       setApiResponse(typed);
       setData(mapApiToComponentData(typed, clientId));
+
+      // Fetch store items and inventory in parallel with dashboard
+      try {
+        const [storeData, inventoryData] = await Promise.all([
+          fetchStore(clientId),
+          fetchClientInventory(clientId),
+        ]);
+        setStoreItems(storeData.items ?? []);
+        setInventoryItems(inventoryData.items ?? []);
+      } catch (storeErr) {
+        console.warn("[loyalty page] Store/Inventory fetch failed:", storeErr);
+        setStoreItems([]);
+        setInventoryItems([]);
+      }
     } catch (e) {
       if (e instanceof Error) {
         setError(e.message);
@@ -286,12 +303,29 @@ function LoyaltyPageInner() {
     window.location.href = "/#barbers";
   };
 
-  const handleRedeemed = (_rewardId: string, _redeemCode?: string, newBalance?: number) => {
+  function mapInventoryItems(apiItems: ApiInventoryItem[]) {
+    return apiItems.map((item) => ({
+      id: String(item.id),
+      name: item.nameAr,
+      nameEn: item.nameEn,
+      purchasedAt: item.purchasedAt,
+      status: (
+        item.status === "ACTIVE"
+          ? "ready"
+          : item.status === "USED"
+            ? "used"
+            : "expired"
+      ) as "ready" | "used" | "expired",
+      redeemCode: item.voucherCode,
+    }));
+  }
+
+  const handlePurchased = (_itemId: number, _voucherCode?: string, newBalance?: number) => {
     // Optimistically update balance if provided, then refetch for full consistency
     if (newBalance !== undefined && data) {
       setData((prev) => prev ? { ...prev, points: newBalance } : prev);
     }
-    // Refetch to get updated rewards/activity/progress
+    // Refetch to get updated store items and dashboard
     fetchDashboard();
   };
 
@@ -376,15 +410,15 @@ function LoyaltyPageInner() {
             {/* 4 — CUT CLUB STORE */}
             <div className="pt-6">
               <CutClubStore
-                rewards={data.rewards}
+                items={storeItems}
                 currentBalance={data.points}
                 clientId={data.clientId}
-                onPurchased={handleRedeemed}
+                onPurchased={handlePurchased}
               />
             </div>
 
             {/* 5 — My Inventory */}
-            <MyInventory items={[]} />
+            <MyInventory items={mapInventoryItems(inventoryItems)} />
 
             {/* 6 — Personal offer */}
             <PersonalOffer

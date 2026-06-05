@@ -2,25 +2,25 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Coins, ArrowRight, Loader2, CheckCircle2 } from "lucide-react";
-import type { LoyaltyReward } from "./loyaltyData";
+import type { StoreItem } from "./storeApi";
 
 export function PurchaseDrawer({
-  reward,
+  item,
   currentBalance,
   onConfirm,
   onCancel,
   loading,
   error,
 }: {
-  reward: LoyaltyReward;
+  item: StoreItem;
   currentBalance: number;
   onConfirm: () => void;
   onCancel: () => void;
   loading: boolean;
   error: string | null;
 }) {
-  const remainingBalance = currentBalance - reward.points;
-  const canAfford = currentBalance >= reward.points;
+  const remainingBalance = currentBalance - item.priceCoins;
+  const canAfford = currentBalance >= item.priceCoins;
 
   return (
     <AnimatePresence>
@@ -81,8 +81,8 @@ export function PurchaseDrawer({
 
             <div className="mb-6 p-5 rounded-2xl bg-white/[0.03] border border-white/[0.08]">
               <p className="text-white/50 text-xs mb-2">العنصر المحدد</p>
-              <p className="text-white text-base font-bold mb-1">{reward.titleAr}</p>
-              <p className="text-white/40 text-sm">{reward.title}</p>
+              <p className="text-white text-base font-bold mb-1">{item.nameAr}</p>
+              <p className="text-white/40 text-sm">{item.nameEn}</p>
             </div>
 
             <div className="space-y-4 mb-6">
@@ -104,7 +104,7 @@ export function PurchaseDrawer({
                 <span className="text-[#D4AF37] text-sm font-bold">سعر العنصر</span>
                 <div className="flex items-baseline gap-1.5">
                   <span className="text-[#D4AF37] text-lg font-black tabular-nums">
-                    {reward.points.toLocaleString("ar-EG")}
+                    {item.priceCoins.toLocaleString("ar-EG")}
                   </span>
                   <span className="text-[#D4AF37]/60 text-xs font-bold">CC</span>
                 </div>
@@ -144,7 +144,7 @@ export function PurchaseDrawer({
             {!canAfford && (
               <div className="mb-4 rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3">
                 <p className="text-amber-400 text-sm font-medium">
-                  رصيدك غير كافٍ. تحتاج {(reward.points - currentBalance).toLocaleString("ar-EG")} CC إضافية
+                  رصيدك غير كافٍ. تحتاج {(item.priceCoins - currentBalance).toLocaleString("ar-EG")} CC إضافية
                 </p>
               </div>
             )}
