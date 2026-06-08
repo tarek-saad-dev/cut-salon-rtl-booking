@@ -25,9 +25,10 @@ export function StoreItemCard({
   onPurchase: () => void;
   featured?: boolean;
 }) {
-  const canAfford = item.status.canAfford;
-  const isTierLocked = item.status.tierLocked;
-  const isOutOfStock = item.status.stockStatus === "OUT_OF_STOCK";
+  const status = item.status;
+  const canAfford = status?.canAfford ?? currentBalance >= item.priceCoins;
+  const isTierLocked = status?.tierLocked ?? false;
+  const isOutOfStock = status?.stockStatus === "OUT_OF_STOCK";
   const canPurchase = canAfford && !isTierLocked && !isOutOfStock;
   const isLocked = !canAfford && !isTierLocked;
   const shortage = item.priceCoins - currentBalance;

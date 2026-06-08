@@ -47,7 +47,7 @@ export interface StoreItem {
   isActive: boolean;
   categoryId?: number;
   sortOrder?: number;
-  status: StoreItemStatus;
+  status?: StoreItemStatus;
 }
 
 export interface StoreCategory {
