@@ -3,6 +3,28 @@
 import { motion } from "framer-motion";
 import { Package, Gift, Sparkles, CheckCircle2, Clock } from "lucide-react";
 
+function formatRelativeTime(dateString: string): string {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+
+  if (diffMins < 1) return "الآن";
+  if (diffMins < 60) return `منذ ${diffMins} دقيقة`;
+  if (diffHours < 24) return `منذ ${diffHours} ساعة`;
+  if (diffDays === 1) return "أمس";
+  if (diffDays < 7) return `منذ ${diffDays} أيام`;
+
+  // Format as date for older items
+  return date.toLocaleDateString("ar-EG", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+}
+
 interface InventoryItem {
   id: string;
   name: string;
@@ -108,7 +130,7 @@ export function MyInventory({ items }: { items: InventoryItem[] }) {
             </div>
 
             <div className="mb-4">
-              <p className="text-white/30 text-xs mb-1">تم الشراء منذ {item.purchasedAt}</p>
+              <p className="text-white/30 text-xs mb-1">تم الشراء {formatRelativeTime(item.purchasedAt)}</p>
               {item.redeemCode && (
                 <div className="mt-2 p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
                   <p className="text-white/40 text-[10px] mb-1">كود الاستخدام</p>

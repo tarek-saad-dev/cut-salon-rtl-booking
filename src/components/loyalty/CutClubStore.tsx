@@ -38,18 +38,31 @@ export function CutClubStore({
   });
 
   const handlePurchase = async () => {
-    if (!selectedItem) return;
+    if (!selectedItem) {
+      console.error("[handlePurchase] selectedItem is null");
+      return;
+    }
+
+    console.log("[handlePurchase] selectedItem:", selectedItem);
+    console.log("[handlePurchase] selectedItem.itemId:", selectedItem.itemId, "type:", typeof selectedItem.itemId);
+
+    const itemId = Number(selectedItem.itemId);
+    if (!Number.isFinite(itemId) || itemId <= 0) {
+      setError("معرف العنصر غير صالح");
+      console.error("[handlePurchase] Invalid itemId:", selectedItem.itemId);
+      return;
+    }
 
     setLoading(true);
     setError(null);
 
     try {
-      const result = await purchaseStoreItem(clientId, selectedItem.id);
+      const result = await purchaseStoreItem(clientId, itemId);
       setPurchasedItemName(selectedItem.nameAr);
       setSelectedItem(null);
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 4000);
-      onPurchased(selectedItem.id, result.voucherCode, result.newBalance);
+      onPurchased(selectedItem.itemId, result.purchase?.voucherCode, result.newBalance);
     } catch (e) {
       setError(e instanceof Error ? e.message : "حدث خطأ غير متوقع");
     } finally {
@@ -99,7 +112,7 @@ export function CutClubStore({
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {filteredItems.map((item) => (
             <StoreItemCard
-              key={item.id}
+              key={item.itemId}
               item={item}
               currentBalance={currentBalance}
               onPurchase={() => setSelectedItem(item)}

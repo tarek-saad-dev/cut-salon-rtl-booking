@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { saveClient, clearClient } from "@/lib/clientStorage";
 import { User, Phone, Edit3, Check, X, Loader2, LogOut, Mail, MapPin } from "lucide-react";
 
@@ -16,6 +18,10 @@ interface ClientData {
 type PageState = "login" | "loading" | "profile" | "edit";
 
 export default function ClientPage() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const redirectUrl = searchParams.get("redirect");
+
   const [pageState, setPageState] = useState<PageState>("login");
   const [phone, setPhone] = useState("");
   const [loginError, setLoginError] = useState<string | null>(null);
@@ -46,7 +52,12 @@ export default function ClientPage() {
           name: data.client.name,
           phone: data.client.mobile
         });
-        setPageState("profile");
+        // Redirect if redirect URL is provided, otherwise show profile
+        if (redirectUrl) {
+          router.push(redirectUrl);
+        } else {
+          setPageState("profile");
+        }
       } else {
         setLoginError("لم يتم العثور على حساب بهذا الرقم. هل أنت عميل جديد؟");
       }

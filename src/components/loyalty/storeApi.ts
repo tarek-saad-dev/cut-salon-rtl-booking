@@ -22,7 +22,7 @@ export interface StoreItemStatus {
 }
 
 export interface StoreItem {
-  id: number;
+  itemId: number;
   code: string;
   nameAr: string;
   nameEn: string;
@@ -73,9 +73,15 @@ export interface StoreResponse {
 export interface PurchaseResponse {
   ok: true;
   message?: string;
-  inventoryId?: number;
-  voucherCode?: string;
-  expiryDate?: string;
+  purchase?: {
+    inventoryId: number;
+    itemId: number;
+    nameAr: string;
+    nameEn: string;
+    priceCoins: number;
+    voucherCode: string;
+    expiresAt: string | null;
+  };
   newBalance?: number;
 }
 
@@ -127,6 +133,9 @@ export async function fetchStore(
     { cache: "no-store" },
   );
   const data: unknown = await res.json().catch(() => null);
+
+  console.log("[fetchStore] Response:", { status: res.status, data });
+
   if (
     !res.ok ||
     (data !== null &&
@@ -135,6 +144,17 @@ export async function fetchStore(
   ) {
     throw new Error(getErrorMessage(data, "فشل تحميل المتجر"));
   }
+
+  // Validate items have ids
+  if (data && typeof data === "object" && "items" in data) {
+    const items = (data as StoreResponse).items;
+    console.log("[fetchStore] Items count:", items?.length);
+    if (items && items.length > 0) {
+      console.log("[fetchStore] First item:", items[0]);
+      console.log("[fetchStore] First itemId:", items[0].itemId, "type:", typeof items[0].itemId);
+    }
+  }
+
   return data as StoreResponse;
 }
 
@@ -142,6 +162,14 @@ export async function purchaseStoreItem(
   clientId: string | number,
   itemId: number,
 ): Promise<PurchaseResponse> {
+  // Validate itemId before sending
+  if (itemId === undefined || itemId === null || Number.isNaN(itemId)) {
+    throw new Error("itemId غير صالح");
+  }
+
+  const body = JSON.stringify({ itemId: Number(itemId) });
+  console.log("[purchaseStoreItem] Sending:", { clientId, itemId, body });
+
   const res = await fetch(
     buildUrl(
       `/api/public/client/store/buy?clientId=${encodeURIComponent(clientId)}`,
@@ -149,10 +177,13 @@ export async function purchaseStoreItem(
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ itemId }),
+      body,
     },
   );
+
   const data: unknown = await res.json().catch(() => null);
+  console.log("[purchaseStoreItem] Response:", { status: res.status, data });
+
   if (
     !res.ok ||
     (data !== null &&

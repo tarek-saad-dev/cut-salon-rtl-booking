@@ -157,7 +157,7 @@ function ErrorState({ message, onRetry }: { message: string; onRetry: () => void
       </p>
       {isAuthError ? (
         <Link
-          href="/client"
+          href="/client?redirect=/client/loyalty"
           className="inline-flex items-center gap-2 rounded-xl border border-[#D4AF37]/30 bg-[#D4AF37]/[0.08] px-5 py-2.5 text-sm font-bold text-[#D4AF37] transition-all hover:bg-[#D4AF37]/15 hover:border-[#D4AF37]/50 active:scale-[0.97]"
         >
           تسجيل الدخول
