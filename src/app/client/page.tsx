@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { useRouter } from "next/navigation";
 import { saveClient, clearClient } from "@/lib/clientStorage";
@@ -17,7 +17,7 @@ interface ClientData {
 
 type PageState = "login" | "loading" | "profile" | "edit";
 
-export default function ClientPage() {
+function ClientPageInner() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const redirectUrl = searchParams.get("redirect");
@@ -254,5 +254,33 @@ export default function ClientPage() {
         )}
       </div>
     </main>
+  );
+}
+
+function LoadingFallback() {
+  return (
+    <main className="min-h-screen bg-[#050505] flex flex-col items-center justify-center px-4 py-16" dir="rtl">
+      <div className="text-center mb-8">
+        <span className="text-[#D4AF37] text-2xl font-black tracking-[0.3em]">CUT</span>
+        <div className="text-[10px] text-[#D4AF37]/60 tracking-[0.5em] font-semibold mt-0.5">SALON</div>
+      </div>
+      <div className="w-full max-w-md bg-[#0e0e0e] border border-white/[0.08] rounded-2xl overflow-hidden shadow-2xl p-8">
+        <div className="flex flex-col items-center">
+          <div className="w-16 h-16 rounded-full bg-[#D4AF37]/10 border border-[#D4AF37]/20 flex items-center justify-center mb-4 animate-pulse">
+            <User className="w-7 h-7 text-[#D4AF37]/50" />
+          </div>
+          <div className="h-6 w-24 bg-white/[0.05] rounded mb-2 animate-pulse" />
+          <div className="h-4 w-32 bg-white/[0.03] rounded animate-pulse" />
+        </div>
+      </div>
+    </main>
+  );
+}
+
+export default function ClientPage() {
+  return (
+    <Suspense fallback={<LoadingFallback />}>
+      <ClientPageInner />
+    </Suspense>
   );
 }
