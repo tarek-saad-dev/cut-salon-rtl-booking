@@ -67,6 +67,15 @@ export default function MainNav() {
             احجز الآن
           </button>
           <ClientProfileWidget />
+          {/* CUT CLUB button visible on mobile */}
+          <a
+            href="/client/loyalty"
+            aria-label="CUT CLUB"
+            className="md:hidden flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-[#D4AF37]/40 bg-[#D4AF37]/10 text-[#D4AF37] text-xs font-black tracking-wider hover:bg-[#D4AF37]/20 hover:border-[#D4AF37]/60 transition-all"
+          >
+            <span>CUT</span>
+            <span className="text-[8px] font-black tracking-widest border border-[#D4AF37]/50 rounded px-1 py-0.5">CLUB</span>
+          </a>
           <button
             onClick={() => setMobileOpen((v) => !v)}
             aria-label={mobileOpen ? "إغلاق القائمة" : "فتح القائمة"}
