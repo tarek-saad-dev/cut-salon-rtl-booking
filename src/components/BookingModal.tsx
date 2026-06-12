@@ -613,14 +613,17 @@ const BookingModal = ({ open, onOpenChange, barber, initialMode }: BookingModalP
       );
     }
 
-    // Booking disabled
-    if (config && !config.salon.bookingEnabled) {
+    // Booking disabled - check API config or environment variable override
+    const envBookingEnabled = process.env.NEXT_PUBLIC_BOOKING_ENABLED !== "false";
+    const isBookingEnabled = config?.salon?.bookingEnabled !== false && envBookingEnabled;
+
+    if (!isBookingEnabled) {
       return (
         <div className="flex flex-col items-center justify-center h-64 gap-4 p-6 text-center" dir="rtl">
           <div className="w-14 h-14 rounded-full bg-amber-50 flex items-center justify-center">
             <AlertCircle className="w-7 h-7 text-amber-400" />
           </div>
-          <p className="text-gray-700 font-semibold text-base">الحجز الإلكتروني غير متاح حالياً</p>
+          <p className="text-gray-700 font-semibold text-base">الحجز معطل اليوم</p>
           <p className="text-gray-400 text-sm">يرجى التواصل مع الصالون مباشرة للحجز</p>
         </div>
       );
