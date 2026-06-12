@@ -4,25 +4,45 @@ import { Providers } from "@/components/providers";
 import MainNav from "@/components/MainNav";
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://cutsaloon.com"),
+
+  manifest: "/manifest.json",
+
   title: "Cut Salon - أفضل صالون حلاقة في الإسكندرية",
-  description: "أفضل صالون حلاقة في الإسكندرية - خدمات تصفيف شعر متميزة مع برنامج Cut Club للولاء",
+  description:
+    "أفضل صالون حلاقة في الإسكندرية - خدمات تصفيف شعر متميزة مع برنامج Cut Club للولاء",
+
   icons: {
     icon: [
-      { url: "/favicon.ico" },
-      { url: "/logo.jpeg", type: "image/jpeg" },
+      { url: "/favicon.ico", sizes: "48x48" },
+      { url: "/favicon-32x32.png", type: "image/png", sizes: "32x32" },
+      { url: "/favicon-96x96.png", type: "image/png", sizes: "96x96" },
+      { url: "/android-icon-192x192.png", type: "image/png", sizes: "192x192" },
     ],
-    shortcut: "/logo.jpeg",
-    apple: "/cutsalon.png",
+    shortcut: "/favicon.ico",
+    apple: "/apple-icon-180x180.png",
   },
-  keywords: ["صالون حلاقة", "الإسكندرية", "Cut Salon", "حلاقة", "تصفيف شعر", "Cut Club"],
+
+  keywords: [
+    "صالون حلاقة",
+    "الإسكندرية",
+    "Cut Salon",
+    "حلاقة",
+    "تصفيف شعر",
+    "Cut Club",
+  ],
+
   authors: [{ name: "Cut Salon" }],
+
   openGraph: {
     title: "Cut Salon - أفضل صالون حلاقة في الإسكندرية",
-    description: "أفضل صالون حلاقة في الإسكندرية - خدمات تصفيف شعر متميزة مع برنامج Cut Club للولاء",
+    description:
+      "أفضل صالون حلاقة في الإسكندرية - خدمات تصفيف شعر متميزة مع برنامج Cut Club للولاء",
     url: "https://cutsaloon.com/",
     siteName: "Cut Salon",
     images: [
       {
+        // TODO: Replace with /og-image.jpg when available (1200x630px recommended)
         url: "/logo.jpeg",
         width: 1200,
         height: 630,
@@ -32,10 +52,12 @@ export const metadata: Metadata = {
     locale: "ar_EG",
     type: "website",
   },
+
   twitter: {
     card: "summary_large_image",
     title: "Cut Salon - أفضل صالون حلاقة في الإسكندرية",
     description: "أفضل صالون حلاقة في الإسكندرية - خدمات تصفيف شعر متميزة",
+    // TODO: Replace with /og-image.jpg when available
     images: ["/logo.jpeg"],
   },
 };
