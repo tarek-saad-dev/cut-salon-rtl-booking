@@ -13,6 +13,7 @@ import BookingInfoPanel from "./BookingInfoPanel";
 import BookingCalendar from "./BookingCalendar";
 import BookingTimeSlots from "./BookingTimeSlots";
 import BookingServiceSelect from "./BookingServiceSelect";
+import { getCoreServiceIdSet } from "@/lib/bookingServiceGroups";
 import {
   getBookingConfig,
   getBookingServices,
@@ -365,19 +366,10 @@ const BookingModal = ({ open, onOpenChange, barber, initialMode }: BookingModalP
   const totalPrice = selectedServices.reduce((sum, s) => sum + s.price, 0);
   const totalDuration = selectedServices.reduce((sum, s) => sum + s.durationMinutes, 0);
 
-  const handleServiceSelect = (id: number) => {
-    // Main service selection: keep add-on IDs that are not the new main
-    const mainNames = ["Hair Cut", "Haircut", "Detailed Cut", "Detail Cut", "DetailedCut", "Haircut & Beard", "Hair & Beard", "Hair cut & Beard", "Hair cut + Beard", "Hair and Beard", "Beard", "Beard Styling & Fade", "Beard Styling", "Zero Beard Shave", "Basic Cut", "Advanced Cut", "Fade Cut"];
-    const mainIds = services.filter(s => {
-      const norm = s.name.trim().toLowerCase().replace(/[\s_-]+/g, " ").replace(/[&+]/g, " and ").replace(/\s+/g, " ").trim();
-      return mainNames.some(mn => {
-        const nmn = mn.toLowerCase().replace(/[\s_-]+/g, " ").replace(/[&+]/g, " and ").replace(/\s+/g, " ").trim();
-        return norm === nmn || norm.includes(nmn) || nmn.includes(norm);
-      });
-    }).map(s => s.id);
-    // Remove any existing main, keep addons
-    const addonIds = selectedServiceIds.filter(sid => !mainIds.includes(sid));
-    setSelectedServiceIds([id, ...addonIds]);
+  const handleCoreServiceSelect = (id: number) => {
+    const coreIds = getCoreServiceIdSet(services);
+    const nonCoreSelected = selectedServiceIds.filter(sid => !coreIds.has(sid));
+    setSelectedServiceIds([id, ...nonCoreSelected]);
     setSelectedDate(undefined);
     setSelectedTime(undefined);
     setSelectedSlot(undefined);
@@ -385,15 +377,11 @@ const BookingModal = ({ open, onOpenChange, barber, initialMode }: BookingModalP
     setAvailableSlots([]);
   };
 
-  const handleToggleAddon = (id: number) => {
+  const handleToggleService = (id: number) => {
     setSelectedServiceIds(prev => {
-      if (prev.includes(id)) {
-        return prev.filter(sid => sid !== id);
-      } else {
-        return [...prev, id];
-      }
+      if (prev.includes(id)) return prev.filter(sid => sid !== id);
+      return [...prev, id];
     });
-    // Reset date/time since duration changed
     setSelectedDate(undefined);
     setSelectedTime(undefined);
     setSelectedSlot(undefined);
@@ -686,42 +674,29 @@ const BookingModal = ({ open, onOpenChange, barber, initialMode }: BookingModalP
 
       case "service":
         return (
-          <div dir="rtl">
+          <div dir="rtl" className="flex flex-col min-h-0 flex-1">
             <BookingServiceSelect
               services={services}
               selectedIds={selectedServiceIds}
-              onSelect={handleServiceSelect}
-              onToggleAddon={handleToggleAddon}
+              onCoreSelect={handleCoreServiceSelect}
+              onToggleService={handleToggleService}
               isLoading={isLoadingServices}
+              totalPrice={totalPrice}
+              totalDuration={totalDuration}
+              selectedCount={selectedServices.length}
+              onContinue={() => setCurrentStep("date")}
             />
-
-            {/* Continue button */}
-            <div className="px-6 pb-6">
-              {selectedServiceIds.length > 0 && (
-                <div className="flex items-center justify-between mb-3 px-1">
-                  <span className="text-cut-black/60 text-xs">
-                    {selectedServices.length} خدمة · {totalDuration} دقيقة
-                  </span>
-                  <span className="text-cut-gold font-bold text-sm">{totalPrice} جنيه</span>
-                </div>
-              )}
-              <button
-                onClick={() => setCurrentStep("date")}
-                disabled={selectedServiceIds.length === 0}
-                className="w-full py-3 rounded-xl bg-cut-gold text-black font-bold hover:bg-cut-gold/80 transition-colors shadow-md shadow-cut-gold/20 disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                متابعة
-              </button>
-              {!initialMode && (
+            {!initialMode && (
+              <div className="px-6 pb-4 flex-shrink-0">
                 <button
                   onClick={handleBack}
-                  className="w-full mt-2 py-2.5 rounded-xl border border-cut-gold/15 text-cut-black/60 font-medium hover:bg-cut-black/[0.04] transition-colors flex items-center justify-center gap-2 text-sm"
+                  className="w-full py-2.5 rounded-xl border border-cut-gold/15 text-cut-black/60 font-medium hover:bg-cut-black/[0.04] transition-colors flex items-center justify-center gap-2 text-sm"
                 >
                   <ArrowLeft className="w-4 h-4" />
                   رجوع لاختيار الطريقة
                 </button>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         );
 
@@ -1205,7 +1180,7 @@ const BookingModal = ({ open, onOpenChange, barber, initialMode }: BookingModalP
                 </div>
               )}
 
-              <div className="flex-1 overflow-y-auto bg-cut-ivory">
+              <div className={`flex-1 bg-cut-ivory ${currentStep === "service" ? "flex flex-col min-h-0 overflow-hidden" : "overflow-y-auto"}`}>
                 {(currentStep === "mode" || currentStep === "service") && (
                   <CustomerUpcomingBookings />
                 )}
