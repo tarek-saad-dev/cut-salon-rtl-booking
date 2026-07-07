@@ -245,15 +245,15 @@ const PrimaryCard = ({
     <button onClick={onSelect} className={`
       w-full rounded-2xl border text-right transition-all duration-200 overflow-hidden group cursor-pointer
       ${isSelected
-        ? "border-[#D4AF37] bg-[#D4AF37]/[0.06] shadow-[0_0_24px_rgba(212,175,55,0.15)] ring-1 ring-[#D4AF37]/20"
-        : "border-gray-150 bg-white hover:border-[#D4AF37]/40 hover:shadow-sm"
+        ? "border-cut-gold bg-cut-gold/[0.06] shadow-[0_0_24px_rgba(164,136,121,0.15)] ring-1 ring-cut-gold/20"
+        : "border-gray-150 bg-white hover:border-cut-gold/40 hover:shadow-sm"
       }
     `}>
-      <div className={`h-1 w-full transition-colors ${isSelected ? "bg-[#D4AF37]" : "bg-gradient-to-l from-[#D4AF37]/15 to-transparent"}`} />
+      <div className={`h-1 w-full transition-colors ${isSelected ? "bg-cut-gold" : "bg-gradient-to-l from-cut-gold/15 to-transparent"}`} />
       <div className="p-4 md:p-5">
         {badge && (
           <div className="mb-2.5">
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-[#D4AF37]/10 text-[#D4AF37] border border-[#D4AF37]/20">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-cut-gold/10 text-cut-gold border border-cut-gold/20">
               <Sparkles className="w-2.5 h-2.5" />
               {badge}
             </span>
@@ -262,9 +262,9 @@ const PrimaryCard = ({
         <div className="flex items-start gap-3.5">
           <div className={`
             w-12 h-12 md:w-14 md:h-14 rounded-xl flex items-center justify-center flex-shrink-0 transition-all
-            ${isSelected ? "bg-[#D4AF37] shadow-[0_4px_16px_rgba(212,175,55,0.3)]" : "bg-gray-50 group-hover:bg-[#D4AF37]/10"}
+            ${isSelected ? "bg-cut-gold shadow-[0_4px_16px_rgba(164,136,121,0.3)]" : "bg-gray-50 group-hover:bg-cut-gold/10"}
           `}>
-            <Icon className={`w-5 h-5 md:w-6 md:h-6 transition-colors ${isSelected ? "text-black" : "text-gray-400 group-hover:text-[#D4AF37]"}`} />
+            <Icon className={`w-5 h-5 md:w-6 md:h-6 transition-colors ${isSelected ? "text-black" : "text-gray-400 group-hover:text-cut-gold"}`} />
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-2">
@@ -272,7 +272,7 @@ const PrimaryCard = ({
                 <h4 className={`font-heading font-bold text-base md:text-[17px] leading-tight mb-0.5 ${isSelected ? "text-gray-900" : "text-gray-800"}`}>{title}</h4>
                 {desc && <p className="text-gray-500 text-xs leading-relaxed">{desc}</p>}
               </div>
-              <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-0.5 transition-all ${isSelected ? "border-[#D4AF37] bg-[#D4AF37]" : "border-gray-200"}`}>
+              <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-0.5 transition-all ${isSelected ? "border-cut-gold bg-cut-gold" : "border-gray-200"}`}>
                 {isSelected && <Check className="w-3.5 h-3.5 text-black" />}
               </div>
             </div>
@@ -280,7 +280,7 @@ const PrimaryCard = ({
               <p className="text-gray-400 text-[11px] leading-relaxed mt-2 bg-gray-50/80 rounded-lg px-3 py-1.5 border border-gray-100">{sales}</p>
             )}
             <div className="flex items-center gap-3 mt-3">
-              <span className="inline-flex items-center gap-1 text-[#D4AF37] font-bold text-sm">
+              <span className="inline-flex items-center gap-1 text-cut-gold font-bold text-sm">
                 <Banknote className="w-3.5 h-3.5" />{service.price} جنيه
               </span>
               <span className="text-gray-300">·</span>
@@ -308,24 +308,24 @@ const SecondaryCard = ({
     <button onClick={onSelect} className={`
       w-full rounded-xl border p-3.5 text-right transition-all duration-150 group cursor-pointer
       ${isSelected
-        ? "border-[#D4AF37] bg-[#D4AF37]/[0.06] shadow-sm shadow-[#D4AF37]/10 ring-1 ring-[#D4AF37]/20"
-        : "border-gray-150 bg-white hover:border-[#D4AF37]/40"
+        ? "border-cut-gold bg-cut-gold/[0.06] shadow-sm shadow-cut-gold/10 ring-1 ring-cut-gold/20"
+        : "border-gray-150 bg-white hover:border-cut-gold/40"
       }
     `}>
       <div className="flex items-center gap-3">
-        <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors ${isSelected ? "bg-[#D4AF37]" : "bg-gray-50 group-hover:bg-[#D4AF37]/10"}`}>
-          <Icon className={`w-4 h-4 transition-colors ${isSelected ? "text-black" : "text-gray-400 group-hover:text-[#D4AF37]"}`} />
+        <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors ${isSelected ? "bg-cut-gold" : "bg-gray-50 group-hover:bg-cut-gold/10"}`}>
+          <Icon className={`w-4 h-4 transition-colors ${isSelected ? "text-black" : "text-gray-400 group-hover:text-cut-gold"}`} />
         </div>
         <div className="flex-1 min-w-0">
           <p className={`font-bold text-sm leading-tight ${isSelected ? "text-gray-900" : "text-gray-800"}`}>{title}</p>
           {desc && <p className="text-gray-400 text-[11px] mt-0.5 leading-snug">{desc}</p>}
           <p className="text-gray-400 text-xs mt-1.5 flex items-center gap-2">
-            <span className="flex items-center gap-0.5 text-[#D4AF37] font-bold"><Banknote className="w-3 h-3" />{service.price} جنيه</span>
+            <span className="flex items-center gap-0.5 text-cut-gold font-bold"><Banknote className="w-3 h-3" />{service.price} جنيه</span>
             <span className="text-gray-300">·</span>
             <span className="flex items-center gap-0.5"><Clock className="w-3 h-3" />{service.durationMinutes} د</span>
           </p>
         </div>
-        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all ${isSelected ? "border-[#D4AF37] bg-[#D4AF37]" : "border-gray-200"}`}>
+        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all ${isSelected ? "border-cut-gold bg-cut-gold" : "border-gray-200"}`}>
           {isSelected && <Check className="w-3 h-3 text-black" />}
         </div>
       </div>
@@ -347,28 +347,28 @@ const UpsellCard = ({
     <button onClick={onToggle} className={`
       w-full rounded-xl border p-3.5 text-right transition-all duration-150 group cursor-pointer
       ${isSelected
-        ? "border-[#D4AF37] bg-[#D4AF37]/[0.04] shadow-sm shadow-[#D4AF37]/10"
-        : "border-gray-100 bg-gray-50/50 hover:border-[#D4AF37]/30 hover:bg-white"
+        ? "border-cut-gold bg-cut-gold/[0.04] shadow-sm shadow-cut-gold/10"
+        : "border-gray-100 bg-gray-50/50 hover:border-cut-gold/30 hover:bg-white"
       }
     `}>
       <div className="flex items-center gap-3">
-        <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-all ${isSelected ? "border-[#D4AF37] bg-[#D4AF37]" : "border-gray-250 group-hover:border-[#D4AF37]/50"}`}>
+        <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-all ${isSelected ? "border-cut-gold bg-cut-gold" : "border-gray-250 group-hover:border-cut-gold/50"}`}>
           {isSelected && <Check className="w-3 h-3 text-black" />}
         </div>
-        <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors ${isSelected ? "bg-[#D4AF37]/15" : "bg-white"}`}>
-          <Icon className={`w-3.5 h-3.5 ${isSelected ? "text-[#D4AF37]" : "text-gray-400"}`} />
+        <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors ${isSelected ? "bg-cut-gold/15" : "bg-white"}`}>
+          <Icon className={`w-3.5 h-3.5 ${isSelected ? "text-cut-gold" : "text-gray-400"}`} />
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             <p className={`font-bold text-sm leading-tight ${isSelected ? "text-gray-900" : "text-gray-700"}`}>{title}</p>
             {badge && (
-              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-[#D4AF37]/10 text-[#D4AF37] border border-[#D4AF37]/15 whitespace-nowrap">{badge}</span>
+              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-cut-gold/10 text-cut-gold border border-cut-gold/15 whitespace-nowrap">{badge}</span>
             )}
           </div>
           {desc && <p className="text-gray-400 text-[11px] mt-0.5 leading-snug">{desc}</p>}
         </div>
         <div className="text-left flex-shrink-0">
-          <p className="text-[#D4AF37] font-bold text-xs">+{service.price} ج</p>
+          <p className="text-cut-gold font-bold text-xs">+{service.price} ج</p>
           <p className="text-gray-400 text-[10px]">{service.durationMinutes} د</p>
         </div>
       </div>
@@ -674,8 +674,8 @@ const BookingServiceSelect = ({
         <div className="mt-7 pt-6 border-t border-gray-100">
           {/* Header */}
           <div className="flex items-center gap-2.5 mb-1">
-            <div className="w-6 h-6 rounded-md bg-[#D4AF37]/10 flex items-center justify-center">
-              <Plus className="w-3 h-3 text-[#D4AF37]" />
+            <div className="w-6 h-6 rounded-md bg-cut-gold/10 flex items-center justify-center">
+              <Plus className="w-3 h-3 text-cut-gold" />
             </div>
             <h4 className="font-heading font-bold text-sm text-gray-800">إضافات ممكن تعجبك</h4>
           </div>
@@ -694,7 +694,7 @@ const BookingServiceSelect = ({
                   className={`
                     flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all whitespace-nowrap cursor-pointer
                     ${isActive
-                      ? "bg-[#D4AF37] text-black shadow-sm shadow-[#D4AF37]/20"
+                      ? "bg-cut-gold text-black shadow-sm shadow-cut-gold/20"
                       : "bg-gray-50 text-gray-500 hover:bg-gray-100"
                     }
                   `}

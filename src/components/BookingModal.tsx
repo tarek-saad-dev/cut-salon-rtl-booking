@@ -589,8 +589,8 @@ const BookingModal = ({ open, onOpenChange, barber, initialMode }: BookingModalP
     if (isLoadingConfig || isLoadingServices) {
       return (
         <div className="flex flex-col items-center justify-center h-64 gap-4" dir="rtl">
-          <Loader2 className="w-8 h-8 animate-spin text-[#D4AF37]" />
-          <p className="text-gray-400 text-sm">جاري تحميل بيانات الحجز...</p>
+          <Loader2 className="w-8 h-8 animate-spin text-cut-gold" />
+          <p className="text-cut-black/50 text-sm">جاري تحميل بيانات الحجز...</p>
         </div>
       );
     }
@@ -602,10 +602,10 @@ const BookingModal = ({ open, onOpenChange, barber, initialMode }: BookingModalP
           <div className="w-14 h-14 rounded-full bg-red-50 flex items-center justify-center">
             <WifiOff className="w-7 h-7 text-red-400" />
           </div>
-          <p className="text-gray-700 font-medium">{apiError}</p>
+          <p className="text-cut-black/85 font-medium">{apiError}</p>
           <button
             onClick={() => window.location.reload()}
-            className="px-4 py-2 rounded-lg border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors"
+            className="px-4 py-2 rounded-lg border border-cut-gold/15 text-sm text-cut-black/70 hover:bg-cut-black/[0.04] transition-colors"
           >
             إعادة المحاولة
           </button>
@@ -623,8 +623,8 @@ const BookingModal = ({ open, onOpenChange, barber, initialMode }: BookingModalP
           <div className="w-14 h-14 rounded-full bg-amber-50 flex items-center justify-center">
             <AlertCircle className="w-7 h-7 text-amber-400" />
           </div>
-          <p className="text-gray-700 font-semibold text-base">الحجز معطل اليوم</p>
-          <p className="text-gray-400 text-sm">يرجى التواصل مع الصالون مباشرة للحجز</p>
+          <p className="text-cut-black/85 font-semibold text-base">الحجز معطل اليوم</p>
+          <p className="text-cut-black/50 text-sm">يرجى التواصل مع الصالون مباشرة للحجز</p>
         </div>
       );
     }
@@ -634,27 +634,27 @@ const BookingModal = ({ open, onOpenChange, barber, initialMode }: BookingModalP
         return (
           <div className="p-5 md:p-6" dir="rtl">
             <div className="mb-5">
-              <h3 className="text-lg font-heading font-bold text-gray-900 mb-1">تحب تحجز إزاي؟</h3>
-              <p className="text-gray-400 text-xs">اختار الطريقة اللي تناسبك</p>
+              <h3 className="text-lg font-heading font-bold text-cut-black mb-1">تحب تحجز إزاي؟</h3>
+              <p className="text-cut-black/50 text-xs">اختار الطريقة اللي تناسبك</p>
             </div>
 
             <div className="space-y-3">
               {/* Nearest barber card */}
               <button
                 onClick={() => handleModeSelect("nearest")}
-                className="w-full rounded-2xl border border-[#D4AF37]/20 bg-gradient-to-l from-[#D4AF37]/[0.06] to-transparent p-5 text-right transition-all duration-200 group cursor-pointer hover:border-[#D4AF37]/50 hover:shadow-[0_0_24px_rgba(212,175,55,0.12)]"
+                className="w-full rounded-2xl border border-cut-gold/20 bg-gradient-to-l from-cut-gold/[0.06] to-transparent p-5 text-right transition-all duration-200 group cursor-pointer hover:border-cut-gold/50 hover:shadow-[0_0_24px_rgba(164,136,121,0.12)]"
               >
                 <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 md:w-14 md:h-14 rounded-xl bg-[#D4AF37]/10 flex items-center justify-center flex-shrink-0 group-hover:bg-[#D4AF37]/20 transition-colors">
-                    <Zap className="w-6 h-6 text-[#D4AF37]" />
+                  <div className="w-12 h-12 md:w-14 md:h-14 rounded-xl bg-cut-gold/10 flex items-center justify-center flex-shrink-0 group-hover:bg-cut-gold/20 transition-colors">
+                    <Zap className="w-6 h-6 text-cut-gold" />
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
-                      <h4 className="font-heading font-bold text-base text-gray-900">أقرب حلاق متاح</h4>
-                      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-[#D4AF37]/10 text-[#D4AF37] border border-[#D4AF37]/15">أسرع</span>
+                      <h4 className="font-heading font-bold text-base text-cut-black">أقرب حلاق متاح</h4>
+                      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-cut-gold/10 text-cut-gold border border-cut-gold/15">أسرع</span>
                     </div>
-                    <p className="text-gray-500 text-xs leading-relaxed">النظام يختارلك أقرب ميعاد حسب المتاح.</p>
-                    <p className="text-gray-400 text-[11px] mt-2 bg-gray-50 rounded-lg px-3 py-1.5 border border-gray-100">مناسب لو مش فارق معاك مين الحلاق وعاوز أقرب وقت.</p>
+                    <p className="text-cut-black/60 text-xs leading-relaxed">النظام يختارلك أقرب ميعاد حسب المتاح.</p>
+                    <p className="text-cut-black/50 text-[11px] mt-2 bg-cut-black/[0.04] rounded-lg px-3 py-1.5 border border-cut-gold/10">مناسب لو مش فارق معاك مين الحلاق وعاوز أقرب وقت.</p>
                   </div>
                 </div>
               </button>
@@ -662,19 +662,19 @@ const BookingModal = ({ open, onOpenChange, barber, initialMode }: BookingModalP
               {/* Specific barber card */}
               <button
                 onClick={() => handleModeSelect("specific")}
-                className="w-full rounded-2xl border border-gray-150 bg-white p-5 text-right transition-all duration-200 group cursor-pointer hover:border-[#D4AF37]/40 hover:shadow-sm"
+                className="w-full rounded-2xl border border-cut-gold/15 bg-cut-ivory p-5 text-right transition-all duration-200 group cursor-pointer hover:border-cut-gold/40 hover:shadow-sm"
               >
                 <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 md:w-14 md:h-14 rounded-xl bg-gray-50 flex items-center justify-center flex-shrink-0 group-hover:bg-[#D4AF37]/10 transition-colors">
-                    <UserCheck className="w-6 h-6 text-gray-400 group-hover:text-[#D4AF37] transition-colors" />
+                  <div className="w-12 h-12 md:w-14 md:h-14 rounded-xl bg-cut-black/[0.04] flex items-center justify-center flex-shrink-0 group-hover:bg-cut-gold/10 transition-colors">
+                    <UserCheck className="w-6 h-6 text-cut-black/50 group-hover:text-cut-gold transition-colors" />
                   </div>
                   <div className="flex-1">
-                    <h4 className="font-heading font-bold text-base text-gray-900 mb-1">اختار الحلاق بنفسك</h4>
-                    <p className="text-gray-500 text-xs leading-relaxed">لو عندك حلاق مفضل، اختاره واحجز معاه.</p>
+                    <h4 className="font-heading font-bold text-base text-cut-black mb-1">اختار الحلاق بنفسك</h4>
+                    <p className="text-cut-black/60 text-xs leading-relaxed">لو عندك حلاق مفضل، اختاره واحجز معاه.</p>
                     {barber.name && (
                       <div className="flex items-center gap-2 mt-2">
-                        <img src={barber.image} alt={barber.name} className="w-6 h-6 rounded-full object-cover object-top border border-[#D4AF37]/20" />
-                        <span className="text-gray-600 text-xs font-medium">{barber.name}</span>
+                        <img src={barber.image} alt={barber.name} className="w-6 h-6 rounded-full object-cover object-top border border-cut-gold/20" />
+                        <span className="text-cut-black/70 text-xs font-medium">{barber.name}</span>
                       </div>
                     )}
                   </div>
@@ -699,23 +699,23 @@ const BookingModal = ({ open, onOpenChange, barber, initialMode }: BookingModalP
             <div className="px-6 pb-6">
               {selectedServiceIds.length > 0 && (
                 <div className="flex items-center justify-between mb-3 px-1">
-                  <span className="text-gray-500 text-xs">
+                  <span className="text-cut-black/60 text-xs">
                     {selectedServices.length} خدمة · {totalDuration} دقيقة
                   </span>
-                  <span className="text-[#D4AF37] font-bold text-sm">{totalPrice} جنيه</span>
+                  <span className="text-cut-gold font-bold text-sm">{totalPrice} جنيه</span>
                 </div>
               )}
               <button
                 onClick={() => setCurrentStep("date")}
                 disabled={selectedServiceIds.length === 0}
-                className="w-full py-3 rounded-xl bg-[#D4AF37] text-black font-bold hover:bg-[#C4A030] transition-colors shadow-md shadow-[#D4AF37]/20 disabled:opacity-40 disabled:cursor-not-allowed"
+                className="w-full py-3 rounded-xl bg-cut-gold text-black font-bold hover:bg-cut-gold/80 transition-colors shadow-md shadow-cut-gold/20 disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 متابعة
               </button>
               {!initialMode && (
                 <button
                   onClick={handleBack}
-                  className="w-full mt-2 py-2.5 rounded-xl border border-gray-200 text-gray-500 font-medium hover:bg-gray-50 transition-colors flex items-center justify-center gap-2 text-sm"
+                  className="w-full mt-2 py-2.5 rounded-xl border border-cut-gold/15 text-cut-black/60 font-medium hover:bg-cut-black/[0.04] transition-colors flex items-center justify-center gap-2 text-sm"
                 >
                   <ArrowLeft className="w-4 h-4" />
                   رجوع لاختيار الطريقة
@@ -738,7 +738,7 @@ const BookingModal = ({ open, onOpenChange, barber, initialMode }: BookingModalP
             <div className="px-6 pb-6">
               <button
                 onClick={handleBack}
-                className="w-full py-3 rounded-xl border border-gray-200 text-gray-600 font-medium hover:bg-gray-50 transition-colors flex items-center justify-center gap-2 text-sm"
+                className="w-full py-3 rounded-xl border border-cut-gold/15 text-cut-black/70 font-medium hover:bg-cut-black/[0.04] transition-colors flex items-center justify-center gap-2 text-sm"
               >
                 <ArrowLeft className="w-4 h-4" />
                 رجوع للخدمات
@@ -775,7 +775,7 @@ const BookingModal = ({ open, onOpenChange, barber, initialMode }: BookingModalP
             <div className="px-6 pb-6">
               <button
                 onClick={handleBack}
-                className="w-full py-3 rounded-xl border border-gray-200 text-gray-600 font-medium hover:bg-gray-50 transition-colors flex items-center justify-center gap-2 text-sm"
+                className="w-full py-3 rounded-xl border border-cut-gold/15 text-cut-black/70 font-medium hover:bg-cut-black/[0.04] transition-colors flex items-center justify-center gap-2 text-sm"
               >
                 <ArrowLeft className="w-4 h-4" />
                 رجوع للتاريخ
@@ -793,16 +793,16 @@ const BookingModal = ({ open, onOpenChange, barber, initialMode }: BookingModalP
           (savedClient != null && lookupStatus === "idle");
         return (
           <div className="p-6" dir="rtl">
-            <h3 className="text-xl font-heading font-bold text-gray-900 mb-4">تأكيد الحجز</h3>
+            <h3 className="text-xl font-heading font-bold text-cut-black mb-4">تأكيد الحجز</h3>
 
             {/* Returning client card */}
             {savedClient && lookupStatus === "idle" && (
-              <div className="mb-4 rounded-xl bg-gray-900 border border-gray-700 overflow-hidden">
+              <div className="mb-4 rounded-xl bg-cut-burgundy-dark border border-cut-bronze/25 overflow-hidden">
                 <div className="px-4 py-3 flex items-center justify-between">
                   <div>
-                    <p className="text-gray-400 text-[11px] mb-0.5">آخر مرة حجزت كـ:</p>
-                    <p className="text-white font-bold text-sm">{savedClient.name}</p>
-                    <p className="text-gray-400 text-xs" dir="ltr">{savedClient.phone}</p>
+                    <p className="text-cut-ivory/65 text-[11px] mb-0.5">آخر مرة حجزت كـ:</p>
+                    <p className="text-cut-ivory font-bold text-sm">{savedClient.name}</p>
+                    <p className="text-cut-ivory/65 text-xs" dir="ltr">{savedClient.phone}</p>
                   </div>
                   <button
                     onClick={() => {
@@ -812,7 +812,7 @@ const BookingModal = ({ open, onOpenChange, barber, initialMode }: BookingModalP
                       setLookupStatus("returning");
                       setSavedClient(null);
                     }}
-                    className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#D4AF37] text-black text-xs font-bold hover:bg-[#C4A030] transition-colors flex-shrink-0"
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-cut-gold text-cut-black text-xs font-bold hover:bg-cut-gold/80 transition-colors flex-shrink-0"
                   >
                     <UserCheck className="w-3.5 h-3.5" />
                     نعم، أنا
@@ -827,7 +827,7 @@ const BookingModal = ({ open, onOpenChange, barber, initialMode }: BookingModalP
               {savedClient && lookupStatus === "idle" && (
                 <button
                   onClick={() => { clearClient(); setSavedClient(null); }}
-                  className="flex items-center gap-1.5 text-gray-400 hover:text-gray-200 text-xs transition-colors w-full text-right"
+                  className="flex items-center gap-1.5 text-cut-black/55 hover:text-cut-black text-xs transition-colors w-full text-right"
                 >
                   <UserX className="w-3.5 h-3.5 flex-shrink-0" />
                   حجز لشخص آخر؟
@@ -836,30 +836,30 @@ const BookingModal = ({ open, onOpenChange, barber, initialMode }: BookingModalP
 
               {/* Welcome message after confirming returning client */}
               {lookupStatus === "returning" && lookedUpName && (
-                <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
-                  <UserCheck className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-                  <span className="text-emerald-300 text-sm font-medium">مرحباً، {lookedUpName} 👋</span>
+                <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-cut-bronze/10 border border-cut-bronze/25">
+                  <UserCheck className="w-4 h-4 text-cut-bronze flex-shrink-0" />
+                  <span className="text-cut-warm-beige text-sm font-medium">مرحباً، {lookedUpName} 👋</span>
                 </div>
               )}
 
               {/* Phone field — hidden while saved-client prompt or returning */}
               {!(savedClient && lookupStatus === "idle") && lookupStatus !== "returning" && (
                 <div>
-                  <label className="block text-xs font-medium text-[#a1a1aa] mb-1">رقم الهاتف</label>
+                  <label className="block text-xs font-medium text-cut-black/70 mb-1">رقم الهاتف</label>
                   <div className="relative">
                     <input
                       type="tel"
                       value={customerPhone}
                       onChange={e => setCustomerPhone(e.target.value)}
                       placeholder="01xxxxxxxxx"
-                      className="w-full px-4 py-2.5 rounded-xl border border-white/10 bg-[#1a1a1a] text-sm text-[#f7f7f2] placeholder-[#a1a1aa] focus:outline-none focus:border-[#D4AF37] focus:ring-1 focus:ring-[#D4AF37]/30 transition-colors pr-10"
+                      className="cut-input pr-10"
                       dir="ltr"
                     />
                     {lookupStatus === "loading" && (
-                      <Loader2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#D4AF37] animate-spin" />
+                      <Loader2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-cut-gold animate-spin" />
                     )}
                     {lookupStatus === "found" && (
-                      <UserCheck className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald-400" />
+                      <UserCheck className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-cut-bronze" />
                     )}
                   </div>
                 </div>
@@ -867,75 +867,75 @@ const BookingModal = ({ open, onOpenChange, barber, initialMode }: BookingModalP
 
               {/* Lookup result */}
               {lookupStatus === "found" && lookedUpName && (
-                <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
-                  <UserCheck className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-                  <span className="text-emerald-300 text-sm font-medium">{lookedUpName}</span>
+                <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-cut-bronze/10 border border-cut-bronze/25">
+                  <UserCheck className="w-4 h-4 text-cut-bronze flex-shrink-0" />
+                  <span className="text-cut-warm-beige text-sm font-medium">{lookedUpName}</span>
                 </div>
               )}
               {lookupStatus === "new" && (
-                <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[#D4AF37]/10 border border-[#D4AF37]/20">
-                  <AlertCircle className="w-4 h-4 text-[#D4AF37] flex-shrink-0" />
-                  <span className="text-[#D4AF37] text-sm">عميل جديد — أول مرة؟ 👋</span>
+                <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-cut-gold/10 border border-cut-gold/20">
+                  <AlertCircle className="w-4 h-4 text-cut-gold flex-shrink-0" />
+                  <span className="text-cut-gold text-sm">عميل جديد — أول مرة؟ 👋</span>
                 </div>
               )}
 
               {/* Name field — only for new clients who need to enter their name */}
               {lookupStatus === "new" && (
                 <div>
-                  <label className="block text-xs font-medium text-[#a1a1aa] mb-1">الاسم</label>
+                  <label className="block text-xs font-medium text-cut-black/70 mb-1">الاسم</label>
                   <input
                     type="text"
                     value={customerName}
                     onChange={e => setCustomerName(e.target.value)}
                     placeholder="اكتب اسمك"
-                    className="w-full px-4 py-2.5 rounded-xl border border-white/10 bg-[#1a1a1a] text-sm text-[#f7f7f2] placeholder-[#a1a1aa] focus:outline-none focus:border-[#D4AF37] focus:ring-1 focus:ring-[#D4AF37]/30 transition-colors"
+                    className="cut-input"
                     dir="rtl"
                   />
                 </div>
               )}
             </div>
 
-            <div className="bg-gray-50 rounded-xl p-5 mb-4 border border-gray-100 space-y-4">
+            <div className="bg-cut-black/[0.04] rounded-xl p-5 mb-4 border border-cut-gold/15 space-y-4">
               {/* Barber */}
               <div className="flex items-center gap-4">
                 {isNearestMode ? (
-                  <div className="w-12 h-12 rounded-full bg-[#D4AF37]/10 flex items-center justify-center border-2 border-[#D4AF37]/30">
-                    <Zap className="w-5 h-5 text-[#D4AF37]" />
+                  <div className="w-12 h-12 rounded-full bg-cut-gold/10 flex items-center justify-center border-2 border-cut-gold/30">
+                    <Zap className="w-5 h-5 text-cut-gold" />
                   </div>
                 ) : (
                   <img
                     src={barber.image}
                     alt={confirmBarberName}
-                    className="w-12 h-12 rounded-full object-cover object-top border-2 border-[#D4AF37]/30"
+                    className="w-12 h-12 rounded-full object-cover object-top border-2 border-cut-gold/30"
                   />
                 )}
                 <div>
-                  <h4 className="font-bold text-gray-900 text-sm">{confirmBarberName}</h4>
-                  <p className="text-gray-400 text-xs">{isNearestMode ? "أقرب حلاق متاح" : (barber.specialty || barber.role || "حلاق محترف")}</p>
+                  <h4 className="font-bold text-cut-black text-sm">{confirmBarberName}</h4>
+                  <p className="text-cut-black/50 text-xs">{isNearestMode ? "أقرب حلاق متاح" : (barber.specialty || barber.role || "حلاق محترف")}</p>
                 </div>
               </div>
 
               {/* Booking mode */}
               <div className="flex justify-between items-center pt-2">
-                <span className="font-medium text-gray-800 text-sm">
+                <span className="font-medium text-cut-black/90 text-sm">
                   {isNearestMode ? "أقرب حلاق متاح" : "اختيار حلاق"}
                 </span>
-                <span className="text-gray-400 text-xs">طريقة الحجز</span>
+                <span className="text-cut-black/50 text-xs">طريقة الحجز</span>
               </div>
 
-              <div className="pt-3 border-t border-gray-200 space-y-2.5">
+              <div className="pt-3 border-t border-cut-gold/15 space-y-2.5">
                 {selectedServices.length > 0 && (
                   <div>
                     <div className="flex justify-between items-center">
-                      <span className="font-medium text-gray-800 text-sm">{selectedServices[0].name}</span>
-                      <span className="text-gray-400 text-xs">الخدمة</span>
+                      <span className="font-medium text-cut-black/90 text-sm">{selectedServices[0].name}</span>
+                      <span className="text-cut-black/50 text-xs">الخدمة</span>
                     </div>
                     {selectedServices.length > 1 && (
                       <div className="mt-1 space-y-1">
                         {selectedServices.slice(1).map(s => (
                           <div key={s.id} className="flex justify-between items-center">
-                            <span className="text-gray-600 text-xs">+ {s.name}</span>
-                            <span className="text-gray-400 text-[10px]">إضافة</span>
+                            <span className="text-cut-black/70 text-xs">+ {s.name}</span>
+                            <span className="text-cut-black/50 text-[10px]">إضافة</span>
                           </div>
                         ))}
                       </div>
@@ -944,33 +944,33 @@ const BookingModal = ({ open, onOpenChange, barber, initialMode }: BookingModalP
                 )}
                 {selectedDate && (
                   <div className="flex justify-between items-center">
-                    <span className="font-medium text-gray-800 text-sm">{formatDateAr(selectedDate)}</span>
-                    <span className="text-gray-400 text-xs">التاريخ</span>
+                    <span className="font-medium text-cut-black/90 text-sm">{formatDateAr(selectedDate)}</span>
+                    <span className="text-cut-black/50 text-xs">التاريخ</span>
                   </div>
                 )}
                 {slotLabel && (
                   <div>
                     <div className="flex justify-between items-center">
-                      <span className="font-medium text-gray-800 text-sm">{slotLabel}</span>
-                      <span className="text-gray-400 text-xs">الوقت</span>
+                      <span className="font-medium text-cut-black/90 text-sm">{slotLabel}</span>
+                      <span className="text-cut-black/50 text-xs">الوقت</span>
                     </div>
                     {selectedSlot?.dayOffset === 1 && (
-                      <p className="text-[11px] text-[#d4af37] mt-1">بعد منتصف الليل — يُسجل بتاريخ اليوم التالي</p>
+                      <p className="text-[11px] text-cut-gold mt-1">بعد منتصف الليل — يُسجل بتاريخ اليوم التالي</p>
                     )}
                   </div>
                 )}
                 {selectedServices.length > 0 && (
                   <div className="flex justify-between items-center">
-                    <span className="font-medium text-[#D4AF37] text-sm">
+                    <span className="font-medium text-cut-gold text-sm">
                       {totalPrice} جنيه
                     </span>
-                    <span className="text-gray-400 text-xs">الإجمالي</span>
+                    <span className="text-cut-black/50 text-xs">الإجمالي</span>
                   </div>
                 )}
                 {totalDuration > 0 && (
                   <div className="flex justify-between items-center">
-                    <span className="font-medium text-gray-800 text-sm">{slotDuration ?? totalDuration} دقيقة</span>
-                    <span className="text-gray-400 text-xs">المدة</span>
+                    <span className="font-medium text-cut-black/90 text-sm">{slotDuration ?? totalDuration} دقيقة</span>
+                    <span className="text-cut-black/50 text-xs">المدة</span>
                   </div>
                 )}
               </div>
@@ -985,7 +985,7 @@ const BookingModal = ({ open, onOpenChange, barber, initialMode }: BookingModalP
             <div className="flex gap-3">
               <button
                 onClick={handleBack}
-                className="flex-1 py-3 px-4 rounded-xl border border-gray-200 text-gray-600 font-medium hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
+                className="flex-1 py-3 px-4 rounded-xl border border-cut-gold/15 text-cut-black/70 font-medium hover:bg-cut-black/[0.04] transition-colors flex items-center justify-center gap-2"
               >
                 <ArrowLeft className="w-4 h-4" />
                 رجوع
@@ -993,7 +993,7 @@ const BookingModal = ({ open, onOpenChange, barber, initialMode }: BookingModalP
               <button
                 onClick={handleConfirm}
                 disabled={isSubmitting || !canSubmit}
-                className="flex-[2] py-3 px-4 rounded-xl bg-[#D4AF37] text-black font-bold hover:bg-[#C4A030] transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-md shadow-[#D4AF37]/20"
+                className="flex-[2] py-3 px-4 rounded-xl bg-cut-gold text-black font-bold hover:bg-cut-gold/80 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-md shadow-cut-gold/20"
               >
                 {isSubmitting ? (
                   <><Loader2 className="w-5 h-5 animate-spin" />جاري تسجيل الخدمات...</>
@@ -1022,27 +1022,27 @@ const BookingModal = ({ open, onOpenChange, barber, initialMode }: BookingModalP
             <div className="w-20 h-20 rounded-full bg-green-50 border-2 border-green-200 flex items-center justify-center mx-auto mb-5">
               <Check className="w-10 h-10 text-green-500" />
             </div>
-            <h3 className="text-2xl font-heading font-bold text-gray-900 mb-2">تم تأكيد الحجز!</h3>
-            <p className="text-gray-500 mb-1 text-sm leading-relaxed">
-              تم حجز موعدك مع <strong className="text-gray-800">{primaryEmpName}</strong> بنجاح.
+            <h3 className="text-2xl font-heading font-bold text-cut-black mb-2">تم تأكيد الحجز!</h3>
+            <p className="text-cut-black/60 mb-1 text-sm leading-relaxed">
+              تم حجز موعدك مع <strong className="text-cut-black/90">{primaryEmpName}</strong> بنجاح.
             </p>
             {customerName.trim() && (
-              <p className="text-gray-400 text-xs mb-2">باسم: {customerName.trim()}</p>
+              <p className="text-cut-black/50 text-xs mb-2">باسم: {customerName.trim()}</p>
             )}
 
             {/* Booking codes */}
             {confirmedPlan?.bookingCodes && confirmedPlan.bookingCodes.length > 0 && (
               <div className="mb-5">
                 {confirmedPlan.bookingCodes.length === 1 ? (
-                  <p className="text-[#D4AF37] font-bold text-sm">
+                  <p className="text-cut-gold font-bold text-sm">
                     كود الحجز: {confirmedPlan.bookingCodes[0]}
                   </p>
                 ) : (
                   <div className="space-y-1">
-                    <p className="text-gray-500 text-xs">أرقام الحجز:</p>
+                    <p className="text-cut-black/60 text-xs">أرقام الحجز:</p>
                     <div className="flex flex-wrap gap-2 justify-center">
                       {confirmedPlan.bookingCodes.map(code => (
-                        <span key={code} className="inline-block bg-[#D4AF37]/10 text-[#D4AF37] font-bold text-sm px-3 py-1 rounded-lg border border-[#D4AF37]/20">
+                        <span key={code} className="inline-block bg-cut-gold/10 text-cut-gold font-bold text-sm px-3 py-1 rounded-lg border border-cut-gold/20">
                           {code}
                         </span>
                       ))}
@@ -1054,8 +1054,8 @@ const BookingModal = ({ open, onOpenChange, barber, initialMode }: BookingModalP
 
             {/* Plan Timeline */}
             {plan.length > 0 && (
-              <div className="bg-gray-50 rounded-xl p-4 mb-4 text-right border border-gray-100">
-                <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest mb-3">تفاصيل الموعد</p>
+              <div className="bg-cut-black/[0.04] rounded-xl p-4 mb-4 text-right border border-cut-gold/10">
+                <p className="text-cut-black/50 text-[10px] font-bold uppercase tracking-widest mb-3">تفاصيل الموعد</p>
                 <div className="space-y-0">
                   {plan.map((item: BookingPlanItem, idx: number) => {
                     const isRerouted = selectedEmpId != null && item.empId !== selectedEmpId;
@@ -1064,22 +1064,22 @@ const BookingModal = ({ open, onOpenChange, barber, initialMode }: BookingModalP
                       <div key={item.bookingId} className="flex gap-3">
                         {/* Timeline dot + line */}
                         <div className="flex flex-col items-center pt-0.5">
-                          <div className="w-2.5 h-2.5 rounded-full bg-[#D4AF37] border-2 border-[#D4AF37]/30 flex-shrink-0" />
+                          <div className="w-2.5 h-2.5 rounded-full bg-cut-gold border-2 border-cut-gold/30 flex-shrink-0" />
                           {!isLast && <div className="w-px flex-1 bg-gray-200 my-0.5" />}
                         </div>
                         {/* Content */}
                         <div className={`flex-1 ${!isLast ? "pb-4" : "pb-1"}`}>
                           <div className="flex items-baseline justify-between gap-2">
-                            <span className="font-bold text-gray-900 text-sm">{item.serviceName}</span>
-                            <span className="text-[#D4AF37] font-bold text-xs tabular-nums">{formatPlanTime(item.startTime)}</span>
+                            <span className="font-bold text-cut-black text-sm">{item.serviceName}</span>
+                            <span className="text-cut-gold font-bold text-xs tabular-nums">{formatPlanTime(item.startTime)}</span>
                           </div>
-                          <div className="flex items-center gap-2 mt-0.5 text-xs text-gray-500">
+                          <div className="flex items-center gap-2 mt-0.5 text-xs text-cut-black/60">
                             <span>{item.empName}</span>
-                            <span className="text-gray-300">·</span>
+                            <span className="text-cut-black/35">·</span>
                             <span>{item.durationMinutes} دقيقة</span>
                             {item.price > 0 && (
                               <>
-                                <span className="text-gray-300">·</span>
+                                <span className="text-cut-black/35">·</span>
                                 <span>{item.price} جنيه</span>
                               </>
                             )}
@@ -1098,31 +1098,31 @@ const BookingModal = ({ open, onOpenChange, barber, initialMode }: BookingModalP
             )}
 
             {/* Totals */}
-            <div className="bg-gray-50 rounded-xl p-4 mb-5 text-right border border-gray-100 space-y-2">
+            <div className="bg-cut-black/[0.04] rounded-xl p-4 mb-5 text-right border border-cut-gold/10 space-y-2">
               {confirmedPlan?.totalDurationMinutes != null && (
                 <div className="flex justify-between items-center">
-                  <span className="font-medium text-gray-800 text-sm">{confirmedPlan.totalDurationMinutes} دقيقة</span>
-                  <span className="text-gray-400 text-xs">إجمالي المدة</span>
+                  <span className="font-medium text-cut-black/90 text-sm">{confirmedPlan.totalDurationMinutes} دقيقة</span>
+                  <span className="text-cut-black/50 text-xs">إجمالي المدة</span>
                 </div>
               )}
               {confirmedPlan?.totalPrice != null && (
                 <div className="flex justify-between items-center">
-                  <span className="font-medium text-[#D4AF37] text-sm">{confirmedPlan.totalPrice} جنيه</span>
-                  <span className="text-gray-400 text-xs">الإجمالي</span>
+                  <span className="font-medium text-cut-gold text-sm">{confirmedPlan.totalPrice} جنيه</span>
+                  <span className="text-cut-black/50 text-xs">الإجمالي</span>
                 </div>
               )}
               {plan[0]?.date && (
                 <div className="flex justify-between items-center">
-                  <span className="font-medium text-gray-800 text-sm">
+                  <span className="font-medium text-cut-black/90 text-sm">
                     {formatDateAr(new Date(plan[0].date + "T00:00:00"))}
                   </span>
-                  <span className="text-gray-400 text-xs">التاريخ</span>
+                  <span className="text-cut-black/50 text-xs">التاريخ</span>
                 </div>
               )}
             </div>
 
             {confirmedPlan?.message && (
-              <p className="text-gray-500 text-xs mb-4">{confirmedPlan.message}</p>
+              <p className="text-cut-black/60 text-xs mb-4">{confirmedPlan.message}</p>
             )}
 
             <button
@@ -1130,7 +1130,7 @@ const BookingModal = ({ open, onOpenChange, barber, initialMode }: BookingModalP
                 setConfettiTrigger(prev => prev + 1);
                 setTimeout(handleClose, 600);
               }}
-              className="w-full py-3 px-4 rounded-xl bg-[#D4AF37] text-black font-bold hover:bg-[#C4A030] transition-colors shadow-md shadow-[#D4AF37]/20"
+              className="w-full py-3 px-4 rounded-xl bg-cut-gold text-black font-bold hover:bg-cut-gold/80 transition-colors shadow-md shadow-cut-gold/20"
             >
               رائع، شكراً!
             </button>
@@ -1145,7 +1145,7 @@ const BookingModal = ({ open, onOpenChange, barber, initialMode }: BookingModalP
       <ConfettiBurst trigger={confettiTrigger} particleCount={55} />
       <Dialog open={open} onOpenChange={handleClose}>
         <DialogContent
-          className="max-w-4xl w-[95vw] max-h-[92vh] p-0 bg-white border-0 overflow-hidden gap-0 rounded-2xl shadow-2xl"
+          className="max-w-4xl w-[95vw] max-h-[92vh] p-0 bg-cut-ivory border border-cut-gold/20 overflow-hidden gap-0 rounded-2xl shadow-2xl"
           dir="rtl"
         >
           <VisuallyHidden>
@@ -1167,7 +1167,7 @@ const BookingModal = ({ open, onOpenChange, barber, initialMode }: BookingModalP
           <div className="flex flex-col md:flex-row overflow-hidden" style={{ maxHeight: "calc(92vh - 130px)" }}>
 
             {/* Info Panel — desktop only */}
-            <div className="hidden md:block w-72 flex-shrink-0 border-r border-gray-100 overflow-y-auto">
+            <div className="hidden md:block w-72 flex-shrink-0 border-r border-cut-gold/15 overflow-y-auto">
               <BookingInfoPanel
                 barber={barber}
                 selectedDate={selectedDate}
@@ -1183,20 +1183,20 @@ const BookingModal = ({ open, onOpenChange, barber, initialMode }: BookingModalP
             <div className="flex-1 flex flex-col overflow-hidden">
               {/* Mobile mini-bar */}
               {currentStep !== "service" && currentStep !== "success" && (selectedServiceIds.length > 0 || selectedDate || selectedTime) && (
-                <div className="md:hidden bg-gray-50 px-4 py-2.5 border-b border-gray-100 flex-shrink-0">
+                <div className="md:hidden bg-cut-black/[0.04] px-4 py-2.5 border-b border-cut-gold/10 flex-shrink-0">
                   <div className="flex items-center gap-2 text-xs" dir="rtl">
-                    {selectedService && <span className="text-gray-600 font-medium">{selectedService.name}</span>}
-                    {selectedService && selectedDate && <span className="text-gray-300">|</span>}
+                    {selectedService && <span className="text-cut-black/70 font-medium">{selectedService.name}</span>}
+                    {selectedService && selectedDate && <span className="text-cut-black/35">|</span>}
                     {selectedDate && (
-                      <span className="text-gray-600">
+                      <span className="text-cut-black/70">
                         {selectedDate.toLocaleDateString("ar-EG", { month: "short", day: "numeric" })}
                       </span>
                     )}
-                    {selectedDate && selectedTime && <span className="text-gray-300">|</span>}
-                    {selectedTime && <span className="text-gray-600 font-medium">{selectedTime}</span>}
+                    {selectedDate && selectedTime && <span className="text-cut-black/35">|</span>}
+                    {selectedTime && <span className="text-cut-black/70 font-medium">{selectedTime}</span>}
                     <button
                       onClick={handleBack}
-                      className="mr-auto text-[#D4AF37] font-medium flex items-center gap-1"
+                      className="mr-auto text-cut-gold font-medium flex items-center gap-1"
                     >
                       <ArrowLeft className="w-3 h-3" />
                       تعديل
@@ -1205,7 +1205,7 @@ const BookingModal = ({ open, onOpenChange, barber, initialMode }: BookingModalP
                 </div>
               )}
 
-              <div className="flex-1 overflow-y-auto bg-white">
+              <div className="flex-1 overflow-y-auto bg-cut-ivory">
                 {(currentStep === "mode" || currentStep === "service") && (
                   <CustomerUpcomingBookings />
                 )}
@@ -1215,27 +1215,27 @@ const BookingModal = ({ open, onOpenChange, barber, initialMode }: BookingModalP
           </div>
 
           {/* Mobile bottom barber bar */}
-          <div className="md:hidden flex-shrink-0 border-t border-gray-100 bg-[#0a0a0a] px-4 py-3">
+          <div className="md:hidden flex-shrink-0 border-t border-cut-gold/10 bg-cut-black px-4 py-3">
             <div className="flex items-center gap-3" dir="rtl">
               {isNearestMode ? (
-                <div className="w-9 h-9 rounded-full bg-[#D4AF37]/10 flex items-center justify-center border border-[#D4AF37]/30 flex-shrink-0">
-                  <Zap className="w-4 h-4 text-[#D4AF37]" />
+                <div className="w-9 h-9 rounded-full bg-cut-gold/10 flex items-center justify-center border border-cut-gold/30 flex-shrink-0">
+                  <Zap className="w-4 h-4 text-cut-gold" />
                 </div>
               ) : (
                 <img
                   src={barber.image}
                   alt={barber.name}
-                  className="w-9 h-9 rounded-full object-cover object-top border border-[#D4AF37]/30 flex-shrink-0"
+                  className="w-9 h-9 rounded-full object-cover object-top border border-cut-gold/30 flex-shrink-0"
                 />
               )}
               <div className="flex-1 min-w-0">
-                <p className="font-bold text-white text-sm leading-none">{displayBarberName}</p>
-                <p className="text-white/50 text-xs mt-0.5">{isNearestMode ? "أقرب حلاق متاح" : (barber.specialty || barber.role || "حلاق محترف")}</p>
+                <p className="font-bold text-cut-ivory text-sm leading-none">{displayBarberName}</p>
+                <p className="text-cut-ivory/50 text-xs mt-0.5">{isNearestMode ? "أقرب حلاق متاح" : (barber.specialty || barber.role || "حلاق محترف")}</p>
               </div>
               {selectedDate && selectedTime && currentStep === "time" && (
                 <button
                   onClick={() => setCurrentStep("confirm")}
-                  className="px-4 py-2 rounded-lg bg-[#D4AF37] text-black text-sm font-bold flex-shrink-0"
+                  className="px-4 py-2 rounded-lg bg-cut-gold text-black text-sm font-bold flex-shrink-0"
                 >
                   متابعة
                 </button>

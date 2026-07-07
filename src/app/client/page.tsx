@@ -103,31 +103,31 @@ function ClientPageInner() {
   };
 
   return (
-    <main className="min-h-screen bg-[#050505] flex flex-col items-center justify-center px-4 py-16" dir="rtl">
+    <main className="min-h-screen bg-cut-black flex flex-col items-center justify-center px-4 py-16" dir="rtl">
       {/* Logo */}
       <div className="text-center mb-8">
-        <span className="text-[#D4AF37] text-2xl font-black tracking-[0.3em]">CUT</span>
-        <div className="text-[10px] text-[#D4AF37]/60 tracking-[0.5em] font-semibold mt-0.5">SALON</div>
+        <span className="text-cut-gold text-2xl font-black tracking-[0.3em]">CUT</span>
+        <div className="text-[10px] text-cut-gold/60 tracking-[0.5em] font-semibold mt-0.5">SALON</div>
       </div>
 
-      <div className="w-full max-w-md bg-[#0e0e0e] border border-white/[0.08] rounded-2xl overflow-hidden shadow-2xl">
+      <div className="w-full max-w-md bg-cut-surface border border-white/[0.08] rounded-2xl overflow-hidden shadow-2xl">
 
         {/* ── Login ── */}
         {pageState === "login" && (
           <div className="p-8">
             <div className="flex flex-col items-center mb-8">
-              <div className="w-16 h-16 rounded-full bg-[#D4AF37]/10 border border-[#D4AF37]/20 flex items-center justify-center mb-4">
-                <User className="w-7 h-7 text-[#D4AF37]" />
+              <div className="w-16 h-16 rounded-full bg-cut-gold/10 border border-cut-gold/20 flex items-center justify-center mb-4">
+                <User className="w-7 h-7 text-cut-gold" />
               </div>
-              <h1 className="text-white text-xl font-bold">حسابي</h1>
-              <p className="text-white/40 text-sm mt-1">أدخل رقم هاتفك للدخول</p>
+              <h1 className="text-cut-ivory text-xl font-bold">حسابي</h1>
+              <p className="text-cut-ivory/40 text-sm mt-1">أدخل رقم هاتفك للدخول</p>
             </div>
 
             <div className="space-y-4">
               <div>
-                <label className="block text-xs text-white/40 mb-1.5">رقم الهاتف</label>
+                <label className="block text-xs text-cut-ivory/40 mb-1.5">رقم الهاتف</label>
                 <div className="relative">
-                  <Phone className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
+                  <Phone className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-cut-ivory/30" />
                   <input
                     ref={phoneRef}
                     type="tel"
@@ -135,7 +135,7 @@ function ClientPageInner() {
                     onChange={e => { setPhone(e.target.value); setLoginError(null); }}
                     onKeyDown={e => e.key === "Enter" && handleLogin()}
                     placeholder="01xxxxxxxxx"
-                    className="w-full pl-4 pr-10 py-3 rounded-xl bg-[#1a1a1a] border border-white/10 text-white text-sm placeholder-white/20 focus:outline-none focus:border-[#D4AF37]/50 focus:ring-1 focus:ring-[#D4AF37]/20 transition-colors"
+                    className="w-full pl-4 pr-10 py-3 rounded-xl bg-cut-surface-elevated border border-white/10 text-cut-ivory text-sm placeholder-white/20 focus:outline-none focus:border-cut-gold/50 focus:ring-1 focus:ring-cut-gold/20 transition-colors"
                     dir="ltr"
                   />
                 </div>
@@ -149,7 +149,7 @@ function ClientPageInner() {
               <button
                 onClick={handleLogin}
                 disabled={loginLoading}
-                className="w-full py-3 rounded-xl bg-gradient-to-l from-[#C8A96A] to-[#E5C07B] text-black font-bold text-sm flex items-center justify-center gap-2 disabled:opacity-50 transition-all hover:shadow-[0_4px_20px_rgba(212,175,55,0.3)]"
+                className="w-full py-3 rounded-xl bg-gradient-to-l from-cut-gold to-cut-gold text-black font-bold text-sm flex items-center justify-center gap-2 disabled:opacity-50 transition-all hover:shadow-[0_4px_20px_rgba(164,136,121,0.3)]"
               >
                 {loginLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "دخول"}
               </button>
@@ -163,15 +163,15 @@ function ClientPageInner() {
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-full bg-[#D4AF37]/10 border border-[#D4AF37]/20 flex items-center justify-center">
-                  <User className="w-5 h-5 text-[#D4AF37]" />
+                <div className="w-12 h-12 rounded-full bg-cut-gold/10 border border-cut-gold/20 flex items-center justify-center">
+                  <User className="w-5 h-5 text-cut-gold" />
                 </div>
                 <div>
-                  <h2 className="text-white font-bold">{client.name}</h2>
-                  <p className="text-white/40 text-xs">{client.mobile}</p>
+                  <h2 className="text-cut-ivory font-bold">{client.name}</h2>
+                  <p className="text-cut-ivory/40 text-xs">{client.mobile}</p>
                 </div>
               </div>
-              <button onClick={handleLogout} className="text-white/30 hover:text-red-400 transition-colors p-2">
+              <button onClick={handleLogout} className="text-cut-ivory/30 hover:text-red-400 transition-colors p-2">
                 <LogOut className="w-4 h-4" />
               </button>
             </div>
@@ -186,10 +186,10 @@ function ClientPageInner() {
                 { icon: MapPin, label: "العنوان", value: client.address || "—" },
               ].map(f => (
                 <div key={f.label} className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
-                  <f.icon className="w-4 h-4 text-[#D4AF37]/60 flex-shrink-0" />
+                  <f.icon className="w-4 h-4 text-cut-gold/60 flex-shrink-0" />
                   <div className="flex-1 min-w-0">
-                    <p className="text-white/30 text-[10px] mb-0.5">{f.label}</p>
-                    <p className="text-white text-sm truncate">{f.value}</p>
+                    <p className="text-cut-ivory/30 text-[10px] mb-0.5">{f.label}</p>
+                    <p className="text-cut-ivory text-sm truncate">{f.value}</p>
                   </div>
                 </div>
               ))}
@@ -197,7 +197,7 @@ function ClientPageInner() {
 
             <button
               onClick={() => { setEditForm({ ...client }); setPageState("edit"); }}
-              className="w-full py-3 rounded-xl border border-[#D4AF37]/30 text-[#E5C07B] text-sm font-bold flex items-center justify-center gap-2 hover:bg-[#D4AF37]/10 transition-all"
+              className="w-full py-3 rounded-xl border border-cut-gold/30 text-cut-gold text-sm font-bold flex items-center justify-center gap-2 hover:bg-cut-gold/10 transition-all"
             >
               <Edit3 className="w-4 h-4" />
               تعديل البيانات
@@ -209,8 +209,8 @@ function ClientPageInner() {
         {pageState === "edit" && client && (
           <div className="p-8">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-white font-bold">تعديل البيانات</h2>
-              <button onClick={() => { setPageState("profile"); setSaveError(null); }} className="text-white/30 hover:text-white transition-colors">
+              <h2 className="text-cut-ivory font-bold">تعديل البيانات</h2>
+              <button onClick={() => { setPageState("profile"); setSaveError(null); }} className="text-cut-ivory/30 hover:text-cut-ivory transition-colors">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -224,12 +224,12 @@ function ClientPageInner() {
                 { key: "address" as const, label: "العنوان", type: "text", dir: "rtl" },
               ].map(f => (
                 <div key={f.key}>
-                  <label className="block text-xs text-white/40 mb-1.5">{f.label}</label>
+                  <label className="block text-xs text-cut-ivory/40 mb-1.5">{f.label}</label>
                   <input
                     type={f.type}
                     value={(editForm[f.key] as string) ?? ""}
                     onChange={e => setEditForm(prev => ({ ...prev, [f.key]: e.target.value }))}
-                    className="w-full px-4 py-3 rounded-xl bg-[#1a1a1a] border border-white/10 text-white text-sm placeholder-white/20 focus:outline-none focus:border-[#D4AF37]/50 focus:ring-1 focus:ring-[#D4AF37]/20 transition-colors"
+                    className="w-full px-4 py-3 rounded-xl bg-cut-surface-elevated border border-white/10 text-cut-ivory text-sm placeholder-white/20 focus:outline-none focus:border-cut-gold/50 focus:ring-1 focus:ring-cut-gold/20 transition-colors"
                     dir={f.dir}
                   />
                 </div>
@@ -238,7 +238,7 @@ function ClientPageInner() {
 
             {saveError && <p className="text-red-400 text-xs mb-3 text-center">{saveError}</p>}
             {saveSuccess && (
-              <div className="flex items-center justify-center gap-2 text-emerald-400 text-sm mb-3">
+              <div className="flex items-center justify-center gap-2 text-cut-bronze text-sm mb-3">
                 <Check className="w-4 h-4" /> تم الحفظ بنجاح
               </div>
             )}
@@ -246,7 +246,7 @@ function ClientPageInner() {
             <button
               onClick={handleSave}
               disabled={saving}
-              className="w-full py-3 rounded-xl bg-gradient-to-l from-[#C8A96A] to-[#E5C07B] text-black font-bold text-sm flex items-center justify-center gap-2 disabled:opacity-50 transition-all hover:shadow-[0_4px_20px_rgba(212,175,55,0.3)]"
+              className="w-full py-3 rounded-xl bg-gradient-to-l from-cut-gold to-cut-gold text-black font-bold text-sm flex items-center justify-center gap-2 disabled:opacity-50 transition-all hover:shadow-[0_4px_20px_rgba(164,136,121,0.3)]"
             >
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Check className="w-4 h-4" />حفظ التغييرات</>}
             </button>
@@ -259,15 +259,15 @@ function ClientPageInner() {
 
 function LoadingFallback() {
   return (
-    <main className="min-h-screen bg-[#050505] flex flex-col items-center justify-center px-4 py-16" dir="rtl">
+    <main className="min-h-screen bg-cut-black flex flex-col items-center justify-center px-4 py-16" dir="rtl">
       <div className="text-center mb-8">
-        <span className="text-[#D4AF37] text-2xl font-black tracking-[0.3em]">CUT</span>
-        <div className="text-[10px] text-[#D4AF37]/60 tracking-[0.5em] font-semibold mt-0.5">SALON</div>
+        <span className="text-cut-gold text-2xl font-black tracking-[0.3em]">CUT</span>
+        <div className="text-[10px] text-cut-gold/60 tracking-[0.5em] font-semibold mt-0.5">SALON</div>
       </div>
-      <div className="w-full max-w-md bg-[#0e0e0e] border border-white/[0.08] rounded-2xl overflow-hidden shadow-2xl p-8">
+      <div className="w-full max-w-md bg-cut-surface border border-white/[0.08] rounded-2xl overflow-hidden shadow-2xl p-8">
         <div className="flex flex-col items-center">
-          <div className="w-16 h-16 rounded-full bg-[#D4AF37]/10 border border-[#D4AF37]/20 flex items-center justify-center mb-4 animate-pulse">
-            <User className="w-7 h-7 text-[#D4AF37]/50" />
+          <div className="w-16 h-16 rounded-full bg-cut-gold/10 border border-cut-gold/20 flex items-center justify-center mb-4 animate-pulse">
+            <User className="w-7 h-7 text-cut-gold/50" />
           </div>
           <div className="h-6 w-24 bg-white/[0.05] rounded mb-2 animate-pulse" />
           <div className="h-4 w-32 bg-white/[0.03] rounded animate-pulse" />

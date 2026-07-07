@@ -9,7 +9,7 @@ import FooterSection from "@/components/FooterSection";
 
 export default function Home() {
   return (
-    <main className="min-h-screen bg-[#050505]">
+    <main className="min-h-screen bg-cut-black">
       <HeroSection />
       <NearestAvailability />
       <BarbersSection />

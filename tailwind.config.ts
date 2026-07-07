@@ -21,8 +21,28 @@ export default {
       fontFamily: {
         heading: ["Cairo", "sans-serif"],
         body: ["Tajawal", "sans-serif"],
+        display: ["Oswald", "sans-serif"],
+        editorial: ["Playfair Display", "serif"],
       },
       colors: {
+        cut: {
+          black: "#050505",
+          "soft-black": "#0A0807",
+          espresso: "#0F0C0B",
+          "wine-black": "#170406",
+          "burgundy-dark": "#2F050C",
+          burgundy: "#4A000F",
+          ivory: "#FCF9ED",
+          white: "#FFFFFF",
+          bronze: "#A48879",
+          "warm-beige": "#D2B7A3",
+          "green-muted": "#273C2C",
+          /* Legacy aliases */
+          gold: "#A48879",
+          green: "#2F050C",
+          surface: "#0F0C0B",
+          "surface-elevated": "#170406",
+        },
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
@@ -57,7 +77,7 @@ export default {
           foreground: "hsl(var(--card-foreground))",
         },
         "surface-elevated": "hsl(var(--surface-elevated))",
-        "gold-glow": "hsl(var(--gold-glow))",
+        "gold-glow": "hsl(var(--bronze-glow))",
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
           foreground: "hsl(var(--sidebar-foreground))",
@@ -73,6 +93,14 @@ export default {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+        xl: "1rem",
+        "2xl": "1.25rem",
+        "3xl": "1.375rem",
+      },
+      boxShadow: {
+        "cut-card": "0 12px 40px rgba(0, 0, 0, 0.45)",
+        "cut-glow": "0 0 28px rgba(74, 0, 15, 0.25)",
+        "cut-glow-strong": "0 0 48px rgba(164, 136, 121, 0.18)",
       },
       keyframes: {
         "accordion-down": {
@@ -87,16 +115,17 @@ export default {
           from: { opacity: "0", transform: "translateY(20px)" },
           to: { opacity: "1", transform: "translateY(0)" },
         },
-        "gold-pulse": {
-          "0%, 100%": { boxShadow: "0 0 15px hsl(43 90% 55% / 0.2)" },
-          "50%": { boxShadow: "0 0 30px hsl(43 90% 55% / 0.4)" },
+        "bronze-pulse": {
+          "0%, 100%": { boxShadow: "0 0 15px rgba(164, 136, 121, 0.15)" },
+          "50%": { boxShadow: "0 0 30px rgba(164, 136, 121, 0.28)" },
         },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
         "fade-up": "fade-up 0.6s ease-out forwards",
-        "gold-pulse": "gold-pulse 2s ease-in-out infinite",
+        "bronze-pulse": "bronze-pulse 2s ease-in-out infinite",
+        "gold-pulse": "bronze-pulse 2s ease-in-out infinite",
       },
     },
   },

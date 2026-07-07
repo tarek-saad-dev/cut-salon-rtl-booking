@@ -73,7 +73,7 @@ function CancelConfirmModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center px-4" dir="rtl">
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
       <div className="relative w-full max-w-sm rounded-2xl bg-[#0f0f0f] border border-white/10 p-6 shadow-2xl">
-        <button onClick={onClose} className="absolute left-4 top-4 text-white/30 hover:text-white/60 transition-colors">
+        <button onClick={onClose} className="absolute left-4 top-4 text-cut-ivory/30 hover:text-cut-ivory/60 transition-colors">
           <X className="w-4 h-4" />
         </button>
 
@@ -82,7 +82,7 @@ function CancelConfirmModal({
             <AlertCircle className="w-5 h-5 text-red-400" />
           </div>
           <div>
-            <h3 className="text-white font-bold text-base">إلغاء الحجز؟</h3>
+            <h3 className="text-cut-ivory font-bold text-base">إلغاء الحجز؟</h3>
             <p className="text-gray-500 text-xs">{formatBookingDate(booking.date)} — {formatBookingTime(booking.time)}</p>
           </div>
         </div>
@@ -99,14 +99,14 @@ function CancelConfirmModal({
           <button
             onClick={onClose}
             disabled={loading}
-            className="flex-1 py-2.5 rounded-xl border border-white/10 text-white/60 text-sm hover:border-white/20 hover:text-white/80 transition-colors disabled:opacity-40"
+            className="flex-1 py-2.5 rounded-xl border border-white/10 text-cut-ivory/60 text-sm hover:border-white/20 hover:text-cut-ivory/80 transition-colors disabled:opacity-40"
           >
             لا، احتفظ بالحجز
           </button>
           <button
             onClick={handleCancel}
             disabled={loading}
-            className="flex-1 py-2.5 rounded-xl bg-red-500 text-white text-sm font-bold hover:bg-red-600 transition-colors disabled:opacity-60 flex items-center justify-center gap-1.5"
+            className="flex-1 py-2.5 rounded-xl bg-red-500 text-cut-ivory text-sm font-bold hover:bg-red-600 transition-colors disabled:opacity-60 flex items-center justify-center gap-1.5"
           >
             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "نعم، إلغاء الحجز"}
           </button>
@@ -133,7 +133,7 @@ function BookingCard({
 
   const statusKey = (booking.status ?? "").toLowerCase();
   const statusLabel: Record<string, { text: string; cls: string }> = {
-    confirmed: { text: "مؤكد", cls: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" },
+    confirmed: { text: "مؤكد", cls: "bg-cut-bronze/10 text-cut-bronze border-cut-bronze/25" },
     pending: { text: "قيد الانتظار", cls: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20" },
     cancelled: { text: "ملغي", cls: "bg-red-500/10 text-red-400 border-red-500/20" },
   };
@@ -142,31 +142,31 @@ function BookingCard({
   return (
     <>
       <div className={`rounded-xl overflow-hidden border ${isPrimary
-        ? "bg-gradient-to-b from-[#D4AF37]/[0.07] to-[#0f0f0f] border-[#D4AF37]/30 shadow-[0_0_24px_rgba(212,175,55,0.08)]"
-        : "bg-[#0f0f0f] border-[#D4AF37]/15"
+        ? "bg-gradient-to-b from-cut-gold/[0.07] to-[#0f0f0f] border-cut-gold/30 shadow-[0_0_24px_rgba(164,136,121,0.08)]"
+        : "bg-[#0f0f0f] border-cut-gold/15"
         }`}>
         {/* Header stripe */}
-        <div className="px-4 py-2 bg-[#D4AF37]/5 border-b border-[#D4AF37]/10 flex items-center justify-between">
-          <span className="text-[#D4AF37] text-xs font-bold">{isPrimary ? "حجزك القادم" : "حجز قادم"}</span>
+        <div className="px-4 py-2 bg-cut-gold/5 border-b border-cut-gold/10 flex items-center justify-between">
+          <span className="text-cut-gold text-xs font-bold">{isPrimary ? "حجزك القادم" : "حجز قادم"}</span>
           <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full border ${badge.cls}`}>{badge.text}</span>
         </div>
 
         <div className="px-4 py-3 space-y-2">
           {/* Date + Time */}
           <div className="flex items-center gap-4">
-            <div className="flex items-center gap-1.5 text-white/80 text-sm">
-              <Calendar className="w-3.5 h-3.5 text-[#D4AF37] flex-shrink-0" />
+            <div className="flex items-center gap-1.5 text-cut-ivory/80 text-sm">
+              <Calendar className="w-3.5 h-3.5 text-cut-gold flex-shrink-0" />
               <span>{formatBookingDate(booking.date)}</span>
             </div>
-            <div className="flex items-center gap-1.5 text-white/80 text-sm">
-              <Clock className="w-3.5 h-3.5 text-[#D4AF37] flex-shrink-0" />
+            <div className="flex items-center gap-1.5 text-cut-ivory/80 text-sm">
+              <Clock className="w-3.5 h-3.5 text-cut-gold flex-shrink-0" />
               <span>{formatBookingTime(booking.time)}</span>
             </div>
           </div>
 
           {/* Barber */}
           {booking.barberName && (
-            <div className="flex items-center gap-1.5 text-white/60 text-xs">
+            <div className="flex items-center gap-1.5 text-cut-ivory/60 text-xs">
               <User className="w-3.5 h-3.5 flex-shrink-0" />
               <span>مع {booking.barberName}</span>
             </div>
@@ -176,7 +176,7 @@ function BookingCard({
           {(() => {
             const names = getServiceNames(booking.services);
             return names.length > 0 ? (
-              <div className="flex items-start gap-1.5 text-white/60 text-xs">
+              <div className="flex items-start gap-1.5 text-cut-ivory/60 text-xs">
                 <Scissors className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
                 <span>{names.join(" + ")}</span>
               </div>
@@ -186,12 +186,12 @@ function BookingCard({
           {/* Price + Duration */}
           <div className="flex items-center gap-3">
             {booking.totalPrice != null && booking.totalPrice > 0 && (
-              <span className="text-[#D4AF37] text-xs font-bold">
+              <span className="text-cut-gold text-xs font-bold">
                 الإجمالي: {booking.totalPrice} جنيه
               </span>
             )}
             {booking.totalDuration != null && booking.totalDuration > 0 && (
-              <span className="text-white/40 text-xs">
+              <span className="text-cut-ivory/40 text-xs">
                 {booking.totalDuration} دقيقة
               </span>
             )}
@@ -208,7 +208,7 @@ function BookingCard({
               إلغاء الحجز
             </button>
           ) : (
-            <p className="text-center text-white/20 text-[11px]">لا يمكن إلغاء هذا الحجز الآن</p>
+            <p className="text-center text-cut-ivory/20 text-[11px]">لا يمكن إلغاء هذا الحجز الآن</p>
           )}
         </div>
       </div>
@@ -324,14 +324,14 @@ export default function CustomerUpcomingBookings({ phone: phoneProp, onCancelled
         className="flex items-center justify-between w-full mb-3 group"
       >
         <div className="flex items-center gap-2">
-          <span className="text-white/70 text-xs font-bold">{title}</span>
-          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-[#D4AF37]/15 text-[#D4AF37] border border-[#D4AF37]/20">
+          <span className="text-cut-ivory/70 text-xs font-bold">{title}</span>
+          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-cut-gold/15 text-cut-gold border border-cut-gold/20">
             {bookings.length}
           </span>
         </div>
         {expanded
-          ? <ChevronUp className="w-3.5 h-3.5 text-white/30 group-hover:text-white/50 transition-colors" />
-          : <ChevronDown className="w-3.5 h-3.5 text-white/30 group-hover:text-white/50 transition-colors" />
+          ? <ChevronUp className="w-3.5 h-3.5 text-cut-ivory/30 group-hover:text-cut-ivory/50 transition-colors" />
+          : <ChevronDown className="w-3.5 h-3.5 text-cut-ivory/30 group-hover:text-cut-ivory/50 transition-colors" />
         }
       </button>
 

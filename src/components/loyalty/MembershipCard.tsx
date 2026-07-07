@@ -14,7 +14,7 @@ export function MembershipCard({ data }: { data: ClientLoyalty }) {
         className="absolute inset-0"
         style={{
           background:
-            "linear-gradient(135deg, #111111 0%, #0a0a0a 40%, #181510 70%, #0a0a0a 100%)",
+            "linear-gradient(135deg, #111111 0%, #050505 40%, #181510 70%, #050505 100%)",
         }}
       />
 
@@ -67,7 +67,7 @@ export function MembershipCard({ data }: { data: ClientLoyalty }) {
               >
                 CUT
               </span>
-              <span className="block text-[10px] tracking-[0.25em] text-white/40 uppercase -mt-0.5">
+              <span className="block text-[10px] tracking-[0.25em] text-cut-ivory/40 uppercase -mt-0.5">
                 SALON
               </span>
             </div>
@@ -88,7 +88,7 @@ export function MembershipCard({ data }: { data: ClientLoyalty }) {
 
         {/* Points — the hero number */}
         <div className="mb-6">
-          <p className="text-white/40 text-xs font-medium mb-1 tracking-wide" dir="rtl">
+          <p className="text-cut-ivory/40 text-xs font-medium mb-1 tracking-wide" dir="rtl">
             رصيدك الحالي
           </p>
           <div className="flex items-end gap-2">
@@ -98,11 +98,11 @@ export function MembershipCard({ data }: { data: ClientLoyalty }) {
             >
               {data.points.toLocaleString("ar-EG")}
             </span>
-            <span className="text-white/50 text-sm font-medium mb-2" dir="rtl">
+            <span className="text-cut-ivory/50 text-sm font-medium mb-2" dir="rtl">
               نقطة
             </span>
             {data.lastVisitPoints > 0 && (
-              <span className="mb-2 text-emerald-400 text-xs font-bold bg-emerald-400/10 border border-emerald-400/20 rounded-full px-2 py-0.5">
+              <span className="mb-2 text-cut-bronze text-xs font-bold bg-cut-warm-beige/10 border border-emerald-400/20 rounded-full px-2 py-0.5">
                 +{data.lastVisitPoints} من آخر زيارة
               </span>
             )}
@@ -112,13 +112,13 @@ export function MembershipCard({ data }: { data: ClientLoyalty }) {
         {/* Bottom row — name + member id */}
         <div className="flex items-end justify-between">
           <div dir="rtl">
-            <p className="text-white text-base font-black tracking-wide">{data.clientName}</p>
-            <p className="text-white/35 text-[11px] mt-0.5">
+            <p className="text-cut-ivory text-base font-black tracking-wide">{data.clientName}</p>
+            <p className="text-cut-ivory/35 text-[11px] mt-0.5">
               عضو منذ {data.memberSince}
             </p>
           </div>
           <div className="text-right">
-            <p className="text-white/25 text-[9px] tracking-widest uppercase mb-0.5">Member ID</p>
+            <p className="text-cut-ivory/25 text-[9px] tracking-widest uppercase mb-0.5">Member ID</p>
             <p
               className="text-sm font-black tracking-widest"
               style={{ color: cfg.color }}

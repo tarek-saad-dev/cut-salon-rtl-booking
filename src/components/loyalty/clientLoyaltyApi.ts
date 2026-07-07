@@ -98,9 +98,18 @@ export interface ApiLoyaltyLevel {
 
 export interface ApiPersonalOffer {
   type: PersonalOfferType;
+  /** Full title override — if omitted, built from serviceLabels / serviceNames */
   title?: string;
   description?: string;
+  /** Display names for title building, e.g. ["Haircut & Beard", "Deep skincare"] */
+  serviceLabels?: string[];
+  /** Booking product names for future CTA pre-selection, e.g. ["Haircut & Beard", "Deep SkinCare"] */
+  serviceNames?: string[];
+  /** Static expiry copy when expiresAt is not provided */
+  expiryText?: string;
   expiresAt?: string | null;
+  eyebrow?: string;
+  ctaLabel?: string;
 }
 
 export interface ApiReferralInfo {

@@ -83,7 +83,7 @@ const CutClubRewardGiftMilestones = ({
     : null;
 
   return (
-    <section className="w-full bg-[#050505] py-12 md:py-20 px-4 relative overflow-hidden">
+    <section className="w-full bg-cut-black py-12 md:py-20 px-4 relative overflow-hidden">
       {/* Background Glow */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[120%] h-[60%] 
                       bg-[#C99A45]/5 blur-[150px] rounded-full pointer-events-none" />
@@ -127,7 +127,7 @@ const CutClubRewardGiftMilestones = ({
                   className={`relative rounded-3xl overflow-hidden h-full
                              transition-all duration-500
                              ${isNext ? "md:-mt-4" : ""}
-                             ${isSelected ? "ring-2 ring-[#C99A45] ring-offset-2 ring-offset-[#050505]" : ""}`}
+                             ${isSelected ? "ring-2 ring-[#C99A45] ring-offset-2 ring-offset-cut-black" : ""}`}
                   style={{
                     background: `linear-gradient(145deg, #101010 0%, #080808 50%, #050505 100%)`,
                   }}
@@ -139,7 +139,7 @@ const CutClubRewardGiftMilestones = ({
                                 ${isUnlocked ? "bg-gradient-to-r from-[#C99A45]/50 via-[#E2B866]/50 to-[#C99A45]/50" : ""}
                                 ${!isNext && !isUnlocked ? "bg-gradient-to-r from-[#333]/50 via-[#444]/30 to-[#333]/50" : ""}`}
                   >
-                    <div className="w-full h-full rounded-3xl bg-[#0a0a0a]" />
+                    <div className="w-full h-full rounded-3xl bg-cut-black" />
                   </div>
 
                   {/* Glow Effect */}
@@ -159,7 +159,7 @@ const CutClubRewardGiftMilestones = ({
                         </span>
                       ) : isNext ? (
                         <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full
-                                         bg-[#C99A45] text-[#050505] text-xs font-bold
+                                         bg-[#C99A45] text-cut-black text-xs font-bold
                                          animate-pulse shadow-[0_0_15px_rgba(201,154,69,0.5)]">
                           <Sparkles className="w-3 h-3" />
                           الأقرب لك
@@ -191,7 +191,7 @@ const CutClubRewardGiftMilestones = ({
                                     transition-all duration-500
                                     ${isUnlocked ? "bg-gradient-to-br from-[#C99A45] to-[#8A6326]" : ""}
                                     ${isNext ? "bg-gradient-to-br from-[#C99A45]/80 to-[#8A6326]/60" : ""}
-                                    ${!isNext && !isUnlocked ? "bg-gradient-to-br from-[#2A2A2A] to-[#1A1A1A]" : ""}`}
+                                    ${!isNext && !isUnlocked ? "bg-gradient-to-br from-[#2A2A2A] to-cut-surface-elevated" : ""}`}
                         style={{
                           boxShadow: isNext
                             ? "0 20px 40px rgba(201, 154, 69, 0.4), inset 0 2px 0 rgba(255,255,255,0.1)"
@@ -218,7 +218,7 @@ const CutClubRewardGiftMilestones = ({
                                         bg-gradient-to-br from-[#E2B866] to-[#C99A45]
                                         flex items-center justify-center
                                         shadow-lg z-10">
-                          <Gift className="w-4 h-4 text-[#050505]" />
+                          <Gift className="w-4 h-4 text-cut-black" />
                         </div>
 
                         {/* Corner Highlights */}
@@ -315,9 +315,9 @@ const CutClubRewardGiftMilestones = ({
                   {/* Icon */}
                   <div
                     className={`w-16 h-16 rounded-xl flex items-center justify-center flex-shrink-0
-                                ${selectedReward.unlockPoints <= currentPoints ? "bg-gradient-to-br from-[#C99A45] to-[#8A6326]" : "bg-gradient-to-br from-[#2A2A2A] to-[#1A1A1A]"}`}
+                                ${selectedReward.unlockPoints <= currentPoints ? "bg-gradient-to-br from-[#C99A45] to-[#8A6326]" : "bg-gradient-to-br from-[#2A2A2A] to-cut-surface-elevated"}`}
                   >
-                    <Gift className="w-8 h-8 text-white" />
+                    <Gift className="w-8 h-8 text-cut-ivory" />
                   </div>
 
                   {/* Info */}

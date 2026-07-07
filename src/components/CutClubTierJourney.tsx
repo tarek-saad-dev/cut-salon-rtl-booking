@@ -187,7 +187,7 @@ const CutClubTierJourney = ({
     }
     return {
       ...tierStyle,
-      bg: "bg-gradient-to-br from-[#2A2A2A] to-[#1A1A1A]",
+      bg: "bg-gradient-to-br from-[#2A2A2A] to-cut-surface-elevated",
       icon: "text-[#666666]",
       opacity: isSelected ? "opacity-80" : "opacity-50",
       scale: isSelected ? "scale-100" : "scale-95",
@@ -217,7 +217,7 @@ const CutClubTierJourney = ({
   };
 
   return (
-    <section className="w-full bg-[#050505] py-12 md:py-16 px-4">
+    <section className="w-full bg-cut-black py-12 md:py-16 px-4">
       <div className="container mx-auto max-w-[1200px]">
         {/* Section Header */}
         <div className="text-center mb-10 md:mb-14">
@@ -358,7 +358,7 @@ const CutClubTierJourney = ({
                         {isCurrent && (
                           <div className="absolute -top-2 -right-2 w-6 h-6 rounded-full 
                                           bg-[#C99A45] flex items-center justify-center
-                                          text-[#050505] text-xs font-bold">
+                                          text-cut-black text-xs font-bold">
                             ✓
                           </div>
                         )}
@@ -402,7 +402,7 @@ const CutClubTierJourney = ({
                   <div className="relative">
                     <div className="w-8 h-8 rounded-full 
                                     bg-gradient-to-br from-[#E2B866] to-[#C99A45]
-                                    border-2 border-[#050505]
+                                    border-2 border-cut-black
                                     flex items-center justify-center
                                     shadow-[0_0_20px_rgba(201,154,69,0.8)]
                                     animate-bounce">
@@ -412,7 +412,7 @@ const CutClubTierJourney = ({
                     {/* "You Are Here" Label */}
                     <div className="absolute -top-10 left-1/2 -translate-x-1/2 
                                     whitespace-nowrap px-3 py-1 rounded-full
-                                    bg-[#C99A45] text-[#050505] text-xs font-bold">
+                                    bg-[#C99A45] text-cut-black text-xs font-bold">
                       أنت هنا
                       <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 
                                       w-2 h-2 bg-[#C99A45] rotate-45" />
@@ -491,7 +491,7 @@ const CutClubTierJourney = ({
                           {isCurrent && (
                             <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full 
                                             bg-[#C99A45] flex items-center justify-center
-                                            text-[#050505] text-[10px] font-bold">
+                                            text-cut-black text-[10px] font-bold">
                               ✓
                             </div>
                           )}
@@ -637,7 +637,7 @@ const CutClubTierJourney = ({
                         <div
                           key={idx}
                           className="flex items-center gap-3 p-4 rounded-xl
-                                     bg-gradient-to-r from-[#1A1A1A] to-[#151515]
+                                     bg-gradient-to-r from-cut-surface-elevated to-[#151515]
                                      border border-[#2A2A2A]
                                      hover:border-[#C99A45]/30 hover:bg-[#1F1F1F]
                                      transition-all duration-300 group"

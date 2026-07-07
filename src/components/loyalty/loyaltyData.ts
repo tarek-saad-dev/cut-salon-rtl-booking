@@ -72,9 +72,9 @@ export const LEVEL_CONFIG: Record<
     maxPoints: 1000,
   },
   Gold: {
-    color: "#d4af37",
-    border: "rgba(212,175,55,0.4)",
-    bg: "rgba(212,175,55,0.08)",
+    color: "#A48879",
+    border: "rgba(164,136,121,0.4)",
+    bg: "rgba(164,136,121,0.08)",
     minPoints: 1000,
     maxPoints: 1500,
   },

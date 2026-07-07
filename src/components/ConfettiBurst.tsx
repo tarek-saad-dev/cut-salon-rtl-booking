@@ -15,10 +15,10 @@ interface Particle {
 }
 
 const GOLD_PALETTE = [
-  "#D4AF37",
-  "#E7C766",
-  "#C8A96A",
-  "#B88916",
+  "#A48879",
+  "#A48879",
+  "#A48879",
+  "cut-gold/80",
   "#F5D060",
   "#9F7A18",
   "#FFD700",

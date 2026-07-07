@@ -74,14 +74,14 @@ export function CutClubStore({
     <div dir="rtl">
       <div className="mb-8">
         <div className="flex items-center gap-3 mb-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#D4AF37]/10 border border-[#D4AF37]/20">
-            <Store className="h-5 w-5 text-[#D4AF37]" />
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-cut-gold/10 border border-cut-gold/20">
+            <Store className="h-5 w-5 text-cut-gold" />
           </div>
           <div>
-            <h2 className="text-2xl font-black text-white flex items-center gap-2">
+            <h2 className="text-2xl font-black text-cut-ivory flex items-center gap-2">
               🏪 CUT CLUB STORE
             </h2>
-            <p className="text-white/50 text-sm mt-0.5">
+            <p className="text-cut-ivory/50 text-sm mt-0.5">
               استخدم CUT Coins الخاصة بك لشراء مزايا وخدمات حصرية
             </p>
           </div>
@@ -100,11 +100,11 @@ export function CutClubStore({
         >
           <div className="flex justify-center mb-4">
             <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white/[0.05] border border-white/[0.08]">
-              <Store className="h-8 w-8 text-white/20" />
+              <Store className="h-8 w-8 text-cut-ivory/20" />
             </div>
           </div>
-          <p className="text-white/40 text-sm mb-2">لا توجد عناصر متاحة حالياً</p>
-          <p className="text-[#D4AF37]/60 text-xs font-bold">
+          <p className="text-cut-ivory/40 text-sm mb-2">لا توجد عناصر متاحة حالياً</p>
+          <p className="text-cut-gold/60 text-xs font-bold">
             قريباً سيتم إضافة مكافآت ومزايا حصرية
           </p>
         </div>

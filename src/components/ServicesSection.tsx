@@ -28,18 +28,18 @@ function getTabKey(categoryName: string | null): string | null {
 
 /* ─── Skeleton rows ─────────────────────────────────────────────────────────── */
 const SkeletonPanel = () => (
-  <div className="rounded-2xl border border-[#D4AF37]/15 bg-[#0e0e0e] overflow-hidden animate-pulse">
+  <div className="rounded-2xl border border-cut-gold/15 bg-cut-surface overflow-hidden animate-pulse">
     <div className="flex items-center gap-3 px-6 py-4 border-b border-white/[0.06]">
-      <div className="w-10 h-10 rounded-xl bg-[#1a1a1a]" />
+      <div className="w-10 h-10 rounded-xl bg-cut-surface-elevated" />
       <div className="space-y-2">
-        <div className="h-4 bg-[#1a1a1a] rounded w-28" />
-        <div className="h-3 bg-[#1a1a1a] rounded w-16" />
+        <div className="h-4 bg-cut-surface-elevated rounded w-28" />
+        <div className="h-3 bg-cut-surface-elevated rounded w-16" />
       </div>
     </div>
     {[1, 2, 3, 4].map(i => (
       <div key={i} className="flex items-center justify-between px-6 py-4 border-b border-white/[0.04] last:border-0">
-        <div className="h-4 bg-[#1a1a1a] rounded w-1/3" />
-        <div className="h-4 bg-[#1a1a1a] rounded w-20" />
+        <div className="h-4 bg-cut-surface-elevated rounded w-1/3" />
+        <div className="h-4 bg-cut-surface-elevated rounded w-20" />
       </div>
     ))}
   </div>
@@ -134,20 +134,20 @@ const ServicesSection = () => {
   const tabServices = grouped[activeTab] ?? [];
 
   return (
-    <section id="services" className="relative py-20 md:py-28 bg-[#0a0a0a] overflow-hidden">
+    <section id="services" className="relative py-20 md:py-28 bg-cut-black overflow-hidden">
       {/* Top line separator */}
-      <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-l from-transparent via-[#D4AF37]/15 to-transparent" />
+      <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-l from-transparent via-cut-gold/15 to-transparent" />
       {/* Ambient glow */}
-      <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[500px] h-[400px] rounded-full bg-[radial-gradient(circle,rgba(212,175,55,0.04),transparent_60%)] pointer-events-none" />
+      <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[500px] h-[400px] rounded-full bg-[radial-gradient(circle,rgba(164,136,121,0.04),transparent_60%)] pointer-events-none" />
 
       <div className="container px-4 relative z-10">
         {/* Section header */}
         <div className="text-center mb-10 md:mb-14">
-          <p className="text-[#D4AF37] font-heading font-bold text-sm tracking-widest mb-3">خدماتنا</p>
-          <h2 className="font-heading text-3xl md:text-4xl lg:text-5xl font-black text-white mb-3">
+          <p className="text-cut-gold font-heading font-bold text-sm tracking-widest mb-3">خدماتنا</p>
+          <h2 className="font-heading text-3xl md:text-4xl lg:text-5xl font-black text-cut-ivory mb-3">
             أسعار <span className="text-gold-gradient">Cut Salon</span>
           </h2>
-          <p className="text-zinc-500 text-sm md:text-base max-w-lg mx-auto">
+          <p className="text-cut-ivory/65 text-sm md:text-base max-w-lg mx-auto">
             اكتشف مجموعة متكاملة من الخدمات المتميزة بأفضل الأسعار
           </p>
         </div>
@@ -164,8 +164,8 @@ const ServicesSection = () => {
                 onClick={() => setActiveTab(tab.key)}
                 className={`flex items-center gap-2 px-4 md:px-5 py-2.5 rounded-xl font-heading font-bold text-xs md:text-sm transition-all duration-300 cursor-pointer
                   ${isActive
-                    ? "bg-gradient-to-l from-[#C8A96A] to-[#E5C07B] text-[#050505] shadow-[0_4px_20px_rgba(212,175,55,0.25)]"
-                    : "bg-white/[0.04] border border-white/[0.08] text-zinc-400 hover:text-white hover:border-[#D4AF37]/30"
+                    ? "bg-gradient-to-l from-cut-gold to-cut-gold text-cut-black shadow-[0_4px_20px_rgba(164,136,121,0.25)]"
+                    : "bg-white/[0.04] border border-white/[0.08] text-cut-ivory/55 hover:text-cut-ivory hover:border-cut-gold/30"
                   }`}
               >
                 <TabIcon className="w-3.5 h-3.5" />
@@ -185,19 +185,19 @@ const ServicesSection = () => {
           {isLoading ? (
             <SkeletonPanel />
           ) : tabServices.length === 0 ? (
-            <div className="rounded-2xl border border-white/[0.06] bg-[#0e0e0e] p-10 text-center">
-              <p className="text-zinc-500 text-sm">لا توجد خدمات في هذا القسم حالياً</p>
+            <div className="rounded-2xl border border-white/[0.06] bg-cut-surface p-10 text-center">
+              <p className="text-cut-ivory/65 text-sm">لا توجد خدمات في هذا القسم حالياً</p>
             </div>
           ) : (
-            <div className="rounded-2xl border border-[#D4AF37]/15 bg-[#0e0e0e] overflow-hidden">
+            <div className="rounded-2xl border border-cut-bronze/22 cut-card-editorial overflow-hidden shadow-cut-card hover:border-cut-bronze/40 hover:shadow-cut-glow transition-all duration-300">
               {/* Panel header */}
               <div className="flex items-center gap-3 px-6 py-4 border-b border-white/[0.06]">
-                <div className="w-10 h-10 rounded-xl bg-[#D4AF37]/10 flex items-center justify-center">
-                  <Icon className="w-5 h-5 text-[#D4AF37]" />
+                <div className="w-10 h-10 rounded-xl bg-cut-gold/10 flex items-center justify-center">
+                  <Icon className="w-5 h-5 text-cut-gold" />
                 </div>
                 <div>
-                  <h3 className="font-heading text-lg font-bold text-white">{activeTabMeta.label}</h3>
-                  <p className="text-zinc-500 text-xs">{tabServices.length} خدمة</p>
+                  <h3 className="font-heading text-lg font-bold text-cut-ivory">{activeTabMeta.label}</h3>
+                  <p className="text-cut-ivory/65 text-xs">{tabServices.length} خدمة</p>
                 </div>
               </div>
 
@@ -208,8 +208,8 @@ const ServicesSection = () => {
                     className={`flex items-center justify-between px-6 py-4 transition-colors hover:bg-white/[0.02]
                       ${i < tabServices.length - 1 ? "border-b border-white/[0.04]" : ""}`}
                   >
-                    <span className="text-zinc-300 text-sm md:text-base">{s.name}</span>
-                    <span className="text-[#D4AF37] font-heading font-bold text-sm md:text-base whitespace-nowrap mr-4">
+                    <span className="text-cut-ivory/75 text-sm md:text-base">{s.name}</span>
+                    <span className="text-cut-gold font-heading font-bold text-sm md:text-base whitespace-nowrap mr-4">
                       {s.price} جنيه
                     </span>
                   </li>
@@ -222,7 +222,7 @@ const ServicesSection = () => {
         {/* CTA */}
         <div className="text-center mt-12">
           <a href="#barbers"
-            className="group relative inline-flex items-center justify-center gap-2.5 px-10 py-4 rounded-xl font-heading font-bold text-[#050505] text-base overflow-hidden bg-gradient-to-l from-[#C8A96A] to-[#E5C07B] shadow-[0_8px_32px_rgba(212,175,55,0.25)] hover:shadow-[0_12px_48px_rgba(212,175,55,0.4)] hover:scale-[1.03] active:scale-[0.97] transition-all duration-300">
+            className="group relative inline-flex items-center justify-center gap-2.5 px-10 py-4 rounded-xl font-heading font-bold text-cut-black text-base overflow-hidden bg-gradient-to-l from-cut-gold to-cut-gold shadow-[0_8px_32px_rgba(164,136,121,0.25)] hover:shadow-[0_12px_48px_rgba(164,136,121,0.4)] hover:scale-[1.03] active:scale-[0.97] transition-all duration-300">
             <span className="absolute inset-0 bg-gradient-to-l from-white/20 to-transparent translate-x-full group-hover:translate-x-0 transition-transform duration-500" />
             <span className="relative z-10">احجز موعدك الآن</span>
           </a>

@@ -32,14 +32,14 @@ export function MembershipLevels({
   return (
     <div dir="rtl">
       <div className="mb-5">
-        <p className="text-[11px] font-bold tracking-widest text-[#D4AF37] uppercase mb-1">
+        <p className="text-[11px] font-bold tracking-widest text-cut-gold uppercase mb-1">
           رحلتك معنا
         </p>
-        <h2 className="text-xl font-black text-white">مستوى عضويتك</h2>
+        <h2 className="text-xl font-black text-cut-ivory">مستوى عضويتك</h2>
         {remainingToNext !== undefined && currentIndex < LEVELS.length - 1 && (
-          <p className="text-white/40 text-sm mt-1">
+          <p className="text-cut-ivory/40 text-sm mt-1">
             باقي{" "}
-            <span className="text-[#D4AF37] font-bold">{remainingToNext} نقطة</span>
+            <span className="text-cut-gold font-bold">{remainingToNext} نقطة</span>
             {" "}للوصول إلى {LEVEL_LABELS[LEVELS[currentIndex + 1]]}
           </p>
         )}
@@ -66,10 +66,10 @@ export function MembershipLevels({
                 style={{
                   borderColor: isCurrent ? cfg.color : isPast ? `${cfg.color}40` : "rgba(255,255,255,0.06)",
                   background: isCurrent
-                    ? `linear-gradient(135deg, ${cfg.bg}, #0a0a0a)`
+                    ? `linear-gradient(135deg, ${cfg.bg}, #050505)`
                     : isPast
                     ? "#0d0d0d"
-                    : "#0a0a0a",
+                    : "#050505",
                   opacity: isFuture ? 0.65 : 1,
                 }}
               >
@@ -91,7 +91,7 @@ export function MembershipLevels({
                       className="flex h-4 w-4 items-center justify-center rounded-full"
                       style={{ background: cfg.color }}
                     >
-                      <Check className="h-2.5 w-2.5 text-[#050505]" />
+                      <Check className="h-2.5 w-2.5 text-cut-black" />
                     </div>
                   </div>
                 )}
@@ -143,7 +143,7 @@ export function MembershipLevels({
               className="flex items-center gap-3 rounded-xl border px-4 py-3 transition-all"
               style={{
                 borderColor: isCurrent ? cfg.color : isPast ? `${cfg.color}30` : "rgba(255,255,255,0.06)",
-                background: isCurrent ? cfg.bg : "#0a0a0a",
+                background: isCurrent ? cfg.bg : "#050505",
                 opacity: isFuture ? 0.5 : 1,
               }}
             >
@@ -168,7 +168,7 @@ export function MembershipLevels({
                 >
                   {LEVEL_LABELS[level]}
                 </p>
-                <p className="text-[11px] text-white/30">{LEVEL_DESCS[level]}</p>
+                <p className="text-[11px] text-cut-ivory/30">{LEVEL_DESCS[level]}</p>
               </div>
               {isCurrent && (
                 <span

@@ -173,10 +173,10 @@ const BookingCalendar = ({
             <button
               onClick={nextMonth}
               disabled={isNextDisabled()}
-              className="w-9 h-9 rounded-full border border-gray-200 hover:border-[#D4AF37] hover:bg-[#D4AF37]/5 flex items-center justify-center transition-all group disabled:opacity-30 disabled:cursor-not-allowed"
+              className="w-9 h-9 rounded-full border border-gray-200 hover:border-cut-gold hover:bg-cut-gold/5 flex items-center justify-center transition-all group disabled:opacity-30 disabled:cursor-not-allowed"
               aria-label="الشهر التالي"
             >
-              <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-[#D4AF37]" />
+              <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-cut-gold" />
             </button>
 
             <span className="font-heading font-bold text-gray-900 text-base">
@@ -186,10 +186,10 @@ const BookingCalendar = ({
             <button
               onClick={prevMonth}
               disabled={isPrevDisabled()}
-              className="w-9 h-9 rounded-full border border-gray-200 hover:border-[#D4AF37] hover:bg-[#D4AF37]/5 flex items-center justify-center transition-all group disabled:opacity-30 disabled:cursor-not-allowed"
+              className="w-9 h-9 rounded-full border border-gray-200 hover:border-cut-gold hover:bg-cut-gold/5 flex items-center justify-center transition-all group disabled:opacity-30 disabled:cursor-not-allowed"
               aria-label="الشهر السابق"
             >
-              <ChevronLeft className="w-4 h-4 text-gray-400 group-hover:text-[#D4AF37]" />
+              <ChevronLeft className="w-4 h-4 text-gray-400 group-hover:text-cut-gold" />
             </button>
           </div>
 
@@ -220,15 +220,15 @@ const BookingCalendar = ({
 
               if (selected) {
                 btnClass +=
-                  " bg-[#D4AF37] text-black font-bold shadow-lg shadow-[#D4AF37]/30 scale-110 z-10";
+                  " bg-cut-gold text-black font-bold shadow-lg shadow-cut-gold/30 scale-110 z-10";
               } else if (!available || outOfRange) {
                 btnClass += " text-gray-200 cursor-not-allowed";
               } else if (todayCell) {
                 btnClass +=
-                  " ring-2 ring-emerald-400 text-emerald-600 font-bold hover:bg-emerald-400 hover:text-white";
+                  " ring-2 ring-emerald-400 text-emerald-600 font-bold hover:bg-cut-warm-beige hover:text-cut-ivory";
               } else {
                 btnClass +=
-                  " bg-emerald-50 text-emerald-700 font-semibold hover:bg-emerald-500 hover:text-white cursor-pointer";
+                  " bg-emerald-50 text-emerald-700 font-semibold hover:bg-emerald-500 hover:text-cut-ivory cursor-pointer";
               }
 
               return (
@@ -241,7 +241,7 @@ const BookingCalendar = ({
                 >
                   {date.getDate()}
                   {available && !outOfRange && !selected && (
-                    <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-emerald-400" />
+                    <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-cut-warm-beige" />
                   )}
                 </button>
               );
@@ -251,7 +251,7 @@ const BookingCalendar = ({
           {/* Legend */}
           <div className="flex flex-wrap items-center gap-4 mt-5 pt-4 border-t border-gray-100 text-xs text-gray-500">
             <div className="flex items-center gap-1.5">
-              <div className="w-4 h-4 rounded-full bg-[#D4AF37]" />
+              <div className="w-4 h-4 rounded-full bg-cut-gold" />
               <span>المحدد</span>
             </div>
             <div className="flex items-center gap-1.5">

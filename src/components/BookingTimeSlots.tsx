@@ -136,11 +136,11 @@ const SlotsSkeleton = () => (
       <div className="h-6 bg-[#171717] rounded w-28 mb-2" />
       <div className="h-4 bg-[#111111] rounded w-52" />
     </div>
-    <div className="h-[72px] rounded-2xl bg-[#111111] border border-[rgba(212,175,55,0.18)]" />
+    <div className="h-[72px] rounded-2xl bg-[#111111] border border-[rgba(164,136,121,0.18)]" />
     {[1, 2, 3].map(i => (
       <div key={i} className="space-y-3">
         <div className="h-4 bg-[#171717] rounded w-24" />
-        <div className="rounded-2xl bg-[#111111] border border-[rgba(212,175,55,0.08)] p-4">
+        <div className="rounded-2xl bg-[#111111] border border-[rgba(164,136,121,0.08)] p-4">
           <div className="h-5 bg-[#171717] rounded w-14 mb-3" />
           <div className="flex gap-2">
             {[1, 2, 3, 4].map(j => (
@@ -170,8 +170,8 @@ const SlotPill = ({
       relative py-2.5 px-4 rounded-xl text-sm font-medium tabular-nums
       transition-all duration-150 cursor-pointer
       ${selected
-        ? "bg-gradient-to-b from-[#e7c766] to-[#b88916] text-[#050505] font-bold shadow-[0_6px_20px_rgba(212,175,55,0.22)] scale-[1.03]"
-        : "bg-[#171717] border border-[rgba(212,175,55,0.1)] text-[#f7f7f2] hover:border-[rgba(212,175,55,0.35)] hover:text-[#e7c766] hover:shadow-[0_0_12px_rgba(212,175,55,0.06)]"
+        ? "bg-gradient-to-b from-cut-gold to-cut-gold/80 text-cut-black font-bold shadow-[0_6px_20px_rgba(164,136,121,0.22)] scale-[1.03]"
+        : "bg-[#171717] border border-[rgba(164,136,121,0.1)] text-[#f7f7f2] hover:border-[rgba(164,136,121,0.35)] hover:text-cut-gold hover:shadow-[0_0_12px_rgba(164,136,121,0.06)]"
       }
     `}
   >
@@ -214,7 +214,7 @@ const BookingTimeSlots = ({
   if (visibleSlots.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-14 gap-4 text-center px-6" dir="rtl">
-        <div className="w-16 h-16 rounded-full bg-[#111111] border border-[rgba(212,175,55,0.18)] flex items-center justify-center">
+        <div className="w-16 h-16 rounded-full bg-[#111111] border border-[rgba(164,136,121,0.18)] flex items-center justify-center">
           <CalendarX className="w-7 h-7 text-[#71717a]" />
         </div>
         <div>
@@ -240,7 +240,7 @@ const BookingTimeSlots = ({
           {onSwitchToNearest && (
             <button
               onClick={onSwitchToNearest}
-              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-[#D4AF37] text-black text-sm font-heading font-bold hover:bg-[#C4A030] transition-all duration-200"
+              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-cut-gold text-black text-sm font-heading font-bold hover:bg-cut-gold/80 transition-all duration-200"
             >
               <Zap className="w-4 h-4" />
               اختيار حلاق آخر بجودة عالية
@@ -249,7 +249,7 @@ const BookingTimeSlots = ({
           {onNextDay && (
             <button
               onClick={onNextDay}
-              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl border border-[rgba(212,175,55,0.18)] bg-[#111111] text-[#d4af37] text-sm font-heading font-bold hover:bg-[#171717] hover:border-[rgba(212,175,55,0.4)] transition-all duration-200"
+              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl border border-[rgba(164,136,121,0.18)] bg-[#111111] text-cut-gold text-sm font-heading font-bold hover:bg-[#171717] hover:border-[rgba(164,136,121,0.4)] transition-all duration-200"
             >
               <span>عرض مواعيد اليوم التالي</span>
             </button>
@@ -283,28 +283,28 @@ const BookingTimeSlots = ({
           className={`
             w-full relative overflow-hidden rounded-2xl p-4 transition-all duration-200 text-right cursor-pointer
             ${isSlotSelected(nearest, selectedTime, selectedSlotProp)
-              ? "bg-[#171717] border-2 border-[#d4af37] shadow-[0_0_24px_rgba(212,175,55,0.12)]"
-              : "bg-[#111111] border border-[rgba(212,175,55,0.18)] hover:border-[rgba(212,175,55,0.4)] hover:shadow-[0_0_16px_rgba(212,175,55,0.06)]"
+              ? "bg-[#171717] border-2 border-cut-gold shadow-[0_0_24px_rgba(164,136,121,0.12)]"
+              : "bg-[#111111] border border-[rgba(164,136,121,0.18)] hover:border-[rgba(164,136,121,0.4)] hover:shadow-[0_0_16px_rgba(164,136,121,0.06)]"
             }
           `}
         >
-          <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_top_left,rgba(212,175,55,0.06),transparent_60%)] pointer-events-none" />
+          <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_top_left,rgba(164,136,121,0.06),transparent_60%)] pointer-events-none" />
           <div className="relative flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${isSlotSelected(nearest, selectedTime, selectedSlotProp) ? "bg-[#d4af37]" : "bg-[#d4af37]/10"}`}>
-                <Zap className={`w-5 h-5 ${isSlotSelected(nearest, selectedTime, selectedSlotProp) ? "text-[#050505]" : "text-[#d4af37]"}`} />
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${isSlotSelected(nearest, selectedTime, selectedSlotProp) ? "bg-cut-gold" : "bg-cut-gold/10"}`}>
+                <Zap className={`w-5 h-5 ${isSlotSelected(nearest, selectedTime, selectedSlotProp) ? "text-cut-black" : "text-cut-gold"}`} />
               </div>
               <div>
-                <p className="text-xs text-[#d4af37] font-heading font-bold mb-0.5">أقرب ميعاد متاح</p>
+                <p className="text-xs text-cut-gold font-heading font-bold mb-0.5">أقرب ميعاد متاح</p>
                 <p className="text-[#71717a] text-[11px]">أسرع وقت يمكنك الحجز فيه</p>
               </div>
             </div>
             <div className="text-left">
-              <div className={`font-heading font-black text-xl tabular-nums transition-colors ${isSlotSelected(nearest, selectedTime, selectedSlotProp) ? "text-[#d4af37]" : "text-[#f7f7f2]"}`}>
+              <div className={`font-heading font-black text-xl tabular-nums transition-colors ${isSlotSelected(nearest, selectedTime, selectedSlotProp) ? "text-cut-gold" : "text-[#f7f7f2]"}`}>
                 {nearest.label ?? formatSlotDisplay(nearest.time)}
               </div>
               {getDayOffset(nearest) === 1 && (
-                <p className="text-[10px] text-[#d4af37]/60 mt-0.5">بعد منتصف الليل</p>
+                <p className="text-[10px] text-cut-gold/60 mt-0.5">بعد منتصف الليل</p>
               )}
             </div>
           </div>
@@ -316,16 +316,16 @@ const BookingTimeSlots = ({
         <div key={period.key} className="space-y-3">
           {/* Period header */}
           <div className="flex items-center gap-2.5 pt-1">
-            <Clock className="w-3.5 h-3.5 text-[#d4af37]/50" />
+            <Clock className="w-3.5 h-3.5 text-cut-gold/50" />
             <span className="text-sm font-heading font-bold text-[#a1a1aa]">{period.title}</span>
-            <div className="flex-1 h-px bg-gradient-to-l from-transparent via-[rgba(212,175,55,0.1)] to-transparent" />
+            <div className="flex-1 h-px bg-gradient-to-l from-transparent via-[rgba(164,136,121,0.1)] to-transparent" />
           </div>
 
           {/* Hour groups */}
           {period.groups.map(group => (
             <div
               key={group.hour}
-              className="rounded-2xl bg-[#111111] border border-[rgba(212,175,55,0.08)] p-4 md:p-5 transition-all duration-200 hover:border-[rgba(212,175,55,0.18)]"
+              className="rounded-2xl bg-[#111111] border border-[rgba(164,136,121,0.08)] p-4 md:p-5 transition-all duration-200 hover:border-[rgba(164,136,121,0.18)]"
             >
               {/* Hour label */}
               <div className="flex items-center gap-2.5 mb-3.5">
@@ -356,8 +356,8 @@ const BookingTimeSlots = ({
 
       {/* ── After Midnight Notice ── */}
       {hiddenAfterMidnightCount > 0 && (
-        <div className="rounded-2xl bg-[#0d0d0d] border border-[rgba(212,175,55,0.12)] p-4 flex items-start gap-3">
-          <MoonStar className="w-4 h-4 text-[#d4af37]/50 flex-shrink-0 mt-0.5" />
+        <div className="rounded-2xl bg-[#0d0d0d] border border-[rgba(164,136,121,0.12)] p-4 flex items-start gap-3">
+          <MoonStar className="w-4 h-4 text-cut-gold/50 flex-shrink-0 mt-0.5" />
           <div>
             <p className="text-[#a1a1aa] text-xs font-bold mb-0.5">مواعيد بعد منتصف الليل</p>
             <p className="text-[#71717a] text-[11px] leading-relaxed">
@@ -366,7 +366,7 @@ const BookingTimeSlots = ({
             <div className="flex items-center gap-2 mt-2 flex-wrap">
               <a
                 href="tel:035861483"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-white/10 text-white/60 text-xs font-bold hover:border-white/20 hover:text-white/80 transition-colors"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-white/10 text-cut-ivory/60 text-xs font-bold hover:border-white/20 hover:text-cut-ivory/80 transition-colors"
               >
                 اتصل للحجز بعد 12
               </a>
@@ -386,14 +386,14 @@ const BookingTimeSlots = ({
       {/* midnight scroll CTA removed — midnight slots hidden */}
       {onNextDay && (
         <div className="pt-2 space-y-3">
-          <div className="h-px bg-gradient-to-l from-transparent via-[rgba(212,175,55,0.12)] to-transparent" />
+          <div className="h-px bg-gradient-to-l from-transparent via-[rgba(164,136,121,0.12)] to-transparent" />
           <div className="text-center space-y-3 py-2">
             <p className="text-[#71717a] text-xs">
               لو لم تجد الوقت المناسب، يمكنك متابعة الحجز في اليوم التالي
             </p>
             <button
               onClick={onNextDay}
-              className="inline-flex items-center gap-2.5 px-6 py-3 rounded-xl border border-[rgba(212,175,55,0.18)] bg-[#111111] text-[#d4af37] font-heading font-bold text-sm hover:bg-[#171717] hover:border-[rgba(212,175,55,0.4)] hover:shadow-[0_4px_16px_rgba(212,175,55,0.08)] active:scale-[0.97] transition-all duration-200"
+              className="inline-flex items-center gap-2.5 px-6 py-3 rounded-xl border border-[rgba(164,136,121,0.18)] bg-[#111111] text-cut-gold font-heading font-bold text-sm hover:bg-[#171717] hover:border-[rgba(164,136,121,0.4)] hover:shadow-[0_4px_16px_rgba(164,136,121,0.08)] active:scale-[0.97] transition-all duration-200"
             >
               <span>عرض مواعيد اليوم التالي</span>
             </button>
@@ -402,13 +402,13 @@ const BookingTimeSlots = ({
       )}
 
       {/* ── Legend ── */}
-      <div className="flex items-center gap-5 pt-3 border-t border-[rgba(212,175,55,0.08)] text-[11px] text-[#71717a]">
+      <div className="flex items-center gap-5 pt-3 border-t border-[rgba(164,136,121,0.08)] text-[11px] text-[#71717a]">
         <div className="flex items-center gap-1.5">
-          <div className="w-3.5 h-3.5 rounded-md bg-gradient-to-b from-[#e7c766] to-[#b88916]" />
+          <div className="w-3.5 h-3.5 rounded-md bg-gradient-to-b from-cut-gold to-cut-gold/80" />
           <span>محدد</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="w-3.5 h-3.5 rounded-md bg-[#171717] border border-[rgba(212,175,55,0.1)]" />
+          <div className="w-3.5 h-3.5 rounded-md bg-[#171717] border border-[rgba(164,136,121,0.1)]" />
           <span>متاح</span>
         </div>
       </div>

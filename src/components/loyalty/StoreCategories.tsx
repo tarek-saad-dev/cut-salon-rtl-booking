@@ -37,8 +37,8 @@ export function StoreCategories({
               whileTap={{ scale: 0.98 }}
               className={`relative flex items-center gap-2 px-5 py-3 rounded-xl font-bold text-sm transition-all ${
                 isActive
-                  ? "bg-gradient-to-b from-[#e7c766] to-[#b88916] text-[#050505] shadow-[0_4px_16px_rgba(212,175,55,0.3)]"
-                  : "bg-white/[0.04] text-white/60 border border-white/[0.08] hover:bg-white/[0.07] hover:text-white/80"
+                  ? "bg-gradient-to-b from-cut-gold to-cut-gold/80 text-cut-black shadow-[0_4px_16px_rgba(164,136,121,0.3)]"
+                  : "bg-white/[0.04] text-cut-ivory/60 border border-white/[0.08] hover:bg-white/[0.07] hover:text-cut-ivory/80"
               }`}
             >
               {Icon && <Icon className="h-4 w-4" />}
@@ -48,7 +48,7 @@ export function StoreCategories({
                   layoutId="activeCategory"
                   className="absolute inset-0 rounded-xl"
                   style={{
-                    background: "linear-gradient(to bottom, #e7c766, #b88916)",
+                    background: "linear-gradient(to bottom, cut-gold, cut-gold/80)",
                     zIndex: -1,
                   }}
                   transition={{ type: "spring", stiffness: 380, damping: 30 }}

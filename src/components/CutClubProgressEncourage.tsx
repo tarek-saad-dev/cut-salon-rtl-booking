@@ -19,7 +19,7 @@ const CutClubProgressEncourage = ({
   const isRewardUnlocked = currentPoints >= nextRewardPoints;
 
   return (
-    <section className="w-full bg-[#050505] py-8 md:py-12 px-4">
+    <section className="w-full bg-cut-black py-8 md:py-12 px-4">
       <div className="container mx-auto max-w-[1120px]">
         {/* Main Card */}
         <div 
@@ -35,7 +35,7 @@ const CutClubProgressEncourage = ({
                           bg-gradient-to-r from-[#8A6326]/40 via-[#C99A45]/60 to-[#8A6326]/40
                           group-hover:from-[#C99A45]/60 group-hover:via-[#E2B866] group-hover:to-[#C99A45]/60
                           transition-all duration-500">
-            <div className="w-full h-full rounded-3xl bg-[#0a0a0a]" />
+            <div className="w-full h-full rounded-3xl bg-cut-black" />
           </div>
 
           {/* Subtle Radial Glow Background */}
@@ -108,7 +108,7 @@ const CutClubProgressEncourage = ({
                              flex items-center justify-center
                              transition-all duration-500 group-hover:scale-105"
                   style={{
-                    background: `radial-gradient(circle at 30% 30%, #1a1a1a 0%, #0d0d0d 100%)`,
+                    background: `radial-gradient(circle at 30% 30%, #1A2820 0%, #0d0d0d 100%)`,
                     boxShadow: `0 0 30px rgba(201, 154, 69, 0.3), 
                                 inset 0 1px 0 rgba(201, 154, 69, 0.1)`,
                   }}
@@ -135,7 +135,7 @@ const CutClubProgressEncourage = ({
                   {isRewardUnlocked && (
                     <div className="absolute -top-1 -right-1 w-6 h-6 rounded-full 
                                     bg-gradient-to-br from-[#E2B866] to-[#C99A45]
-                                    flex items-center justify-center text-[#050505] text-xs font-bold">
+                                    flex items-center justify-center text-cut-black text-xs font-bold">
                       ✓
                     </div>
                   )}
@@ -150,7 +150,7 @@ const CutClubProgressEncourage = ({
                 <div 
                   className="relative w-20 h-20 rounded-full flex items-center justify-center"
                   style={{
-                    background: `radial-gradient(circle at 30% 30%, #1a1a1a 0%, #0d0d0d 100%)`,
+                    background: `radial-gradient(circle at 30% 30%, #1A2820 0%, #0d0d0d 100%)`,
                     boxShadow: `0 0 25px rgba(201, 154, 69, 0.25)`,
                   }}
                 >
@@ -166,7 +166,7 @@ const CutClubProgressEncourage = ({
                   {isRewardUnlocked && (
                     <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full 
                                     bg-gradient-to-br from-[#E2B866] to-[#C99A45]
-                                    flex items-center justify-center text-[#050505] text-[10px] font-bold">
+                                    flex items-center justify-center text-cut-black text-[10px] font-bold">
                       ✓
                     </div>
                   )}

@@ -18,10 +18,10 @@ const TIER_COLORS = {
     bg: "rgba(192, 192, 192, 0.08)",
   },
   Gold: {
-    gradient: "linear-gradient(135deg, #FFD700 0%, #B8860B 40%, #DAA520 70%, #8B6914 100%)",
-    glow: "#D4AF37",
-    border: "rgba(212, 175, 55, 0.3)",
-    bg: "rgba(212, 175, 55, 0.08)",
+    gradient: "linear-gradient(135deg, #A48879 0%, #170406 45%, #050505 100%)",
+    glow: "#A48879",
+    border: "rgba(164, 136, 121, 0.35)",
+    bg: "rgba(164, 136, 121, 0.1)",
   },
   Platinum: {
     gradient: "linear-gradient(135deg, #E5E4E2 0%, #BCC6CC 40%, #D3D3D3 70%, #A8A9AD 100%)",
@@ -30,10 +30,10 @@ const TIER_COLORS = {
     bg: "rgba(229, 228, 226, 0.08)",
   },
   "Black VIP": {
-    gradient: "linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 40%, #2a2520 70%, #0f0f0f 100%)",
-    glow: "#D4AF37",
-    border: "rgba(212, 175, 55, 0.4)",
-    bg: "rgba(10, 10, 10, 0.6)",
+    gradient: "linear-gradient(135deg, #2F050C 0%, #050505 50%, #170406 100%)",
+    glow: "#D2B7A3",
+    border: "rgba(164, 136, 121, 0.35)",
+    bg: "rgba(5, 5, 5, 0.6)",
   },
 };
 
@@ -88,16 +88,16 @@ export function CompactMembershipCard({
               className="flex h-9 w-9 items-center justify-center rounded-lg"
               style={{ background: tierColor.bg, border: `1px solid ${tierColor.border}` }}
             >
-              <Scissors className="h-4 w-4" style={{ color: data.level === "Black VIP" ? "#D4AF37" : tierColor.glow }} />
+              <Scissors className="h-4 w-4" style={{ color: data.level === "Black VIP" ? "#A48879" : tierColor.glow }} />
             </div>
             <div>
               <span
                 className="block text-[9px] tracking-[0.3em] font-bold uppercase"
-                style={{ color: data.level === "Black VIP" ? "#D4AF37" : tierColor.glow }}
+                style={{ color: data.level === "Black VIP" ? "#A48879" : tierColor.glow }}
               >
                 CUT CLUB
               </span>
-              <span className="block text-[8px] tracking-[0.2em] text-white/30 uppercase -mt-0.5">
+              <span className="block text-[8px] tracking-[0.2em] text-cut-ivory/30 uppercase -mt-0.5">
                 MEMBER
               </span>
             </div>
@@ -108,7 +108,7 @@ export function CompactMembershipCard({
             style={{
               background: tierColor.bg,
               border: `1px solid ${tierColor.border}`,
-              color: data.level === "Black VIP" ? "#D4AF37" : tierColor.glow,
+              color: data.level === "Black VIP" ? "#A48879" : tierColor.glow,
             }}
           >
             {data.level}
@@ -116,9 +116,9 @@ export function CompactMembershipCard({
         </div>
 
         <div className="mb-5" dir="rtl">
-          <p className="text-white text-lg font-black tracking-wide mb-1">{data.clientName}</p>
-          <p className="text-white/40 text-xs font-mono tracking-wider">{data.memberId}</p>
-          <p className="text-white/30 text-[10px] mt-1">
+          <p className="text-cut-ivory text-lg font-black tracking-wide mb-1">{data.clientName}</p>
+          <p className="text-cut-ivory/40 text-xs font-mono tracking-wider">{data.memberId}</p>
+          <p className="text-cut-ivory/30 text-[10px] mt-1">
             عضو منذ {data.memberSince}
           </p>
         </div>
@@ -126,28 +126,28 @@ export function CompactMembershipCard({
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pt-4 border-t border-white/10" dir="rtl">
           <div className="text-center">
             <div className="flex items-center justify-center gap-1 mb-1">
-              <TrendingUp className="h-3 w-3 text-white/40" />
-              <p className="text-white text-lg font-black tabular-nums">{stats.visits}</p>
+              <TrendingUp className="h-3 w-3 text-cut-ivory/40" />
+              <p className="text-cut-ivory text-lg font-black tabular-nums">{stats.visits}</p>
             </div>
-            <p className="text-white/40 text-[10px]">عدد الزيارات</p>
+            <p className="text-cut-ivory/40 text-[10px]">عدد الزيارات</p>
           </div>
 
           <div className="text-center">
             <div className="flex items-center justify-center gap-1 mb-1">
-              <Award className="h-3 w-3 text-white/40" />
-              <p className="text-white text-lg font-black tabular-nums">{stats.rewardsUsed}</p>
+              <Award className="h-3 w-3 text-cut-ivory/40" />
+              <p className="text-cut-ivory text-lg font-black tabular-nums">{stats.rewardsUsed}</p>
             </div>
-            <p className="text-white/40 text-[10px]">المكافآت المستخدمة</p>
+            <p className="text-cut-ivory/40 text-[10px]">المكافآت المستخدمة</p>
           </div>
 
           <div className="text-center col-span-2 md:col-span-2">
             <div className="flex items-center justify-center gap-1 mb-1">
-              <Users className="h-3 w-3 text-white/40" />
-              <p className="text-white text-sm font-bold truncate max-w-[120px]">
+              <Users className="h-3 w-3 text-cut-ivory/40" />
+              <p className="text-cut-ivory text-sm font-bold truncate max-w-[120px]">
                 {stats.favoriteBarber}
               </p>
             </div>
-            <p className="text-white/40 text-[10px]">الحلاق المفضل</p>
+            <p className="text-cut-ivory/40 text-[10px]">الحلاق المفضل</p>
           </div>
         </div>
       </div>

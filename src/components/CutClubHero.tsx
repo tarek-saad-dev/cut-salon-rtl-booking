@@ -16,11 +16,11 @@ const CutClubHero = ({
   chairImage = "/images/cut-chair-hero.jpg",
 }: CutClubHeroProps) => {
   return (
-    <section className="relative min-h-[700px] md:min-h-[760px] w-full overflow-hidden bg-[#050505]">
+    <section className="relative min-h-[700px] md:min-h-[760px] w-full overflow-hidden bg-cut-black">
       {/* Background Layer */}
       <div className="absolute inset-0">
         {/* Gradient Background Base */}
-        <div className="absolute inset-0 bg-gradient-to-br from-[#0a0a0a] via-[#050505] to-[#0d0d0d]" />
+        <div className="absolute inset-0 bg-gradient-to-br from-cut-black via-cut-black to-[#0d0d0d]" />
         
         {/* Cinematic Barber Chair Image - Right Side */}
         <div 
@@ -30,8 +30,8 @@ const CutClubHero = ({
           }}
         >
           {/* Overlay for readability */}
-          <div className="absolute inset-0 bg-gradient-to-r from-[#050505] via-[#050505]/80 to-transparent" />
-          <div className="absolute inset-0 bg-gradient-to-t from-[#050505] via-transparent to-[#050505]/50" />
+          <div className="absolute inset-0 bg-gradient-to-r from-cut-black via-cut-black/80 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-cut-black via-transparent to-cut-black/50" />
         </div>
 
         {/* Gold Glow Effect - Behind Card Area */}
@@ -80,7 +80,7 @@ const CutClubHero = ({
                        transition-all duration-500 ease-out
                        hover:-translate-y-1 hover:shadow-[0_20px_60px_rgba(201,154,69,0.25)]"
             style={{
-              background: `linear-gradient(145deg, #151515 0%, #0a0a0a 50%, #050505 100%)`,
+              background: `linear-gradient(145deg, #151515 0%, #050505 50%, #050505 100%)`,
             }}
           >
             {/* Card Border with Gold Glow */}
@@ -88,7 +88,7 @@ const CutClubHero = ({
                             bg-gradient-to-r from-[#8A6326]/50 via-[#C99A45] to-[#8A6326]/50
                             group-hover:from-[#C99A45] group-hover:via-[#E2B866] group-hover:to-[#C99A45]
                             transition-all duration-500">
-              <div className="w-full h-full rounded-3xl bg-[#0a0a0a]" />
+              <div className="w-full h-full rounded-3xl bg-cut-black" />
             </div>
 
             {/* Decorative Corners - Islamic/Arabesque Pattern */}
@@ -141,7 +141,7 @@ const CutClubHero = ({
                     
                     {/* Shield Frame */}
                     <div className="absolute inset-0 border-2 border-[#C99A45] rounded-t-lg rounded-b-2xl 
-                                    bg-gradient-to-b from-[#1a1a1a] to-[#0d0d0d]
+                                    bg-gradient-to-b from-cut-surface-elevated to-[#0d0d0d]
                                     flex flex-col items-center justify-center">
                       <span className="text-[#C99A45] text-xl font-bold tracking-wider">CUT</span>
                       <Scissors className="w-5 h-5 text-[#C99A45] mt-1" />
@@ -174,7 +174,7 @@ const CutClubHero = ({
                   <div className="relative w-20 h-24 flex flex-col items-center justify-center">
                     <Crown className="w-5 h-5 text-[#C99A45] mb-1" />
                     <div className="absolute inset-0 border-2 border-[#C99A45] rounded-t-lg rounded-b-2xl 
-                                    bg-gradient-to-b from-[#1a1a1a] to-[#0d0d0d]
+                                    bg-gradient-to-b from-cut-surface-elevated to-[#0d0d0d]
                                     flex flex-col items-center justify-center">
                       <span className="text-[#C99A45] text-lg font-bold tracking-wider">CUT</span>
                       <Scissors className="w-4 h-4 text-[#C99A45] mt-1" />

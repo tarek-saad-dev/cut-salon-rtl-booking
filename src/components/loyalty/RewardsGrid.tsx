@@ -35,23 +35,23 @@ function RedeemConfirmDialog({
         onClick={!loading ? onCancel : undefined}
       />
       {/* Dialog */}
-      <div className="relative z-10 w-full max-w-sm rounded-3xl border border-[rgba(212,175,55,0.2)] bg-[#111111] p-6 shadow-2xl">
+      <div className="relative z-10 w-full max-w-sm rounded-3xl border border-[rgba(164,136,121,0.2)] bg-[#111111] p-6 shadow-2xl">
         <button
           onClick={onCancel}
           disabled={loading}
-          className="absolute top-4 left-4 flex h-7 w-7 items-center justify-center rounded-lg border border-white/10 text-white/40 hover:text-white/70 transition-colors disabled:opacity-40"
+          className="absolute top-4 left-4 flex h-7 w-7 items-center justify-center rounded-lg border border-white/10 text-cut-ivory/40 hover:text-cut-ivory/70 transition-colors disabled:opacity-40"
         >
           <X className="h-3.5 w-3.5" />
         </button>
 
-        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#D4AF37]/10 border border-[#D4AF37]/20 mb-4">
-          <Gift className="h-5 w-5 text-[#D4AF37]" />
+        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-cut-gold/10 border border-cut-gold/20 mb-4">
+          <Gift className="h-5 w-5 text-cut-gold" />
         </div>
 
-        <h3 className="text-white text-base font-black mb-1">استبدال المكافأة؟</h3>
-        <p className="text-white/50 text-sm leading-relaxed mb-4">
+        <h3 className="text-cut-ivory text-base font-black mb-1">استبدال المكافأة؟</h3>
+        <p className="text-cut-ivory/50 text-sm leading-relaxed mb-4">
           سيتم خصم{" "}
-          <span className="text-[#D4AF37] font-bold">{reward.points.toLocaleString()} نقطة</span>
+          <span className="text-cut-gold font-bold">{reward.points.toLocaleString()} نقطة</span>
           {" "}من رصيدك مقابل «{reward.titleAr}».
         </p>
 
@@ -65,14 +65,14 @@ function RedeemConfirmDialog({
           <button
             onClick={onCancel}
             disabled={loading}
-            className="flex-1 rounded-xl border border-white/10 bg-white/[0.04] py-2.5 text-xs font-bold text-white/60 transition-all hover:bg-white/[0.07] disabled:opacity-40"
+            className="flex-1 rounded-xl border border-white/10 bg-white/[0.04] py-2.5 text-xs font-bold text-cut-ivory/60 transition-all hover:bg-white/[0.07] disabled:opacity-40"
           >
             إلغاء
           </button>
           <button
             onClick={onConfirm}
             disabled={loading}
-            className="flex-1 rounded-xl bg-gradient-to-b from-[#e7c766] to-[#b88916] py-2.5 text-xs font-black text-[#050505] transition-all hover:brightness-110 disabled:opacity-60 disabled:cursor-not-allowed"
+            className="flex-1 rounded-xl bg-gradient-to-b from-cut-gold to-cut-gold/80 py-2.5 text-xs font-black text-cut-black transition-all hover:brightness-110 disabled:opacity-60 disabled:cursor-not-allowed"
           >
             {loading ? (
               <span className="flex items-center justify-center gap-1.5">
@@ -99,18 +99,18 @@ function RedeemSuccessToast({
 }) {
   return (
     <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 w-full max-w-sm px-4" dir="rtl">
-      <div className="rounded-2xl border border-emerald-500/25 bg-[#0d1a12] px-5 py-4 shadow-2xl">
+      <div className="rounded-2xl border border-cut-bronze/25 bg-cut-espresso px-5 py-4 shadow-2xl">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="text-emerald-400 text-sm font-black">تم استبدال المكافأة بنجاح ✓</p>
+            <p className="text-cut-bronze text-sm font-black">تم استبدال المكافأة بنجاح ✓</p>
             {redeemCode && (
-              <p className="text-white/50 text-xs mt-1">
+              <p className="text-cut-ivory/50 text-xs mt-1">
                 كود المكافأة:{" "}
-                <span className="text-[#D4AF37] font-black tracking-widest">{redeemCode}</span>
+                <span className="text-cut-gold font-black tracking-widest">{redeemCode}</span>
               </p>
             )}
           </div>
-          <button onClick={onClose} className="text-white/30 hover:text-white/60 mt-0.5">
+          <button onClick={onClose} className="text-cut-ivory/30 hover:text-cut-ivory/60 mt-0.5">
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -188,34 +188,34 @@ function RewardCard({
 
       <div
         className={`relative flex flex-col rounded-2xl border p-5 transition-all duration-200 ${isAvailable
-          ? "border-[rgba(212,175,55,0.3)] bg-[#111111] hover:border-[rgba(212,175,55,0.5)] hover:shadow-[0_0_24px_rgba(212,175,55,0.07)] hover:bg-[#131313]"
+          ? "border-[rgba(164,136,121,0.3)] bg-[#111111] hover:border-[rgba(164,136,121,0.5)] hover:shadow-[0_0_24px_rgba(164,136,121,0.07)] hover:bg-[#131313]"
           : "border-[rgba(255,255,255,0.06)] bg-[#0d0d0d] opacity-70"
           }`}
         dir="rtl"
       >
         {/* Available glow pip */}
         {isAvailable && (
-          <div className="absolute top-3 left-3 h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.6)]" />
+          <div className="absolute top-3 left-3 h-1.5 w-1.5 rounded-full bg-cut-warm-beige shadow-[0_0_6px_rgba(164,136,121,0.6)]" />
         )}
 
         {/* Icon */}
         <div
           className={`mb-3 flex h-10 w-10 items-center justify-center rounded-xl ${isAvailable
-            ? "bg-[#D4AF37]/12 text-[#D4AF37] border border-[#D4AF37]/20"
-            : "bg-white/[0.04] text-white/25 border border-white/[0.07]"
+            ? "bg-cut-gold/12 text-cut-gold border border-cut-gold/20"
+            : "bg-white/[0.04] text-cut-ivory/25 border border-white/[0.07]"
             }`}
         >
           {(isLocked || isTierLocked) ? <Lock className="h-4 w-4" /> : (iconMap[reward.icon] ?? <Gift className="h-5 w-5" />)}
         </div>
 
-        <p className={`text-sm font-bold mb-0.5 ${isAvailable ? "text-white" : "text-white/40"}`}>
+        <p className={`text-sm font-bold mb-0.5 ${isAvailable ? "text-cut-ivory" : "text-cut-ivory/40"}`}>
           {reward.titleAr}
         </p>
-        <p className={`text-[11px] mb-3 ${isAvailable ? "text-white/40" : "text-white/20"}`}>
+        <p className={`text-[11px] mb-3 ${isAvailable ? "text-cut-ivory/40" : "text-cut-ivory/20"}`}>
           {reward.title}
         </p>
 
-        <p className={`text-base font-black tabular-nums mb-3 mt-auto ${isAvailable ? "text-[#D4AF37]" : "text-white/25"}`}>
+        <p className={`text-base font-black tabular-nums mb-3 mt-auto ${isAvailable ? "text-cut-gold" : "text-cut-ivory/25"}`}>
           {reward.points.toLocaleString()}
           <span className="text-[11px] font-medium mr-1">نقطة</span>
         </p>
@@ -223,12 +223,12 @@ function RewardCard({
         {/* Progress bar (locked only) */}
         {isLocked && reward.remainingPoints !== undefined && reward.remainingPoints > 0 && (
           <div className="mb-3">
-            <span className="text-white/30 text-[10px]">
+            <span className="text-cut-ivory/30 text-[10px]">
               باقي {reward.remainingPoints.toLocaleString()} نقطة
             </span>
             <div className="mt-1 h-1 w-full overflow-hidden rounded-full bg-white/[0.07]">
               <div
-                className="h-full rounded-full bg-[#D4AF37]/30"
+                className="h-full rounded-full bg-cut-gold/30"
                 style={{
                   width: `${Math.min(100, Math.round(
                     ((reward.points - reward.remainingPoints) / reward.points) * 100
@@ -243,16 +243,16 @@ function RewardCard({
         {isAvailable ? (
           <button
             onClick={() => setShowConfirm(true)}
-            className="w-full rounded-xl bg-gradient-to-b from-[#e7c766] to-[#b88916] py-2 text-xs font-black text-[#050505] transition-all hover:brightness-110 active:scale-[0.97]"
+            className="w-full rounded-xl bg-gradient-to-b from-cut-gold to-cut-gold/80 py-2 text-xs font-black text-cut-black transition-all hover:brightness-110 active:scale-[0.97]"
           >
             استخدم الآن
           </button>
         ) : isTierLocked ? (
-          <div className="w-full rounded-xl border border-white/[0.07] bg-white/[0.03] py-2 text-center text-xs font-bold text-white/25">
+          <div className="w-full rounded-xl border border-white/[0.07] bg-white/[0.03] py-2 text-center text-xs font-bold text-cut-ivory/25">
             متاح لمستوى أعلى
           </div>
         ) : (
-          <div className="w-full rounded-xl border border-white/[0.07] bg-white/[0.03] py-2 text-center text-xs font-bold text-white/25">
+          <div className="w-full rounded-xl border border-white/[0.07] bg-white/[0.03] py-2 text-center text-xs font-bold text-cut-ivory/25">
             قريبًا
           </div>
         )}
@@ -292,11 +292,11 @@ export function RewardsGrid({
 
       <div dir="rtl">
         <div className="mb-5">
-          <p className="text-[11px] font-bold tracking-widest text-[#D4AF37] uppercase mb-1">
+          <p className="text-[11px] font-bold tracking-widest text-cut-gold uppercase mb-1">
             CUT CLUB
           </p>
-          <h2 className="text-xl font-black text-white">مكافآتك المتاحة</h2>
-          <p className="text-white/40 text-sm mt-1">
+          <h2 className="text-xl font-black text-cut-ivory">مكافآتك المتاحة</h2>
+          <p className="text-cut-ivory/40 text-sm mt-1">
             استخدم نقاطك وافتح مزايا أكتر مع كل زيارة
           </p>
         </div>
