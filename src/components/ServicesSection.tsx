@@ -144,9 +144,11 @@ const ServicesSection = () => {
         {/* Section header */}
         <div className="text-center mb-10 md:mb-14">
           <p className="text-cut-gold font-heading font-bold text-sm tracking-widest mb-3">خدماتنا</p>
-          <h2 className="font-heading text-3xl md:text-4xl lg:text-5xl font-black text-cut-ivory mb-3">
-            أسعار <span className="text-gold-gradient">Cut Salon</span>
-          </h2>
+          <a href="/prices" className="inline-block focus:outline-none focus-visible:ring-2 focus-visible:ring-cut-bronze focus-visible:ring-offset-4 focus-visible:ring-offset-cut-black">
+            <h2 className="font-heading text-3xl md:text-4xl lg:text-5xl font-black text-cut-ivory mb-3 transition-colors hover:text-cut-warm-beige">
+              أسعار <span className="text-gold-gradient">Cut Salon</span>
+            </h2>
+          </a>
           <p className="text-cut-ivory/65 text-sm md:text-base max-w-lg mx-auto">
             اكتشف مجموعة متكاملة من الخدمات المتميزة بأفضل الأسعار
           </p>
