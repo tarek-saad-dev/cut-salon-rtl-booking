@@ -5,6 +5,7 @@ import useEmblaCarousel from "embla-carousel-react";
 import { ChevronLeft, ChevronRight, Scissors, Clock, Zap } from "lucide-react";
 import BookingModal, { type BarberBookingInfo, type BookingMode } from "./BookingModal";
 import { getBookingBarbers, type BookingBarber } from "@/lib/publicBookingApi";
+import { useBranch } from "@/context/BranchContext";
 
 type DisplayBarber = BarberBookingInfo & { buttonText: string };
 
@@ -123,6 +124,11 @@ const BarberCard = ({
 /* ════════════════════════════════════════════
    MAIN BARBERS SECTION
    ════════════════════════════════════════════ */
+type GroomBookingDetail = {
+  serviceMatches: string[];
+  note: string;
+};
+
 const NEAREST_PLACEHOLDER_BARBER: DisplayBarber = {
   name: "أقرب حلاق متاح",
   image: "/cutsalon.png",
@@ -134,6 +140,8 @@ const NEAREST_PLACEHOLDER_BARBER: DisplayBarber = {
 const BarbersSection = () => {
   const [selectedBarber, setSelectedBarber] = useState<DisplayBarber | null>(null);
   const [bookingMode, setBookingMode] = useState<BookingMode | undefined>(undefined);
+  const { selectedBranch } = useBranch();
+  const [groomBooking, setGroomBooking] = useState<GroomBookingDetail | null>(null);
   const [barbers, setBarbers] = useState<DisplayBarber[]>(FALLBACK_BARBERS);
   const [isLoadingBarbers, setIsLoadingBarbers] = useState(true);
 
@@ -146,6 +154,13 @@ const BarbersSection = () => {
   useEffect(() => {
     const handleBookNearest = () => {
       // Open modal directly in nearest mode, skip mode choice
+      setBookingMode("nearest");
+      setSelectedBarber(NEAREST_PLACEHOLDER_BARBER);
+    };
+    const handleBookGroom = (e: Event) => {
+      const detail = (e as CustomEvent<GroomBookingDetail>).detail;
+      if (!detail?.serviceMatches?.length) return;
+      setGroomBooking(detail);
       setBookingMode("nearest");
       setSelectedBarber(NEAREST_PLACEHOLDER_BARBER);
     };
@@ -170,22 +185,28 @@ const BarbersSection = () => {
       }
     };
     window.addEventListener("cut:book-nearest", handleBookNearest);
+    window.addEventListener("cut:book-groom", handleBookGroom);
     window.addEventListener("cut:book-barber", handleBookBarber);
     return () => {
       window.removeEventListener("cut:book-nearest", handleBookNearest);
+      window.removeEventListener("cut:book-groom", handleBookGroom);
       window.removeEventListener("cut:book-barber", handleBookBarber);
     };
   }, [barbers]);
 
   useEffect(() => {
-    getBookingBarbers()
+    if (!selectedBranch?.branchCode) {
+      setIsLoadingBarbers(false);
+      return;
+    }
+    getBookingBarbers(selectedBranch.branchCode)
       .then(res => {
         const bookable = res.barbers.filter(b => b.isBookableOnline);
         if (bookable.length > 0) setBarbers(bookable.map(apiToDisplay));
       })
       .catch(() => { /* keep fallback */ })
       .finally(() => setIsLoadingBarbers(false));
-  }, []);
+  }, [selectedBranch?.branchCode]);
 
   const [emblaRef, emblaApi] = useEmblaCarousel({
     direction: "rtl",
@@ -317,10 +338,13 @@ const BarbersSection = () => {
             if (!open) {
               setSelectedBarber(null);
               setBookingMode(undefined);
+              setGroomBooking(null);
             }
           }}
           barber={selectedBarber}
           initialMode={bookingMode}
+          initialServiceMatches={groomBooking?.serviceMatches}
+          bookingNote={groomBooking?.note}
         />
       )}
     </section>

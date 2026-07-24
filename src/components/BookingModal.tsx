@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
-import { ArrowLeft, Check, Loader2, AlertCircle, WifiOff, Zap, UserCheck, UserX } from "lucide-react";
+import { ArrowLeft, Check, Loader2, AlertCircle, WifiOff, Zap, UserCheck, UserX, MapPin } from "lucide-react";
 import { format } from "date-fns";
 import { getSavedClient, saveClient, clearClient } from "@/lib/clientStorage";
 import CustomerUpcomingBookings from "./CustomerUpcomingBookings";
@@ -13,6 +13,8 @@ import BookingInfoPanel from "./BookingInfoPanel";
 import BookingCalendar from "./BookingCalendar";
 import BookingTimeSlots from "./BookingTimeSlots";
 import BookingServiceSelect from "./BookingServiceSelect";
+import BranchPicker from "./BranchPicker";
+import { useBranch } from "@/context/BranchContext";
 import { getCoreServiceIdSet } from "@/lib/bookingServiceGroups";
 import {
   getBookingConfig,
@@ -28,6 +30,7 @@ import {
   type AvailableSlot,
   type BookingPlanResponse,
   type BookingPlanItem,
+  type PublicBranch,
 } from "@/lib/publicBookingApi";
 
 export interface BarberBookingInfo {
@@ -46,17 +49,20 @@ interface BookingModalProps {
   onOpenChange: (open: boolean) => void;
   barber: BarberBookingInfo;
   initialMode?: BookingMode;
+  initialServiceMatches?: string[];
+  bookingNote?: string;
 }
 
-type BookingStep = "mode" | "service" | "date" | "time" | "confirm" | "success";
+type BookingStep = "branch" | "mode" | "service" | "date" | "time" | "confirm" | "success";
 export type BookingMode = "specific" | "nearest";
 
 const steps = [
-  { id: "mode", label: "الطريقة", number: 1 },
-  { id: "service", label: "الخدمة", number: 2 },
-  { id: "date", label: "الموعد", number: 3 },
-  { id: "time", label: "الوقت", number: 4 },
-  { id: "confirm", label: "تأكيد", number: 5 },
+  { id: "branch", label: "الفرع", number: 1 },
+  { id: "mode", label: "الطريقة", number: 2 },
+  { id: "service", label: "الخدمة", number: 3 },
+  { id: "date", label: "الموعد", number: 4 },
+  { id: "time", label: "الوقت", number: 5 },
+  { id: "confirm", label: "تأكيد", number: 6 },
 ];
 
 // ─── Phone helpers ───────────────────────────────────────────────────────────
@@ -80,7 +86,19 @@ function isPhoneReadyForLookup(input: string): boolean {
 
 // ─────────────────────────────────────────────────────────────────────────────
 
-const BookingModal = ({ open, onOpenChange, barber, initialMode }: BookingModalProps) => {
+const BookingModal = ({ open, onOpenChange, barber, initialMode, initialServiceMatches, bookingNote }: BookingModalProps) => {
+  // ── Branch state (global context) ──────────────────────────────────────────
+  const {
+    branches,
+    isLoadingBranches,
+    branchesError,
+    selectedBranch,
+    hasConfirmedBranch,
+    selectBranch,
+  } = useBranch();
+  const branchCode = selectedBranch?.branchCode;
+  const prevBranchCodeRef = useRef<string | undefined>(undefined);
+
   // ── API state ──────────────────────────────────────────────────────────────
   const [config, setConfig] = useState<BookingConfigResponse | null>(null);
   const [services, setServices] = useState<BookingService[]>([]);
@@ -97,7 +115,7 @@ const BookingModal = ({ open, onOpenChange, barber, initialMode }: BookingModalP
   const [isLoadingSlots, setIsLoadingSlots] = useState(false);
 
   // ── Booking state ──────────────────────────────────────────────────────────
-  const [currentStep, setCurrentStep] = useState<BookingStep>(initialMode ? "service" : "mode");
+  const [currentStep, setCurrentStep] = useState<BookingStep>("branch");
   const [selectedServiceIds, setSelectedServiceIds] = useState<number[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date>();
   const [selectedTime, setSelectedTime] = useState<string>();
@@ -124,6 +142,29 @@ const BookingModal = ({ open, onOpenChange, barber, initialMode }: BookingModalP
       if (stored) setSavedClient(stored);
     }
   }, [currentStep]);
+
+  // ── Clear downstream selections if branch changes mid-flow ─────────────────
+  // (e.g. user switches branch via the header widget while this modal is open)
+  useEffect(() => {
+    const prev = prevBranchCodeRef.current;
+    prevBranchCodeRef.current = branchCode;
+    if (prev === undefined || prev === branchCode) return;
+
+    setSelectedServiceIds([]);
+    setSelectedDate(undefined);
+    setSelectedTime(undefined);
+    setSelectedSlot(undefined);
+    setAvailableDays([]);
+    setAvailableSlots([]);
+    setConfig(null);
+    setServices([]);
+    setConfirmedPlan(null);
+    setSubmitError(null);
+    setCurrentStep((step) => {
+      if (step === "branch" || step === "success") return step;
+      return initialMode ? "service" : "mode";
+    });
+  }, [branchCode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Client phone lookup (debounced, validated, cached, international) ──────
   useEffect(() => {
@@ -175,9 +216,9 @@ const BookingModal = ({ open, onOpenChange, barber, initialMode }: BookingModalP
     return () => clearTimeout(timer);
   }, [customerPhone]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── Fetch config + services when modal opens ───────────────────────────────
+  // ── Fetch config + services once a branch is confirmed ─────────────────────
   useEffect(() => {
-    if (!open) return;
+    if (!open || !branchCode) return;
 
     let cancelled = false;
 
@@ -188,12 +229,24 @@ const BookingModal = ({ open, onOpenChange, barber, initialMode }: BookingModalP
 
       try {
         const [cfgRes, svcRes] = await Promise.all([
-          getBookingConfig(),
-          getBookingServices(),
+          getBookingConfig(branchCode),
+          getBookingServices(branchCode),
         ]);
         if (cancelled) return;
         setConfig(cfgRes);
         setServices(svcRes.services);
+        if (initialServiceMatches?.length) {
+          const normalizedMatches = initialServiceMatches.map((match) => match.trim().toLowerCase());
+          const matchedServiceIds = svcRes.services
+            .filter((service) => service.isBookableOnline && normalizedMatches.some((match) => service.name.trim().toLowerCase().includes(match) || match.includes(service.name.trim().toLowerCase())))
+            .map((service) => service.id);
+          if (matchedServiceIds.length) {
+            setSelectedServiceIds([...new Set(matchedServiceIds)]);
+            setCurrentStep("date");
+          } else {
+            setApiError("الخدمات المختارة غير متاحة للحجز حاليًا. يمكنك اختيار خدمات بديلة.");
+          }
+        }
       } catch {
         if (!cancelled) setApiError("تعذر تحميل بيانات الحجز، حاول مرة أخرى");
       } finally {
@@ -206,15 +259,16 @@ const BookingModal = ({ open, onOpenChange, barber, initialMode }: BookingModalP
 
     fetchData();
     return () => { cancelled = true; };
-  }, [open]);
+  }, [open, branchCode, initialServiceMatches]);
 
   // ── Fetch available days ───────────────────────────────────────────────────
   useEffect(() => {
-    if (currentStep !== "date" || selectedServiceIds.length === 0) return;
+    if (currentStep !== "date" || selectedServiceIds.length === 0 || !branchCode) return;
     let cancelled = false;
     setIsLoadingDays(true);
     setAvailableDays([]);
     const daysParams = {
+      branchCode,
       serviceIds: selectedServiceIds,
       mode: selectedMode,
       empId: selectedMode === "specific" ? barber.id : undefined,
@@ -244,17 +298,18 @@ const BookingModal = ({ open, onOpenChange, barber, initialMode }: BookingModalP
       })
       .finally(() => { if (!cancelled) setIsLoadingDays(false); });
     return () => { cancelled = true; };
-  }, [currentStep, selectedServiceIds, selectedMode, barber.id]);
+  }, [currentStep, selectedServiceIds, selectedMode, barber.id, branchCode]);
 
   // ── Fetch available slots ──────────────────────────────────────────────────
   useEffect(() => {
-    if (currentStep !== "time" || !selectedDate || selectedServiceIds.length === 0) return;
+    if (currentStep !== "time" || !selectedDate || selectedServiceIds.length === 0 || !branchCode) return;
     let cancelled = false;
     setIsLoadingSlots(true);
     setAvailableSlots([]);
     const dateStr = format(selectedDate, "yyyy-MM-dd");
 
     const params = {
+      branchCode,
       date: dateStr,
       serviceIds: selectedServiceIds,
       mode: selectedMode,
@@ -336,13 +391,13 @@ const BookingModal = ({ open, onOpenChange, barber, initialMode }: BookingModalP
       .finally(() => { if (!cancelled) setIsLoadingSlots(false); });
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentStep, selectedDate, selectedServiceIds, selectedMode, barber.id]);
+  }, [currentStep, selectedDate, selectedServiceIds, selectedMode, barber.id, branchCode]);
 
   // ── Helpers ────────────────────────────────────────────────────────────────
   const handleClose = () => {
     onOpenChange(false);
     setTimeout(() => {
-      setCurrentStep(initialMode ? "service" : "mode");
+      setCurrentStep("branch");
       setSelectedServiceIds([]);
       setSelectedDate(undefined);
       setSelectedTime(undefined);
@@ -419,10 +474,10 @@ const BookingModal = ({ open, onOpenChange, barber, initialMode }: BookingModalP
   };
 
   const handleBack = () => {
-    if (currentStep === "service") {
-      if (!initialMode) {
-        setCurrentStep("mode");
-      }
+    if (currentStep === "mode") {
+      setCurrentStep("branch");
+    } else if (currentStep === "service") {
+      setCurrentStep(initialMode ? "branch" : "mode");
     } else if (currentStep === "date") {
       setCurrentStep("service");
       setSelectedDate(undefined);
@@ -442,6 +497,12 @@ const BookingModal = ({ open, onOpenChange, barber, initialMode }: BookingModalP
     setCurrentStep("service");
   };
 
+  const handleBranchSelect = (branch: PublicBranch) => {
+    selectBranch(branch);
+    setCurrentStep(initialMode ? "service" : "mode");
+  };
+
+  /** Display-only: calendar day that owns an overnight slot (dayOffset=1). */
   const getActualBookingDate = (date: Date, slot?: AvailableSlot): Date => {
     if (slot?.dayOffset === 1) {
       const next = new Date(date);
@@ -454,6 +515,11 @@ const BookingModal = ({ open, onOpenChange, barber, initialMode }: BookingModalP
   const handleConfirm = async () => {
     if (isSubmitting) return;
     if (!selectedDate || !selectedTime || selectedServiceIds.length === 0) return;
+    if (!branchCode) {
+      setSubmitError("من فضلك اختر الفرع أولاً");
+      setCurrentStep("branch");
+      return;
+    }
 
     // Determine empId based on mode:
     // - nearest: use selectedSlot.empId (backend assigns barber per slot)
@@ -463,9 +529,18 @@ const BookingModal = ({ open, onOpenChange, barber, initialMode }: BookingModalP
         ? selectedSlot?.empId ?? undefined
         : (selectedSlot?.empId ?? barber.id);
 
-    const actualDate = getActualBookingDate(selectedDate, selectedSlot);
-    const dateStr = format(actualDate, "yyyy-MM-dd");
+    // Contract (same as Operations → /create):
+    //   date      = availability board / selected calendar day (NOT pre-advanced)
+    //   time      = selected slot clock time
+    //   dayOffset = selectedSlot.dayOffset (0 or 1)
+    // Backend /plan applies dayOffset exactly once. Do not send getActualBookingDate as date —
+    // that caused overnight bookings to land one day too late (double offset).
+    const dateStr = format(selectedDate, "yyyy-MM-dd");
     const dayOffset = selectedSlot?.dayOffset ?? 0;
+    const displayActualDate = format(
+      getActualBookingDate(selectedDate, selectedSlot),
+      "yyyy-MM-dd",
+    );
 
     if (process.env.NODE_ENV === "development") {
       console.log("[nearest frontend] selected mode:", selectedMode);
@@ -474,7 +549,8 @@ const BookingModal = ({ open, onOpenChange, barber, initialMode }: BookingModalP
       console.log("[nearest frontend] selectedSlot barberName:", selectedSlot?.barberName);
       console.log("[nearest frontend] selectedSlot available:", selectedSlot?.available);
       console.log("[booking submit] dayOffset:", dayOffset);
-      console.log("[booking submit] actualBookingDate:", dateStr);
+      console.log("[booking submit] boardDate (payload.date):", dateStr);
+      console.log("[booking submit] displayActualDate:", displayActualDate);
       console.log("[booking submit] serviceIds:", selectedServiceIds);
       console.log("[booking submit] empIdToUse:", empIdToUse);
       if (selectedMode === "nearest" && !selectedSlot?.empId) {
@@ -485,6 +561,7 @@ const BookingModal = ({ open, onOpenChange, barber, initialMode }: BookingModalP
     const resolvedName = customerName.trim() || (savedClient?.name ?? "");
     const resolvedPhone = customerPhone.trim() || (savedClient?.phone ?? "");
     const payload = {
+      branchCode,
       customer: { name: resolvedName, phone: resolvedPhone },
       serviceIds: selectedServiceIds,
       date: dateStr,
@@ -492,7 +569,7 @@ const BookingModal = ({ open, onOpenChange, barber, initialMode }: BookingModalP
       dayOffset,
       mode: selectedMode,
       empId: empIdToUse,
-      notes: "",
+      notes: bookingNote ?? "",
     };
 
     if (process.env.NODE_ENV === "development") {
@@ -573,6 +650,35 @@ const BookingModal = ({ open, onOpenChange, barber, initialMode }: BookingModalP
 
   // ── Inner render ───────────────────────────────────────────────────────────
   const renderContent = () => {
+    // Branch step always renders first, independent of config/services loading state
+    if (currentStep === "branch") {
+      return (
+        <div className="p-5 md:p-6" dir="rtl">
+          <div className="mb-5">
+            <h3 className="text-lg font-heading font-bold text-cut-black mb-1">في أي فرع تحب تحجز؟</h3>
+            <p className="text-cut-black/50 text-xs">اختار الفرع الأقرب ليك</p>
+          </div>
+          <BranchPicker
+            branches={branches}
+            selectedBranchCode={selectedBranch?.branchCode}
+            isLoading={isLoadingBranches}
+            error={branchesError}
+            variant="light"
+            onSelect={handleBranchSelect}
+          />
+          {hasConfirmedBranch && selectedBranch && (
+            <button
+              onClick={() => handleBranchSelect(selectedBranch)}
+              className="w-full mt-4 py-3 rounded-xl bg-cut-gold text-black font-bold hover:bg-cut-gold/80 transition-colors flex items-center justify-center gap-2"
+            >
+              <Check className="w-4 h-4" />
+              تأكيد فرع {selectedBranch.shortName || selectedBranch.branchName} ومتابعة
+            </button>
+          )}
+        </div>
+      );
+    }
+
     // Global loading
     if (isLoadingConfig || isLoadingServices) {
       return (
@@ -686,17 +792,15 @@ const BookingModal = ({ open, onOpenChange, barber, initialMode }: BookingModalP
               selectedCount={selectedServices.length}
               onContinue={() => setCurrentStep("date")}
             />
-            {!initialMode && (
-              <div className="px-6 pb-4 flex-shrink-0">
-                <button
-                  onClick={handleBack}
-                  className="w-full py-2.5 rounded-xl border border-cut-gold/15 text-cut-black/60 font-medium hover:bg-cut-black/[0.04] transition-colors flex items-center justify-center gap-2 text-sm"
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                  رجوع لاختيار الطريقة
-                </button>
-              </div>
-            )}
+            <div className="px-6 pb-4 flex-shrink-0">
+              <button
+                onClick={handleBack}
+                className="w-full py-2.5 rounded-xl border border-cut-gold/15 text-cut-black/60 font-medium hover:bg-cut-black/[0.04] transition-colors flex items-center justify-center gap-2 text-sm"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                {initialMode ? "رجوع لاختيار الفرع" : "رجوع لاختيار الطريقة"}
+              </button>
+            </div>
           </div>
         );
 
@@ -899,6 +1003,12 @@ const BookingModal = ({ open, onOpenChange, barber, initialMode }: BookingModalP
               </div>
 
               <div className="pt-3 border-t border-cut-gold/15 space-y-2.5">
+                {selectedBranch && (
+                  <div className="flex justify-between items-center">
+                    <span className="font-medium text-cut-black/90 text-sm">{selectedBranch.branchName}</span>
+                    <span className="text-cut-black/50 text-xs">الفرع</span>
+                  </div>
+                )}
                 {selectedServices.length > 0 && (
                   <div>
                     <div className="flex justify-between items-center">
@@ -1074,6 +1184,14 @@ const BookingModal = ({ open, onOpenChange, barber, initialMode }: BookingModalP
 
             {/* Totals */}
             <div className="bg-cut-black/[0.04] rounded-xl p-4 mb-5 text-right border border-cut-gold/10 space-y-2">
+              {(confirmedPlan?.branchName || selectedBranch?.branchName) && (
+                <div className="flex justify-between items-center">
+                  <span className="font-medium text-cut-black/90 text-sm">
+                    {confirmedPlan?.branchName ?? selectedBranch?.branchName}
+                  </span>
+                  <span className="text-cut-black/50 text-xs">الفرع</span>
+                </div>
+              )}
               {confirmedPlan?.totalDurationMinutes != null && (
                 <div className="flex justify-between items-center">
                   <span className="font-medium text-cut-black/90 text-sm">{confirmedPlan.totalDurationMinutes} دقيقة</span>

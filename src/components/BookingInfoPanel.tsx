@@ -21,9 +21,10 @@ interface BookingInfoPanelProps {
   servicePrice?: number;
   serviceDuration?: number;
   mode?: "specific" | "nearest";
+  branchName?: string;
 }
 
-const BookingInfoPanel = ({ barber, selectedDate, selectedTime, service, servicePrice, serviceDuration, mode = "specific" }: BookingInfoPanelProps) => {
+const BookingInfoPanel = ({ barber, selectedDate, selectedTime, service, servicePrice, serviceDuration, mode = "specific", branchName }: BookingInfoPanelProps) => {
   const formatDate = (date?: Date) => {
     if (!date) return null;
     return new Intl.DateTimeFormat("ar-EG", {
@@ -87,6 +88,19 @@ const BookingInfoPanel = ({ barber, selectedDate, selectedTime, service, service
         </p>
 
         <div className="space-y-4">
+          {/* Branch */}
+          {branchName && (
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 rounded-lg bg-cut-gold/10 flex items-center justify-center flex-shrink-0">
+                <MapPin className="w-4 h-4 text-cut-gold" />
+              </div>
+              <div>
+                <p className="text-cut-ivory/40 text-xs mb-0.5">الفرع</p>
+                <p className="text-cut-ivory font-medium text-sm">{branchName}</p>
+              </div>
+            </div>
+          )}
+
           {/* Booking mode */}
           <div className="flex items-start gap-3">
             <div className="w-8 h-8 rounded-lg bg-cut-gold/10 flex items-center justify-center flex-shrink-0">

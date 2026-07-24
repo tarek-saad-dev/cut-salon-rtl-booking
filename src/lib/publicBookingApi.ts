@@ -5,6 +5,14 @@
 // DayOfWeek: 0=Sunday … 6=Saturday
 // ─────────────────────────────────────────────────────────────────────────────
 
+// ─── Branch Contract (Phase 1F) ──────────────────────────────────────────────
+// Every discovery/write booking endpoint under /api/public/booking/* requires a
+// branchCode (query param on GET, body field on POST). The only exceptions are
+// booking-code lookup/cancel, which are globally unique by BookingCode.
+// Never invent/default a branch client-side — the user must explicitly pick one,
+// even if only a single branch is returned by /api/public/branches.
+// ─────────────────────────────────────────────────────────────────────────────
+
 // ─── Base URL ─────────────────────────────────────────────────────────────────
 
 const BOOKING_API_BASE_URL = process.env.NEXT_PUBLIC_BOOKING_API_BASE_URL || "";
@@ -15,7 +23,38 @@ function buildBookingApiUrl(path: string): string {
   return `${base}${cleanPath}`;
 }
 
+// ─── Errors ───────────────────────────────────────────────────────────────────
+
+export class BranchRequiredError extends Error {
+  constructor(public serverMessage?: string) {
+    super(serverMessage ?? "BRANCH_REQUIRED");
+    this.name = "BranchRequiredError";
+  }
+}
+
+export class InvalidBranchError extends Error {
+  constructor(public serverMessage?: string) {
+    super(serverMessage ?? "INVALID_BRANCH");
+    this.name = "InvalidBranchError";
+  }
+}
+
 // ─── Types ────────────────────────────────────────────────────────────────────
+
+export interface PublicBranch {
+  branchId: number;
+  branchCode: string;
+  branchName: string;
+  shortName: string | null;
+  address: string | null;
+  phone: string | null;
+  timeZone: string;
+}
+
+export interface PublicBranchesResponse {
+  ok: boolean;
+  branches: PublicBranch[];
+}
 
 export interface BookingSalon {
   name: string;
@@ -70,6 +109,14 @@ export interface BookingBarbersResponse {
 
 // ─── API helper ───────────────────────────────────────────────────────────────
 
+async function readErrorBody(res: Response): Promise<{ error?: string; message?: string } | null> {
+  try {
+    return (await res.json()) as { error?: string; message?: string };
+  } catch {
+    return null;
+  }
+}
+
 async function apiFetch<T>(fullPath: string): Promise<T> {
   const url = buildBookingApiUrl(fullPath);
   try {
@@ -78,10 +125,14 @@ async function apiFetch<T>(fullPath: string): Promise<T> {
       cache: "no-store",
     });
     if (!res.ok) {
+      const data = await readErrorBody(res);
+      if (data?.error === "BRANCH_REQUIRED") throw new BranchRequiredError(data.message);
+      if (data?.error === "INVALID_BRANCH") throw new InvalidBranchError(data.message);
       throw new Error(`HTTP ${res.status}`);
     }
     return res.json() as Promise<T>;
   } catch (error) {
+    if (error instanceof BranchRequiredError || error instanceof InvalidBranchError) throw error;
     if (process.env.NODE_ENV === "development") {
       console.error("[public booking api]", url, error);
     }
@@ -89,18 +140,30 @@ async function apiFetch<T>(fullPath: string): Promise<T> {
   }
 }
 
+// ─── Public branches ──────────────────────────────────────────────────────────
+
+export async function fetchPublicBranches(): Promise<PublicBranchesResponse> {
+  return apiFetch<PublicBranchesResponse>("/api/public/branches");
+}
+
 // ─── Public functions ─────────────────────────────────────────────────────────
 
-export async function getBookingConfig(): Promise<BookingConfigResponse> {
-  return apiFetch<BookingConfigResponse>("/api/public/booking/config");
+export async function getBookingConfig(branchCode: string): Promise<BookingConfigResponse> {
+  const qs = new URLSearchParams();
+  qs.set("branchCode", branchCode);
+  return apiFetch<BookingConfigResponse>(`/api/public/booking/config?${qs.toString()}`);
 }
 
-export async function getBookingServices(): Promise<BookingServicesResponse> {
-  return apiFetch<BookingServicesResponse>("/api/public/booking/services");
+export async function getBookingServices(branchCode: string): Promise<BookingServicesResponse> {
+  const qs = new URLSearchParams();
+  qs.set("branchCode", branchCode);
+  return apiFetch<BookingServicesResponse>(`/api/public/booking/services?${qs.toString()}`);
 }
 
-export async function getBookingBarbers(): Promise<BookingBarbersResponse> {
-  return apiFetch<BookingBarbersResponse>("/api/public/booking/barbers");
+export async function getBookingBarbers(branchCode: string): Promise<BookingBarbersResponse> {
+  const qs = new URLSearchParams();
+  qs.set("branchCode", branchCode);
+  return apiFetch<BookingBarbersResponse>(`/api/public/booking/barbers?${qs.toString()}`);
 }
 
 // ─── Available days ───────────────────────────────────────────────────────────
@@ -117,6 +180,7 @@ export interface AvailableDaysResponse {
 }
 
 export interface GetAvailableDaysParams {
+  branchCode: string;
   serviceIds: number[];
   mode: "specific" | "nearest";
   empId?: number;
@@ -126,6 +190,7 @@ export async function getAvailableDays(
   params: GetAvailableDaysParams,
 ): Promise<AvailableDaysResponse> {
   const qs = new URLSearchParams();
+  qs.set("branchCode", params.branchCode);
   qs.set("serviceIds", params.serviceIds.join(","));
   qs.set("mode", params.mode);
   if (params.mode === "specific" && params.empId != null) {
@@ -159,6 +224,7 @@ export interface AvailableSlotsResponse {
 }
 
 export interface GetAvailableSlotsParams {
+  branchCode: string;
   date: string;
   serviceIds: number[];
   mode: "specific" | "nearest";
@@ -182,6 +248,7 @@ export async function getAvailableSlots(
 ): Promise<AvailableSlotsResponse> {
   assertLocalDate(params.date, "getAvailableSlots");
   const qs = new URLSearchParams();
+  qs.set("branchCode", params.branchCode);
   qs.set("date", params.date);
   qs.set("serviceIds", params.serviceIds.join(","));
   qs.set("mode", params.mode);
@@ -193,6 +260,44 @@ export async function getAvailableSlots(
   );
 }
 
+// ─── Check slot (single-slot availability re-check) ──────────────────────────
+
+export interface CheckSlotRequest {
+  branchCode: string;
+  date: string;
+  time: string;
+  serviceIds: number[];
+  mode: "specific" | "nearest";
+  empId?: number;
+  dayOffset?: number;
+  source?: "public" | "operations" | "admin";
+}
+
+export interface CheckSlotResponse {
+  ok: boolean;
+  available: boolean;
+  reason?: string | null;
+}
+
+export async function checkSlot(body: CheckSlotRequest): Promise<CheckSlotResponse> {
+  assertLocalDate(body.date, "checkSlot");
+  assertLocalTime(body.time, "checkSlot");
+  const url = buildBookingApiUrl("/api/public/booking/check-slot");
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    cache: "no-store",
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const data = await readErrorBody(res);
+    if (data?.error === "BRANCH_REQUIRED") throw new BranchRequiredError(data.message);
+    if (data?.error === "INVALID_BRANCH") throw new InvalidBranchError(data.message);
+    throw new Error(`HTTP ${res.status}`);
+  }
+  return res.json() as Promise<CheckSlotResponse>;
+}
+
 // ─── Create booking (legacy — kept for reference) ────────────────────────────
 
 export interface CreateBookingCustomer {
@@ -201,6 +306,7 @@ export interface CreateBookingCustomer {
 }
 
 export interface CreateBookingRequest {
+  branchCode: string;
   customer: CreateBookingCustomer;
   serviceIds: number[];
   date: string;
@@ -242,10 +348,21 @@ export async function createBooking(
       body: JSON.stringify(body),
     });
     if (res.status === 409) throw new BookingConflictError();
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    if (!res.ok) {
+      const data = await readErrorBody(res);
+      if (data?.error === "BRANCH_REQUIRED") throw new BranchRequiredError(data.message);
+      if (data?.error === "INVALID_BRANCH") throw new InvalidBranchError(data.message);
+      throw new Error(`HTTP ${res.status}`);
+    }
     return res.json() as Promise<CreateBookingResponse>;
   } catch (error) {
-    if (error instanceof BookingConflictError) throw error;
+    if (
+      error instanceof BookingConflictError ||
+      error instanceof BranchRequiredError ||
+      error instanceof InvalidBranchError
+    ) {
+      throw error;
+    }
     if (process.env.NODE_ENV === "development") {
       console.error("[public booking api] createBooking", url, error);
     }
@@ -256,6 +373,7 @@ export async function createBooking(
 // ─── Booking Plan (multi-service) ────────────────────────────────────────────
 
 export interface BookingPlanRequest {
+  branchCode: string;
   customer: CreateBookingCustomer;
   serviceIds: number[];
   date: string;
@@ -287,6 +405,8 @@ export interface BookingPlanResponse {
   totalPrice: number;
   bookingCodes: string[];
   message?: string;
+  branchCode?: string;
+  branchName?: string;
 }
 
 export class BookingPlanError extends Error {
@@ -346,6 +466,8 @@ export async function getClientProfile(
 }
 
 // ─── Upcoming bookings ────────────────────────────────────────────────────────
+// Lookup is by phone (cross-branch) — branchCode is NOT required here. When the
+// backend includes branch metadata on a booking, surface it for display only.
 
 export interface UpcomingBookingService {
   id?: number | string;
@@ -367,6 +489,8 @@ export interface UpcomingBooking {
   totalDuration?: number | null;
   status?: string | null;
   canCancel?: boolean | null;
+  branchCode?: string | null;
+  branchName?: string | null;
 }
 
 export interface UpcomingBookingsResponse {
@@ -409,6 +533,8 @@ export async function getUpcomingBookings(
   }
 }
 
+// Cancel is globally unique by bookingId/BookingCode + phone — branchCode is
+// intentionally NOT sent (matches booking-code lookup/cancel exception).
 export async function cancelBooking(input: {
   bookingId: number | string;
   phone: string;
@@ -463,12 +589,20 @@ export async function createBookingPlan(
     }
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
+      if (data?.error === "BRANCH_REQUIRED") throw new BranchRequiredError(data.message);
+      if (data?.error === "INVALID_BRANCH") throw new InvalidBranchError(data.message);
       throw new BookingPlanError(data?.message ?? `HTTP ${res.status}`);
     }
     return res.json() as Promise<BookingPlanResponse>;
   } catch (error) {
-    if (error instanceof BookingConflictError) throw error;
-    if (error instanceof BookingPlanError) throw error;
+    if (
+      error instanceof BookingConflictError ||
+      error instanceof BookingPlanError ||
+      error instanceof BranchRequiredError ||
+      error instanceof InvalidBranchError
+    ) {
+      throw error;
+    }
     if (process.env.NODE_ENV === "development") {
       console.error("[public booking api] createBookingPlan", url, error);
     }
