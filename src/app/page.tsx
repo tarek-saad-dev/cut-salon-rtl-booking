@@ -1,7 +1,7 @@
 import HeroSection from "@/components/HeroSection";
 import NearestAvailability from "@/components/NearestAvailability";
 import BarbersSection from "@/components/BarbersSection";
-import ServicesSection from "@/components/ServicesSection";
+import HomePricesLink from "@/components/HomePricesLink";
 import BookingCTA from "@/components/BookingCTA";
 import BenefitsSection from "@/components/BenefitsSection";
 import HowItWorksSection from "@/components/HowItWorksSection";
@@ -13,7 +13,7 @@ export default function Home() {
       <HeroSection />
       <NearestAvailability />
       <BarbersSection />
-      <ServicesSection />
+      <HomePricesLink />
       <BookingCTA />
       <BenefitsSection />
       <HowItWorksSection />
