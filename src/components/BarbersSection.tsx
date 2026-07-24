@@ -2,9 +2,9 @@
 
 import { useState, useCallback, useEffect } from "react";
 import useEmblaCarousel from "embla-carousel-react";
-import { ChevronLeft, ChevronRight, Scissors, Clock, Zap } from "lucide-react";
+import { ChevronLeft, ChevronRight, Scissors, Clock, Loader2, Zap } from "lucide-react";
 import BookingModal, { type BarberBookingInfo, type BookingMode } from "./BookingModal";
-import { getBookingBarbers, type BookingBarber } from "@/lib/publicBookingApi";
+import { getBookingBarbers, getBookingStatus, type BookingBarber } from "@/lib/publicBookingApi";
 import { useBranch } from "@/context/BranchContext";
 
 type DisplayBarber = BarberBookingInfo & { buttonText: string };
@@ -129,6 +129,12 @@ type GroomBookingDetail = {
   note: string;
 };
 
+type BookingGate =
+  | { status: "loading" }
+  | { status: "enabled" }
+  | { status: "unavailable"; message: string }
+  | { status: "error"; message: string };
+
 const NEAREST_PLACEHOLDER_BARBER: DisplayBarber = {
   name: "أقرب حلاق متاح",
   image: "/cutsalon.png",
@@ -141,6 +147,7 @@ const BarbersSection = () => {
   const [selectedBarber, setSelectedBarber] = useState<DisplayBarber | null>(null);
   const [bookingMode, setBookingMode] = useState<BookingMode | undefined>(undefined);
   const { selectedBranch } = useBranch();
+  const [bookingGate, setBookingGate] = useState<BookingGate>({ status: "loading" });
   const [groomBooking, setGroomBooking] = useState<GroomBookingDetail | null>(null);
   const [barbers, setBarbers] = useState<DisplayBarber[]>(FALLBACK_BARBERS);
   const [isLoadingBarbers, setIsLoadingBarbers] = useState(true);
@@ -149,6 +156,28 @@ const BarbersSection = () => {
     setBookingMode("specific");
     setSelectedBarber(barber);
   };
+
+  useEffect(() => {
+    if (!selectedBranch?.branchCode) {
+      setBookingGate({ status: "loading" });
+      return;
+    }
+
+    let cancelled = false;
+    setBookingGate({ status: "loading" });
+    getBookingStatus(selectedBranch.branchCode)
+      .then((result) => {
+        if (cancelled) return;
+        setBookingGate(result.bookingEnabled
+          ? { status: "enabled" }
+          : { status: "unavailable", message: result.message || "الحجز غير متاح اليوم. برجاء اتصل أو احجز عبر الواتساب" });
+      })
+      .catch(() => {
+        if (!cancelled) setBookingGate({ status: "error", message: "تعذر التحقق من حالة الحجز" });
+      });
+
+    return () => { cancelled = true; };
+  }, [selectedBranch?.branchCode]);
 
   // Listen for hero section booking events
   useEffect(() => {
@@ -195,7 +224,7 @@ const BarbersSection = () => {
   }, [barbers]);
 
   useEffect(() => {
-    if (!selectedBranch?.branchCode) {
+    if (bookingGate.status !== "enabled" || !selectedBranch?.branchCode) {
       setIsLoadingBarbers(false);
       return;
     }
@@ -206,7 +235,7 @@ const BarbersSection = () => {
       })
       .catch(() => { /* keep fallback */ })
       .finally(() => setIsLoadingBarbers(false));
-  }, [selectedBranch?.branchCode]);
+  }, [bookingGate.status, selectedBranch?.branchCode]);
 
   const [emblaRef, emblaApi] = useEmblaCarousel({
     direction: "rtl",
@@ -238,6 +267,26 @@ const BarbersSection = () => {
 
   const scrollPrev = useCallback(() => { emblaApi?.scrollPrev(); }, [emblaApi]);
   const scrollNext = useCallback(() => { emblaApi?.scrollNext(); }, [emblaApi]);
+
+  if (bookingGate.status !== "enabled") {
+    const isLoading = bookingGate.status === "loading";
+    const message = isLoading
+      ? "جارٍ التحقق من حالة الحجز"
+      : bookingGate.message;
+    return (
+      <section id="barbers" dir="rtl" className="relative overflow-hidden bg-cut-black py-20 text-cut-ivory md:py-28">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_45%,rgba(74,0,15,0.48),transparent_42%)]" />
+        <div className="container relative z-10 px-5 md:px-8">
+          <div className="mx-auto max-w-2xl border border-cut-bronze/35 bg-cut-soft-black/90 p-8 text-center md:p-10">
+            {isLoading ? <Loader2 className="mx-auto h-6 w-6 animate-spin text-cut-bronze" /> : <Clock className="mx-auto h-7 w-7 text-cut-bronze" />}
+            <h2 className="mt-5 text-2xl font-black">{isLoading ? "لحظة من فضلك" : "الحجز الإلكتروني غير متاح حاليًا"}</h2>
+            <p className="mt-3 leading-8 text-cut-ivory/70">{message}</p>
+            {!isLoading && <a href="https://wa.me/201012126899" target="_blank" rel="noopener noreferrer" className="mt-7 inline-flex min-h-12 items-center justify-center bg-cut-ivory px-6 font-bold text-cut-black transition hover:bg-cut-warm-beige">احجز عبر الواتساب</a>}
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section id="barbers" className="relative py-20 md:py-28 bg-cut-black overflow-hidden">

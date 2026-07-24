@@ -107,6 +107,12 @@ export interface BookingBarbersResponse {
   barbers: BookingBarber[];
 }
 
+export interface BookingStatusResponse {
+  ok: boolean;
+  bookingEnabled: boolean;
+  message?: string;
+}
+
 // ─── API helper ───────────────────────────────────────────────────────────────
 
 async function readErrorBody(res: Response): Promise<{ error?: string; message?: string } | null> {
@@ -147,6 +153,16 @@ export async function fetchPublicBranches(): Promise<PublicBranchesResponse> {
 }
 
 // ─── Public functions ─────────────────────────────────────────────────────────
+
+export async function getBookingStatus(branchCode: string): Promise<BookingStatusResponse> {
+  const qs = new URLSearchParams();
+  qs.set("branchCode", branchCode);
+  const data = await apiFetch<BookingStatusResponse>(`/api/public/booking/status?${qs.toString()}`);
+  if (!data.ok || typeof data.bookingEnabled !== "boolean") {
+    throw new Error("Unable to verify booking status");
+  }
+  return data;
+}
 
 export async function getBookingConfig(branchCode: string): Promise<BookingConfigResponse> {
   const qs = new URLSearchParams();
