@@ -274,14 +274,30 @@ const BarbersSection = () => {
       ? "جارٍ التحقق من حالة الحجز"
       : bookingGate.message;
     return (
-      <section id="barbers" dir="rtl" className="relative overflow-hidden bg-cut-black py-20 text-cut-ivory md:py-28">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_45%,rgba(74,0,15,0.48),transparent_42%)]" />
+      <section id="barbers" dir="rtl" className="relative isolate overflow-hidden bg-cut-black py-20 text-cut-ivory md:py-28">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_45%,rgba(74,0,15,0.62),transparent_48%)]" />
+        <div className="absolute left-1/2 top-1/2 h-[34rem] w-[34rem] -translate-x-1/2 -translate-y-1/2 rounded-full border border-cut-bronze/15" />
         <div className="container relative z-10 px-5 md:px-8">
-          <div className="mx-auto max-w-2xl border border-cut-bronze/35 bg-cut-soft-black/90 p-8 text-center md:p-10">
-            {isLoading ? <Loader2 className="mx-auto h-6 w-6 animate-spin text-cut-bronze" /> : <Clock className="mx-auto h-7 w-7 text-cut-bronze" />}
-            <h2 className="mt-5 text-2xl font-black">{isLoading ? "لحظة من فضلك" : "الحجز الإلكتروني غير متاح حاليًا"}</h2>
-            <p className="mt-3 leading-8 text-cut-ivory/70">{message}</p>
-            {!isLoading && <a href="https://wa.me/201012126899" target="_blank" rel="noopener noreferrer" className="mt-7 inline-flex min-h-12 items-center justify-center bg-cut-ivory px-6 font-bold text-cut-black transition hover:bg-cut-warm-beige">احجز عبر الواتساب</a>}
+          <div className="mx-auto max-w-2xl overflow-hidden border border-cut-bronze/35 bg-[linear-gradient(145deg,rgba(23,4,6,0.98),rgba(5,5,5,0.98))] shadow-[0_24px_80px_rgba(0,0,0,0.45)]">
+            <div className="h-px bg-gradient-to-l from-transparent via-cut-warm-beige to-transparent" />
+            <div className="p-8 text-center md:p-12">
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border border-cut-bronze/45 bg-cut-burgundy/35">
+                {isLoading ? <Loader2 className="h-7 w-7 animate-spin text-cut-bronze" /> : <Clock className="h-7 w-7 text-cut-bronze" />}
+              </div>
+              <p className="mt-6 font-display text-xs tracking-[0.32em] text-cut-bronze">CUT SALON / BOOKING</p>
+              <h2 className="mt-4 text-3xl font-black md:text-4xl">{isLoading ? "لحظة من فضلك" : "الحجز الإلكتروني غير متاح حاليًا"}</h2>
+              <p className="mx-auto mt-4 max-w-md leading-8 text-cut-ivory/70">{message}</p>
+              {!isLoading && <div className="mx-auto mt-9 grid max-w-md gap-3 sm:grid-cols-2">
+                <a href="tel:035861483" className="group flex min-h-14 flex-col items-center justify-center border border-cut-bronze/40 bg-cut-ivory/[0.03] px-4 transition hover:border-cut-warm-beige hover:bg-cut-burgundy/45">
+                  <span className="text-xs text-cut-ivory/55">اتصل للحجز</span>
+                  <span className="mt-1 font-display text-lg tracking-[0.08em] text-cut-warm-beige" dir="ltr">035861483</span>
+                </a>
+                <a href="tel:01012126899" className="group flex min-h-14 flex-col items-center justify-center border border-cut-bronze/40 bg-cut-ivory/[0.03] px-4 transition hover:border-cut-warm-beige hover:bg-cut-burgundy/45">
+                  <span className="text-xs text-cut-ivory/55">اتصل للحجز</span>
+                  <span className="mt-1 font-display text-lg tracking-[0.08em] text-cut-warm-beige" dir="ltr">01012126899</span>
+                </a>
+              </div>}
+            </div>
           </div>
         </div>
       </section>
