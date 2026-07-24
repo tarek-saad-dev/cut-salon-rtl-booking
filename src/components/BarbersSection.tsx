@@ -6,6 +6,7 @@ import { ChevronLeft, ChevronRight, Scissors, Clock, Loader2, Zap } from "lucide
 import BookingModal, { type BarberBookingInfo, type BookingMode } from "./BookingModal";
 import { getBookingBarbers, getBookingStatus, type BookingBarber } from "@/lib/publicBookingApi";
 import { useBranch } from "@/context/BranchContext";
+import BranchPicker from "./BranchPicker";
 
 type DisplayBarber = BarberBookingInfo & { buttonText: string };
 
@@ -131,6 +132,7 @@ type GroomBookingDetail = {
 
 type BookingGate =
   | { status: "loading" }
+  | { status: "branch" }
   | { status: "enabled" }
   | { status: "unavailable"; message: string }
   | { status: "error"; message: string };
@@ -146,7 +148,7 @@ const NEAREST_PLACEHOLDER_BARBER: DisplayBarber = {
 const BarbersSection = () => {
   const [selectedBarber, setSelectedBarber] = useState<DisplayBarber | null>(null);
   const [bookingMode, setBookingMode] = useState<BookingMode | undefined>(undefined);
-  const { selectedBranch } = useBranch();
+  const { branches, isLoadingBranches, branchesError, selectedBranch, selectBranch } = useBranch();
   const [bookingGate, setBookingGate] = useState<BookingGate>({ status: "loading" });
   const [groomBooking, setGroomBooking] = useState<GroomBookingDetail | null>(null);
   const [barbers, setBarbers] = useState<DisplayBarber[]>(FALLBACK_BARBERS);
@@ -159,7 +161,7 @@ const BarbersSection = () => {
 
   useEffect(() => {
     if (!selectedBranch?.branchCode) {
-      setBookingGate({ status: "loading" });
+      setBookingGate({ status: isLoadingBranches ? "loading" : "branch" });
       return;
     }
 
@@ -177,7 +179,7 @@ const BarbersSection = () => {
       });
 
     return () => { cancelled = true; };
-  }, [selectedBranch?.branchCode]);
+  }, [isLoadingBranches, selectedBranch?.branchCode]);
 
   // Listen for hero section booking events
   useEffect(() => {
@@ -270,9 +272,12 @@ const BarbersSection = () => {
 
   if (bookingGate.status !== "enabled") {
     const isLoading = bookingGate.status === "loading";
+    const requiresBranch = bookingGate.status === "branch";
     const message = isLoading
       ? "جارٍ التحقق من حالة الحجز"
-      : bookingGate.message;
+      : requiresBranch
+        ? "اختر الفرع أولًا لعرض المواعيد المتاحة."
+        : bookingGate.message;
     return (
       <section id="barbers" dir="rtl" className="relative isolate overflow-hidden bg-cut-black py-20 text-cut-ivory md:py-28">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_45%,rgba(74,0,15,0.62),transparent_48%)]" />
@@ -285,9 +290,9 @@ const BarbersSection = () => {
                 {isLoading ? <Loader2 className="h-7 w-7 animate-spin text-cut-bronze" /> : <Clock className="h-7 w-7 text-cut-bronze" />}
               </div>
               <p className="mt-6 font-display text-xs tracking-[0.32em] text-cut-bronze">CUT SALON / BOOKING</p>
-              <h2 className="mt-4 text-3xl font-black md:text-4xl">{isLoading ? "لحظة من فضلك" : "الحجز الإلكتروني غير متاح حاليًا"}</h2>
+              <h2 className="mt-4 text-3xl font-black md:text-4xl">{isLoading ? "لحظة من فضلك" : requiresBranch ? "اختر فرعك للحجز" : "الحجز الإلكتروني غير متاح حاليًا"}</h2>
               <p className="mx-auto mt-4 max-w-md leading-8 text-cut-ivory/70">{message}</p>
-              {!isLoading && <div className="mx-auto mt-9 grid max-w-md gap-3 sm:grid-cols-2">
+              {requiresBranch ? <div className="mx-auto mt-8 max-w-md text-right"><BranchPicker branches={branches} selectedBranchCode={selectedBranch?.branchCode} isLoading={isLoadingBranches} error={branchesError} variant="dark" onSelect={selectBranch} /></div> : !isLoading && <div className="mx-auto mt-9 grid max-w-md gap-3 sm:grid-cols-2">
                 <a href="tel:035861483" className="group flex min-h-14 flex-col items-center justify-center border border-cut-bronze/40 bg-cut-ivory/[0.03] px-4 transition hover:border-cut-warm-beige hover:bg-cut-burgundy/45">
                   <span className="text-xs text-cut-ivory/55">اتصل للحجز</span>
                   <span className="mt-1 font-display text-lg tracking-[0.08em] text-cut-warm-beige" dir="ltr">035861483</span>
