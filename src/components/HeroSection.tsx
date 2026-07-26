@@ -61,17 +61,17 @@ const HeroSection = () => {
                 <span className="cut-editorial-label font-display">THE CUT ISSUE</span>
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-px bg-gradient-to-l from-cut-bronze to-transparent" />
-                  <span className="text-cut-warm-beige text-xs md:text-sm font-bold tracking-wide">PREMIUM GROOMING</span>
+                  <span className="cut-ar-meta text-cut-warm-beige text-xs md:text-sm font-bold tracking-wide">PREMIUM GROOMING</span>
                   <div className="w-10 h-px bg-gradient-to-r from-cut-bronze to-transparent" />
                 </div>
               </motion.div>
 
               <motion.h1 custom={1} variants={fadeUp} initial="hidden" animate="visible"
-                className="font-heading font-black leading-[1.05]">
-                <span className="block text-[2.4rem] md:text-6xl lg:text-[4.5rem] text-cut-ivory tracking-tight">
+                className="cut-ar-hero-heading font-heading font-black leading-[1.05]">
+                <span className="cut-ar-hero-primary block text-[2.4rem] md:text-6xl lg:text-[4.5rem] text-cut-ivory tracking-tight">
                   الترقية تبدأ من هنا
                 </span>
-                <span className="block text-[2rem] md:text-5xl lg:text-[3.5rem] mt-2 text-cut-ivory/90">
+                <span className="cut-ar-hero-secondary block text-[2rem] md:text-5xl lg:text-[3.5rem] mt-2 text-cut-ivory/90">
                   ستايلك{" "}
                   <span className="font-editorial italic text-cut-warm-beige">قرار.</span>
                 </span>
@@ -119,8 +119,8 @@ const HeroSection = () => {
                   <div key={b.title}
                     className="flex flex-col items-center gap-1.5 px-3 py-3 rounded-xl bg-cut-espresso/50 backdrop-blur-sm border border-cut-bronze/15 hover:border-cut-bronze/35 transition-colors">
                     <b.icon className="w-4 h-4 text-cut-bronze" />
-                    <p className="text-cut-ivory text-[11px] md:text-xs font-bold leading-tight text-center">{b.title}</p>
-                    <p className="text-cut-ivory/35 text-[9px] md:text-[10px] leading-tight text-center hidden md:block">{b.sub}</p>
+                    <p className="cut-ar-ui-title text-cut-ivory text-[11px] md:text-xs font-bold leading-tight text-center">{b.title}</p>
+                    <p className="cut-ar-meta text-cut-ivory/35 text-[9px] md:text-[10px] leading-tight text-center hidden md:block">{b.sub}</p>
                   </div>
                 ))}
               </motion.div>
@@ -154,9 +154,9 @@ const HeroSection = () => {
                   <img src={b.image} alt={b.name} className="w-full h-full object-cover object-top" loading="lazy" />
                 </div>
                 <div className="flex-1 text-right min-w-0">
-                  <p className="text-cut-ivory font-bold text-sm truncate">{b.name}</p>
+                  <p className="cut-ar-ui-title text-cut-ivory font-bold text-sm truncate">{b.name}</p>
                   <div className="flex items-center justify-end gap-1 mt-0.5">
-                    <span className="text-cut-ivory/45 text-xs">{b.rating}</span>
+                    <span className="cut-ar-meta cut-ar-numeric text-cut-ivory/45 text-xs">{b.rating}</span>
                     <Star className="w-3 h-3 text-cut-warm-beige fill-cut-warm-beige" />
                   </div>
                 </div>

@@ -2,6 +2,7 @@
 
 import { MapPin, Phone, Check, Loader2, Building2 } from "lucide-react";
 import type { PublicBranch } from "@/lib/publicBookingApi";
+import { useLanguage } from "@/context/LanguageContext";
 
 interface BranchPickerProps {
   branches: PublicBranch[];
@@ -35,11 +36,12 @@ const BranchPicker = ({
   variant = "light",
   compact = false,
 }: BranchPickerProps) => {
+  const { lang, dir } = useLanguage();
   const isLight = variant === "light";
 
   if (isLoading) {
     return (
-      <div className="space-y-3" dir="rtl">
+      <div className="space-y-3" dir={dir}>
         <SkeletonCard variant={variant} />
         <SkeletonCard variant={variant} />
       </div>
@@ -52,7 +54,7 @@ const BranchPicker = ({
         className={`rounded-xl p-4 text-center text-sm ${
           isLight ? "bg-red-50 border border-red-200 text-red-600" : "bg-red-500/10 border border-red-500/20 text-red-400"
         }`}
-        dir="rtl"
+        dir={dir}
       >
         {error}
       </div>
@@ -65,22 +67,22 @@ const BranchPicker = ({
         className={`rounded-xl p-4 text-center text-sm ${
           isLight ? "bg-cut-black/[0.04] text-cut-black/60" : "bg-white/[0.04] text-cut-ivory/50"
         }`}
-        dir="rtl"
+        dir={dir}
       >
-        لا توجد فروع متاحة حاليًا
+        {lang === "ar" ? "لا توجد فروع متاحة حاليًا" : "No branches are currently available."}
       </div>
     );
   }
 
   return (
-    <div className="space-y-3" dir="rtl">
+    <div className="space-y-3" dir={dir}>
       {branches.map((branch) => {
         const isSelected = branch.branchCode === selectedBranchCode;
         return (
           <button
             key={branch.branchCode}
             onClick={() => onSelect(branch)}
-            className={`w-full rounded-2xl border text-right transition-all duration-200 group cursor-pointer ${
+            className={`w-full rounded-2xl border text-start transition-all duration-200 group cursor-pointer ${
               compact ? "p-3" : "p-4"
             } ${
               isSelected

@@ -103,10 +103,10 @@ const BarberCard = ({
         <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-cut-surface to-transparent" />
       </div>
       <div className="p-4 md:p-5 text-center -mt-2 relative z-10">
-        <h3 className="font-heading text-lg md:text-xl font-bold text-cut-ivory mb-0.5">{barber.name}</h3>
+        <h3 className="cut-ar-ui-title font-heading text-lg md:text-xl font-bold text-cut-ivory mb-0.5">{barber.name}</h3>
         <div className="flex items-center justify-center gap-1.5 mb-3">
           <Scissors className="w-3 h-3 text-cut-gold" />
-          <p className="text-cut-gold/70 text-xs font-medium">{barber.role}</p>
+          <p className="cut-ar-meta text-cut-gold/70 text-xs font-medium">{barber.role}</p>
         </div>
         <button
           onClick={onSelect}
@@ -290,7 +290,7 @@ const BarbersSection = () => {
                 {isLoading ? <Loader2 className="h-7 w-7 animate-spin text-cut-bronze" /> : <Clock className="h-7 w-7 text-cut-bronze" />}
               </div>
               <p className="mt-6 font-display text-xs tracking-[0.32em] text-cut-bronze">CUT SALON / BOOKING</p>
-              <h2 className="mt-4 text-3xl font-black md:text-4xl">{isLoading ? "لحظة من فضلك" : requiresBranch ? "اختر فرعك للحجز" : "الحجز الإلكتروني غير متاح حاليًا"}</h2>
+              <h2 className="cut-ar-section-heading mt-4 text-3xl font-black md:text-4xl">{isLoading ? "لحظة من فضلك" : requiresBranch ? "اختر فرعك للحجز" : "الحجز الإلكتروني غير متاح حاليًا"}</h2>
               <p className="mx-auto mt-4 max-w-md leading-8 text-cut-ivory/70">{message}</p>
               {requiresBranch ? <div className="mx-auto mt-8 max-w-md text-right"><BranchPicker branches={branches} selectedBranchCode={selectedBranch?.branchCode} isLoading={isLoadingBranches} error={branchesError} variant="dark" onSelect={selectBranch} /></div> : !isLoading && <div className="mx-auto mt-9 grid max-w-md gap-3 sm:grid-cols-2">
                 <a href="tel:035861483" className="group flex min-h-14 flex-col items-center justify-center border border-cut-bronze/40 bg-cut-ivory/[0.03] px-4 transition hover:border-cut-warm-beige hover:bg-cut-burgundy/45">
@@ -317,8 +317,8 @@ const BarbersSection = () => {
       <div className="container px-4 relative z-10">
         {/* Section header */}
         <div className="text-center mb-10 md:mb-14">
-          <p className="text-cut-gold font-heading font-bold text-sm tracking-widest mb-3">فريقنا</p>
-          <h2 className="font-heading text-3xl md:text-4xl lg:text-5xl font-black text-cut-ivory">
+          <p className="cut-editorial-label text-cut-gold font-heading font-bold text-sm tracking-widest mb-3">فريقنا</p>
+          <h2 className="cut-ar-section-heading font-heading text-3xl md:text-4xl lg:text-5xl font-black text-cut-ivory">
             اختَر <span className="text-gold-gradient">حلاقك المفضل</span>
           </h2>
         </div>
@@ -338,13 +338,13 @@ const BarbersSection = () => {
               </div>
               <div className="text-right flex-1">
                 <div className="flex items-center gap-2 mb-1">
-                  <p className="text-cut-ivory font-heading font-bold text-sm md:text-base">مش فارق معاك مين؟ احجز أقرب ميعاد</p>
-                  <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-cut-gold/15 text-cut-gold border border-cut-gold/20">أسرع</span>
+                  <p className="cut-ar-ui-title text-cut-ivory font-heading font-bold text-sm md:text-base">مش فارق معاك مين؟ احجز أقرب ميعاد</p>
+                  <span className="cut-ar-meta text-[9px] font-bold px-1.5 py-0.5 rounded bg-cut-gold/15 text-cut-gold border border-cut-gold/20">أسرع</span>
                 </div>
-                <p className="text-cut-ivory/65 text-xs md:text-sm">النظام يختارلك أقرب حلاق متاح وأقرب وقت</p>
+                <p className="cut-ar-meta text-cut-ivory/65 text-xs md:text-sm">النظام يختارلك أقرب حلاق متاح وأقرب وقت</p>
               </div>
               <div className="hidden sm:flex items-center gap-1 px-4 py-2 rounded-xl bg-cut-gold/10 border border-cut-gold/20 group-hover:bg-cut-gold/20 transition-colors flex-shrink-0">
-                <span className="text-cut-gold font-bold text-xs">احجز الآن</span>
+                <span className="cut-ar-ui-title text-cut-gold font-bold text-xs">احجز الآن</span>
               </div>
             </div>
           </button>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Calendar, Menu, X } from "lucide-react";
 import ClientProfileWidget from "./ClientProfileWidget";
@@ -20,179 +20,144 @@ const NAV_LINKS: { label: keyof typeof navigationLabels; href: string; active?: 
 
 function LanguageToggle({ className = "" }: { className?: string }) {
   const { lang, setLang } = useLanguage();
+  const nextLanguage = lang === "ar" ? "en" : "ar";
 
   return (
-    <div className={`items-center rounded-full border border-cut-bronze/40 bg-cut-black/70 p-1 ${className}`} aria-label="Language selector">
-      <button type="button" onClick={() => setLang("ar")} className={`min-h-8 rounded-full px-2.5 text-xs font-bold transition ${lang === "ar" ? "bg-cut-ivory text-cut-black" : "text-cut-warm-beige hover:text-cut-ivory"}`}>العربية</button>
-      <button type="button" onClick={() => setLang("en")} className={`min-h-8 rounded-full px-2.5 text-xs font-bold transition ${lang === "en" ? "bg-cut-ivory text-cut-black" : "text-cut-warm-beige hover:text-cut-ivory"}`}>EN</button>
-    </div>
+    <button
+      type="button"
+      onClick={() => setLang(nextLanguage)}
+      className={`inline-flex h-11 min-w-11 items-center justify-center rounded-xl border border-cut-bronze/40 bg-cut-black/70 px-3 text-xs font-black tracking-[0.14em] text-cut-warm-beige transition hover:border-cut-warm-beige hover:text-cut-ivory focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cut-warm-beige ${className}`}
+      aria-label={lang === "ar" ? "Switch to English" : "التبديل إلى العربية"}
+    >
+      {lang === "ar" ? "EN" : "AR"}
+    </button>
   );
 }
 
 export default function MainNav() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const menuTriggerRef = useRef<HTMLButtonElement>(null);
+  const wasMobileOpenRef = useRef(false);
   const { lang, dir } = useLanguage();
   const label = (key: keyof typeof navigationLabels) => navigationLabels[key][lang];
+  const barberHref = lang === "en" ? "/#english-barbers" : "/#barbers";
+  const closeMobileMenu = () => setMobileOpen(false);
 
   useEffect(() => {
-    const onResize = () => { if (window.innerWidth >= 768) setMobileOpen(false); };
+    const onResize = () => { if (window.innerWidth >= 768) closeMobileMenu(); };
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
   }, []);
 
   useEffect(() => {
     document.body.style.overflow = mobileOpen ? "hidden" : "";
+    if (!mobileOpen && wasMobileOpenRef.current) menuTriggerRef.current?.focus();
+    wasMobileOpenRef.current = mobileOpen;
     return () => { document.body.style.overflow = ""; };
   }, [mobileOpen]);
 
+  useEffect(() => {
+    const onEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") closeMobileMenu();
+    };
+    window.addEventListener("keydown", onEscape);
+    return () => window.removeEventListener("keydown", onEscape);
+  }, []);
+
+  const openBooking = () => document.getElementById(lang === "en" ? "english-barbers" : "barbers")?.scrollIntoView({ behavior: "smooth", block: "start" });
+
   return (
     <>
-      <motion.nav
+      <motion.header
         initial={{ opacity: 0, y: -16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: "easeOut" }}
-        className="cut-nav-glass fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-5 md:px-12 lg:px-20 py-3.5 md:py-4"
-        aria-label={lang === "ar" ? "التنقل الرئيسي" : "Main navigation"}
+        className="cut-nav-glass fixed inset-x-0 top-0 z-50"
+        dir={dir}
       >
-        <a href="/" className="flex items-center gap-1.5 select-none group" aria-label="CUT Salon - الرئيسية">
-          <span className="text-cut-bronze text-lg font-black tracking-widest group-hover:text-cut-warm-beige transition-colors">—</span>
-          <div className="text-center mx-1">
-            <span className="text-cut-ivory text-2xl font-black tracking-[0.25em] leading-none font-display">CUT</span>
-            <div className="text-[9px] text-cut-bronze tracking-[0.5em] font-semibold -mt-0.5 group-hover:text-cut-warm-beige transition-colors">SALON</div>
-          </div>
-          <span className="text-cut-bronze text-lg font-black tracking-widest group-hover:text-cut-warm-beige transition-colors">—</span>
-        </a>
-
-        <ul className="hidden md:flex items-center gap-8" role="menubar">
-          {NAV_LINKS.map((link) => (
-            <li key={link.label} role="none">
-              <a href={link.href} role="menuitem"
-                className={
-                  link.isClub
-                    ? "text-sm font-black tracking-wider text-cut-warm-beige border border-cut-bronze/35 rounded-lg px-3 py-1 hover:bg-cut-burgundy/40 hover:border-cut-bronze/60 transition-all duration-300"
-                    : "text-sm font-semibold transition-all duration-300 text-cut-ivory/80 hover:text-cut-warm-beige relative after:absolute after:-bottom-1 after:right-0 after:left-0 after:h-px after:scale-x-0 after:bg-cut-bronze after:transition-transform hover:after:scale-x-100"
-                }
-              >{label(link.label)}</a>
-            </li>
-          ))}
-        </ul>
-
-        <div className="flex items-center gap-2">
-          <LanguageToggle className="hidden md:flex" />
-          <BranchBadge className="hidden sm:flex" />
-          <button onClick={() => document.getElementById("barbers")?.scrollIntoView({ behavior: "smooth", block: "start" })} aria-label={label("booking")}
-            className="hidden md:flex items-center gap-2 px-5 py-2.5 rounded-xl bg-cut-ivory text-cut-black text-sm font-bold hover:bg-cut-warm-beige transition-all duration-300 cursor-pointer">
-            <Calendar className="w-4 h-4" />
-            {label("booking")}
-          </button>
-          <ClientProfileWidget />
-          <a
-            href="/client/loyalty"
-            aria-label="CUT CLUB"
-            className="md:hidden flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-cut-bronze/40 bg-cut-burgundy/30 text-cut-warm-beige text-xs font-black tracking-wider hover:bg-cut-burgundy/50 transition-all"
-          >
-            <span>CUT</span>
-            <span className="text-[8px] font-black tracking-widest border border-cut-bronze/40 rounded px-1 py-0.5">CLUB</span>
+        <div className="mx-auto grid h-[76px] max-w-[1760px] grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-4 px-[clamp(20px,4vw,72px)]">
+          <a href="/" className="group flex items-center gap-1.5 justify-self-start select-none" aria-label={lang === "ar" ? "CUT Salon - الرئيسية" : "CUT Salon - Home"}>
+            <span className="text-lg font-black tracking-widest text-cut-bronze transition-colors group-hover:text-cut-warm-beige">—</span>
+            <div className="mx-1 text-center">
+              <span className="font-display text-2xl font-black leading-none tracking-[0.25em] text-cut-ivory">CUT</span>
+              <div className="-mt-0.5 text-[9px] font-semibold tracking-[0.5em] text-cut-bronze transition-colors group-hover:text-cut-warm-beige">SALON</div>
+            </div>
+            <span className="text-lg font-black tracking-widest text-cut-bronze transition-colors group-hover:text-cut-warm-beige">—</span>
           </a>
-          <button
-            onClick={() => setMobileOpen((v) => !v)}
-            aria-label={mobileOpen ? label("closeMenu") : label("openMenu")}
-            aria-expanded={mobileOpen}
-            className="md:hidden flex items-center justify-center w-9 h-9 rounded-lg border border-cut-bronze/20 bg-cut-espresso/50 text-cut-ivory/70 hover:text-cut-ivory hover:border-cut-bronze/40 transition-all"
-          >
-            {mobileOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
-          </button>
+
+          <nav className="hidden min-w-0 justify-self-center lg:block" aria-label={lang === "ar" ? "التنقل الرئيسي" : "Main navigation"}>
+            <ul className="flex items-center justify-center gap-x-3 xl:gap-x-5" role="menubar">
+              {NAV_LINKS.map((link) => (
+                <li key={link.label} role="none" className="shrink-0">
+                  <a
+                    href={link.label === "barbers" ? barberHref : link.href}
+                    role="menuitem"
+                    className={link.isClub
+                      ? "inline-flex h-10 items-center rounded-lg border border-cut-bronze/35 px-3 text-xs font-black tracking-wider text-cut-warm-beige transition hover:border-cut-bronze/60 hover:bg-cut-burgundy/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cut-warm-beige"
+                      : "relative inline-flex h-10 items-center px-1 text-sm font-semibold text-cut-ivory/80 transition hover:text-cut-warm-beige after:absolute after:inset-x-1 after:bottom-1 after:h-px after:scale-x-0 after:bg-cut-bronze after:transition-transform hover:after:scale-x-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cut-warm-beige"}
+                  >
+                    {label(link.label)}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </nav>
+
+          <div className="flex items-center justify-self-end gap-2" aria-label={lang === "ar" ? "إجراءات الحساب والحجز" : "Booking and account actions"}>
+            <BranchBadge className="hidden h-11 min-w-0 lg:flex" />
+            <LanguageToggle className="hidden lg:inline-flex" />
+            <button onClick={openBooking} aria-label={label("booking")} className="hidden h-11 items-center gap-2 rounded-xl bg-cut-ivory px-4 text-sm font-bold text-cut-black transition hover:bg-cut-warm-beige focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cut-warm-beige lg:inline-flex xl:px-5">
+              <Calendar className="h-4 w-4" />
+              <span className="whitespace-nowrap">{label("booking")}</span>
+            </button>
+            <div className="hidden lg:block"><ClientProfileWidget /></div>
+            <button onClick={openBooking} className="inline-flex h-11 items-center gap-2 rounded-xl bg-cut-ivory px-3 text-sm font-bold text-cut-black sm:px-4 lg:hidden" aria-label={label("booking")}>
+              <Calendar className="h-4 w-4" />
+              <span className="hidden sm:inline">{label("booking")}</span>
+            </button>
+            <button
+              ref={menuTriggerRef}
+              type="button"
+              onClick={() => setMobileOpen((value) => !value)}
+              aria-label={mobileOpen ? label("closeMenu") : label("openMenu")}
+              aria-expanded={mobileOpen}
+              aria-controls="mobile-navigation"
+              className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-cut-bronze/25 bg-cut-espresso/60 text-cut-ivory transition hover:border-cut-bronze/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cut-warm-beige lg:hidden"
+            >
+              {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </button>
+          </div>
         </div>
-      </motion.nav>
+      </motion.header>
 
       <AnimatePresence>
         {mobileOpen && (
           <>
-            <motion.div
-              key="backdrop"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="fixed inset-0 z-40 bg-cut-black/75 backdrop-blur-sm md:hidden"
-              onClick={() => setMobileOpen(false)}
-            />
-            <motion.div
+            <motion.div key="backdrop" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }} className="fixed inset-0 z-40 bg-cut-black/75 backdrop-blur-sm lg:hidden" onClick={closeMobileMenu} />
+            <motion.aside
               key="drawer"
+              id="mobile-navigation"
               initial={{ x: dir === "rtl" ? "100%" : "-100%" }}
               animate={{ x: 0 }}
               exit={{ x: dir === "rtl" ? "100%" : "-100%" }}
               transition={{ type: "spring", stiffness: 320, damping: 32 }}
-              className={`fixed top-0 bottom-0 z-50 flex w-72 flex-col border-cut-bronze/15 bg-cut-soft-black shadow-2xl md:hidden ${dir === "rtl" ? "right-0 border-l" : "left-0 border-r"}`}
+              className={`fixed inset-y-0 z-50 flex w-[min(22rem,88vw)] flex-col bg-cut-soft-black shadow-2xl lg:hidden ${dir === "rtl" ? "right-0 border-l" : "left-0 border-r"} border-cut-bronze/20`}
               dir={dir}
+              aria-label={lang === "ar" ? "قائمة التنقل" : "Navigation menu"}
             >
-              <div className="flex items-center justify-between px-5 py-4 border-b border-cut-bronze/15">
-                <a href="/" className="flex items-center gap-1 select-none" aria-label="CUT Salon">
-                  <span className="text-cut-bronze text-base font-black tracking-widest">—</span>
-                  <div className="text-center mx-1">
-                    <span className="text-cut-ivory text-xl font-black tracking-[0.25em] leading-none font-display">CUT</span>
-                    <div className="text-[8px] text-cut-bronze tracking-[0.5em] font-semibold -mt-0.5">SALON</div>
-                  </div>
-                  <span className="text-cut-bronze text-base font-black tracking-widest">—</span>
+              <div className="flex h-[76px] items-center justify-between border-b border-cut-bronze/15 px-5">
+                <a href="/" className="flex items-center gap-1.5 select-none" onClick={closeMobileMenu} aria-label="CUT Salon">
+                  <span className="text-base font-black tracking-widest text-cut-bronze">—</span><div className="mx-1 text-center"><span className="font-display text-xl font-black leading-none tracking-[0.25em] text-cut-ivory">CUT</span><div className="-mt-0.5 text-[8px] font-semibold tracking-[0.5em] text-cut-bronze">SALON</div></div><span className="text-base font-black tracking-widest text-cut-bronze">—</span>
                 </a>
-                <button
-                  onClick={() => setMobileOpen(false)}
-                  aria-label={label("closeMenu")}
-                  className="flex items-center justify-center w-8 h-8 rounded-lg border border-cut-bronze/20 text-cut-ivory/50 hover:text-cut-ivory transition-colors"
-                >
-                  <X className="w-4 h-4" />
-                </button>
+                <button type="button" onClick={closeMobileMenu} aria-label={label("closeMenu")} className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-cut-bronze/20 text-cut-ivory transition hover:border-cut-bronze/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cut-warm-beige"><X className="h-5 w-5" /></button>
               </div>
 
-              <div className="flex items-center gap-3 px-4 pt-4">
-                <BranchBadge className="min-w-0 flex-1 justify-center" />
-                <LanguageToggle className="flex" />
-              </div>
-
-              <nav className="flex-1 overflow-y-auto px-4 py-5 space-y-1">
-                {NAV_LINKS.map((link, i) =>
-                  link.isClub ? (
-                    <motion.a
-                      key={link.label}
-                      href={link.href}
-                      initial={{ opacity: 0, x: 20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: i * 0.05 }}
-                      onClick={() => setMobileOpen(false)}
-                      className="flex items-center justify-between w-full px-4 py-3 rounded-xl border border-cut-bronze/30 bg-cut-burgundy/25 text-cut-warm-beige text-sm font-black tracking-wider hover:bg-cut-burgundy/40 transition-all"
-                    >
-                      {label(link.label)}
-                      <span className="text-[9px] font-black tracking-widest border border-cut-bronze/35 rounded px-1.5 py-0.5">CLUB</span>
-                    </motion.a>
-                  ) : (
-                    <motion.a
-                      key={link.label}
-                      href={link.href}
-                      initial={{ opacity: 0, x: 20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: i * 0.05 }}
-                      onClick={() => setMobileOpen(false)}
-                      className="flex items-center w-full px-4 py-3 rounded-xl text-sm font-semibold transition-all text-cut-ivory/65 hover:text-cut-ivory hover:bg-cut-espresso/60"
-                    >
-                      {label(link.label)}
-                    </motion.a>
-                  )
-                )}
+              <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 pt-5"><BranchBadge className="h-11 min-w-0 justify-center" /><LanguageToggle /></div>
+              <nav className="flex-1 overflow-y-auto px-4 py-5" aria-label={lang === "ar" ? "روابط الموقع" : "Site links"}>
+                <ul className="space-y-1">{NAV_LINKS.map((link, index) => <motion.li key={link.label} initial={{ opacity: 0, x: dir === "rtl" ? 16 : -16 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: index * 0.04 }}><a href={link.label === "barbers" ? barberHref : link.href} onClick={closeMobileMenu} className={`flex min-h-12 items-center rounded-xl px-4 text-sm font-semibold transition hover:bg-cut-espresso hover:text-cut-ivory focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cut-warm-beige ${link.isClub ? "border border-cut-bronze/30 bg-cut-burgundy/25 font-black tracking-wider text-cut-warm-beige" : "text-cut-ivory/70"}`}>{label(link.label)}</a></motion.li>)}</ul>
               </nav>
-
-              <div className="px-4 pb-8 pt-3 border-t border-cut-bronze/15">
-                <button
-                  onClick={() => {
-                    setMobileOpen(false);
-                    setTimeout(() => document.getElementById("barbers")?.scrollIntoView({ behavior: "smooth", block: "start" }), 300);
-                  }}
-                  className="w-full flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-cut-ivory text-cut-black text-sm font-black hover:bg-cut-warm-beige active:scale-[0.97] transition-all"
-                >
-                  <Calendar className="w-4 h-4" />
-                  {label("booking")}
-                </button>
-              </div>
-            </motion.div>
+              <div className="border-t border-cut-bronze/15 px-4 pb-8 pt-4"><button onClick={() => { closeMobileMenu(); setTimeout(openBooking, 250); }} className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-cut-ivory px-5 text-sm font-black text-cut-black transition hover:bg-cut-warm-beige"><Calendar className="h-4 w-4" />{label("booking")}</button></div>
+            </motion.aside>
           </>
         )}
       </AnimatePresence>

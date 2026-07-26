@@ -14,8 +14,8 @@ const NearestAvailability = () => {
         <div className="max-w-2xl mx-auto">
           {/* Section label */}
           <div className="text-center mb-6">
-            <p className="text-cut-gold font-heading font-bold text-sm tracking-widest mb-2">أقرب ميعاد</p>
-            <h2 className="font-heading text-2xl md:text-3xl font-black text-cut-ivory">
+            <p className="cut-editorial-label text-cut-gold font-heading font-bold text-sm tracking-widest mb-2">أقرب ميعاد</p>
+            <h2 className="cut-ar-section-heading font-heading text-2xl md:text-3xl font-black text-cut-ivory">
               أقرب ميعاد متاح <span className="text-gold-gradient">الآن</span>
             </h2>
           </div>
@@ -28,10 +28,10 @@ const NearestAvailability = () => {
                 <Zap className="w-5 h-5 text-cut-gold" />
               </div>
               <div>
-                <h3 className="font-heading text-base font-bold text-cut-ivory">أقرب ميعاد متاح الآن</h3>
+                <h3 className="cut-ar-ui-title font-heading text-base font-bold text-cut-ivory">أقرب ميعاد متاح الآن</h3>
                 <div className="flex items-center gap-1.5 mt-0.5">
                   <div className="w-1.5 h-1.5 rounded-full bg-cut-warm-beige animate-pulse" />
-                  <span className="text-cut-bronze/70 text-[10px] font-medium">مباشر</span>
+                  <span className="cut-ar-meta text-cut-bronze/70 text-[10px] font-medium">مباشر</span>
                 </div>
               </div>
             </div>
@@ -42,7 +42,7 @@ const NearestAvailability = () => {
                 <div className="flex items-start gap-3 flex-1">
                   <Clock className="w-4 h-4 text-cut-gold mt-0.5 flex-shrink-0" />
                   <div>
-                    <p className="text-cut-ivory/40 text-xs mb-0.5">الوقت</p>
+                    <p className="cut-ar-meta text-cut-ivory/40 text-xs mb-0.5">الوقت</p>
                     <p className="text-cut-ivory/60 text-sm">اختار الخدمة وسنرشح لك أقرب حلاق متاح</p>
                   </div>
                 </div>
@@ -51,7 +51,7 @@ const NearestAvailability = () => {
               <div className="flex items-start gap-3 mb-5">
                 <MapPin className="w-4 h-4 text-cut-gold mt-0.5 flex-shrink-0" />
                 <div>
-                  <p className="text-cut-ivory/40 text-xs mb-0.5">الفرع</p>
+                  <p className="cut-ar-meta text-cut-ivory/40 text-xs mb-0.5">الفرع</p>
                   <p className="text-cut-ivory font-medium text-sm">Cut Salon · جليم، الإسكندرية</p>
                 </div>
               </div>

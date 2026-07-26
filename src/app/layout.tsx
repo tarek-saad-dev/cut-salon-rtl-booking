@@ -1,7 +1,22 @@
 import type { Metadata } from "next";
+import { IBM_Plex_Sans_Arabic, Noto_Naskh_Arabic } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/providers";
 import MainNav from "@/components/MainNav";
+
+const arabicDisplay = Noto_Naskh_Arabic({
+  variable: "--font-ar-display-loaded",
+  subsets: ["arabic"],
+  weight: ["600", "700"],
+  display: "swap",
+});
+
+const arabicUi = IBM_Plex_Sans_Arabic({
+  variable: "--font-ar-ui-loaded",
+  subsets: ["arabic"],
+  weight: ["400", "500", "600", "700"],
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://cutsaloon.com"),
@@ -69,7 +84,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ar" dir="rtl" suppressHydrationWarning>
-      <body className="antialiased">
+      <body className={`${arabicDisplay.variable} ${arabicUi.variable} antialiased`}>
         <Providers>
           <MainNav />
           {children}

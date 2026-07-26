@@ -20,6 +20,10 @@
     --cut-bronze: #a48879;
     --cut-warm-beige: #d2b7a3;
     --cut-green-muted: #273c2c;
+    --font-ar-display: var(--font-ar-display-loaded), serif;
+    --font-ar-ui: var(--font-ar-ui-loaded), sans-serif;
+    --font-en-display: "Playfair Display", serif;
+    --font-en-ui: system-ui, sans-serif;
 
     /* Legacy aliases → editorial tokens */
     --cut-gold: var(--cut-bronze);
@@ -83,6 +87,45 @@
   h1, h2, h3, h4, h5, h6 {
     @apply font-heading;
   }
+  html[lang="ar"] body {
+    font-family: var(--font-ar-ui);
+    font-weight: 400;
+    line-height: 1.75;
+  }
+  html[lang="ar"] h1,
+  html[lang="ar"] h2 {
+    font-family: var(--font-ar-display);
+    font-weight: 700;
+    letter-spacing: 0;
+    line-height: 1.25;
+  }
+  html[lang="ar"] .font-heading,
+  html[lang="ar"] .font-body {
+    font-family: var(--font-ar-ui);
+    letter-spacing: 0;
+  }
+  html[lang="ar"] h1.font-heading,
+  html[lang="ar"] h2.font-heading {
+    font-family: var(--font-ar-display);
+    font-weight: 700;
+    letter-spacing: 0;
+    line-height: 1.25;
+  }
+  html[lang="ar"] button,
+  html[lang="ar"] input,
+  html[lang="ar"] select,
+  html[lang="ar"] textarea {
+    font-family: var(--font-ar-ui);
+    font-weight: 600;
+    letter-spacing: 0;
+    line-height: 1.2;
+  }
+  html[lang="ar"] nav a {
+    font-family: var(--font-ar-ui);
+    font-weight: 600;
+    letter-spacing: 0;
+    line-height: 1;
+  }
 }
 
 @layer components {
@@ -120,6 +163,78 @@
   }
   .cut-editorial-label {
     @apply font-display text-[10px] md:text-xs font-semibold uppercase tracking-[0.35em] text-cut-bronze;
+  }
+  html[lang="ar"] .cut-editorial-label {
+    font-family: var(--font-ar-ui);
+    font-size: 0.8125rem;
+    font-weight: 500;
+    letter-spacing: 0;
+    line-height: 1.5;
+    text-transform: none;
+  }
+  html[lang="ar"] .cut-ar-hero-heading {
+    font-family: var(--font-ar-display);
+    font-weight: 700;
+    letter-spacing: 0;
+    line-height: 1.25;
+  }
+  html[lang="ar"] .cut-ar-hero-primary {
+    font-family: var(--font-ar-display);
+    font-size: clamp(2.875rem, 5.5vw, 5.125rem);
+    font-weight: 700;
+    letter-spacing: 0;
+    line-height: 1.25;
+  }
+  html[lang="ar"] .cut-ar-hero-secondary {
+    font-family: var(--font-ar-display);
+    font-size: clamp(2.35rem, 4.5vw, 4.25rem);
+    font-weight: 700;
+    letter-spacing: 0;
+    line-height: 1.25;
+  }
+  html[lang="ar"] .cut-ar-hero-heading .font-editorial {
+    font-family: var(--font-ar-display);
+    font-style: normal;
+  }
+  html[lang="ar"] .cut-ar-section-heading {
+    font-family: var(--font-ar-display);
+    font-size: clamp(2.125rem, 4vw, 3.625rem);
+    font-weight: 700;
+    letter-spacing: 0;
+    line-height: 1.25;
+  }
+  html[lang="ar"] .cut-ar-ui-title {
+    font-family: var(--font-ar-ui);
+    font-weight: 600;
+    letter-spacing: 0;
+    line-height: 1.6;
+  }
+  html[lang="ar"] .cut-ar-meta {
+    font-family: var(--font-ar-ui);
+    font-weight: 500;
+    letter-spacing: 0;
+    line-height: 1.5;
+  }
+  html[lang="ar"] .cut-ar-numeric {
+    direction: ltr;
+    unicode-bidi: isolate;
+  }
+  html[lang="ar"] .cut-ar-section-heading,
+  html[lang="ar"] .cut-ar-hero-heading,
+  html[lang="ar"] .cut-ar-ui-title,
+  html[lang="ar"] .cut-ar-meta {
+    text-transform: none;
+  }
+  @media (max-width: 640px) {
+    html[lang="ar"] body {
+      line-height: 1.8;
+    }
+    html[lang="ar"] .cut-ar-hero-primary {
+      font-size: clamp(2.875rem, 12vw, 3.75rem);
+    }
+    html[lang="ar"] .cut-ar-hero-secondary {
+      font-size: clamp(2.25rem, 9vw, 3rem);
+    }
   }
 }
 
