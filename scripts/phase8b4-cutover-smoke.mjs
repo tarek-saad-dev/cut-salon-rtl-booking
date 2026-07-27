@@ -120,8 +120,9 @@ const create = await post(
 
 const booking =
   create.json?.booking ||
-  (create.json?.bookingCode ? create.json : null);
-const bookingCode = booking?.bookingCode || create.json?.bookingCode;
+  (create.json?.bookingCode || create.json?.code ? create.json : null);
+const bookingCode =
+  booking?.bookingCode || booking?.code || create.json?.bookingCode || create.json?.code;
 const accessToken =
   booking?.bookingAccessToken ||
   create.json?.bookingAccessToken ||

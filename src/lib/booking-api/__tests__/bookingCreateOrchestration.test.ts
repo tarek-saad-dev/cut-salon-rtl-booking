@@ -90,6 +90,43 @@ describe("Create Orchestration", () => {
     expect(body.clientRequestId).toBe(headers["Idempotency-Key"]);
   });
 
+  it("normalizes live create shape code → bookingCode and nested token", async () => {
+    savePlanSession(mockPlan, planSessionParams);
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 201,
+      headers: new Headers(),
+      text: async () =>
+        JSON.stringify({
+          ok: true,
+          booking: {
+            code: "BK-LIVE-CODE",
+            status: "confirmed",
+            calendarDate: "2026-07-28",
+            time: "12:30",
+            barber: { empId: 7, nameAr: "محمد" },
+            branch: { branchCode: "GLEEM", branchName: "جليم" },
+            services: [{ nameAr: "حلاقة شعر", price: 200, durationMinutes: 30 }],
+            total: 200,
+            totalDurationMinutes: 30,
+            bookingAccessToken: "tok_nested_live",
+          },
+          meta: { planTokenStatus: "valid" },
+        }),
+    } as unknown as Response);
+
+    const { submitBookingFromPlan } = await import("../booking");
+    const result = await submitBookingFromPlan({ ...createParams, plan: mockPlan });
+
+    expect(result.outcome).toBe("success");
+    if (result.outcome !== "success") return;
+    expect(result.booking.bookingCode).toBe("BK-LIVE-CODE");
+    expect(result.booking.bookingAccessToken).toBe("tok_nested_live");
+    expect(result.booking.barberName).toBe("محمد");
+    expect(result.booking.branchCode).toBe("GLEEM");
+    expect(result.booking.date).toBe("2026-07-28");
+  });
+
   it("does not send numeric BookingID", async () => {
     savePlanSession(mockPlan, planSessionParams);
     mockFetch.mockResolvedValueOnce({

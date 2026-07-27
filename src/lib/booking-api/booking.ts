@@ -158,8 +158,145 @@ export interface CreateBookingResult {
 
 interface CreateApiResponse {
   ok: boolean;
-  booking: BookingCreateResponse;
+  booking?: BookingCreateResponse & {
+    code?: string;
+    calendarDate?: string;
+    workDate?: string;
+    total?: number;
+    barber?: { empId?: number; nameAr?: string; name?: string };
+    branch?: { branchCode?: string; branchName?: string };
+    services?: Array<{ nameAr?: string; nameEn?: string; name?: string } | string>;
+  };
+  bookingCode?: string;
+  code?: string;
   bookingAccessToken?: string;
+  message?: string;
+  date?: string;
+  time?: string;
+  barberName?: string;
+  services?: string[];
+  totalPrice?: number;
+  totalDurationMinutes?: number;
+  branchCode?: string;
+  branchName?: string;
+}
+
+/** Compat: live create may nest fields and use `code` instead of `bookingCode`. */
+function normalizeCreateResponse(raw: CreateApiResponse): BookingCreateResponse {
+  const nested = raw.booking && typeof raw.booking === "object" ? raw.booking : null;
+  const src = nested ?? raw;
+
+  const servicesRaw = (src as { services?: unknown }).services;
+  const services: string[] = Array.isArray(servicesRaw)
+    ? servicesRaw.map((s) => {
+        if (typeof s === "string") return s;
+        if (s && typeof s === "object") {
+          const item = s as { nameAr?: string; nameEn?: string; name?: string };
+          return String(item.nameAr || item.nameEn || item.name || "");
+        }
+        return "";
+      })
+    : [];
+
+  const nestedRec = nested as Record<string, unknown> | null;
+  const srcRec = src as Record<string, unknown>;
+  const barber = srcRec.barber as { nameAr?: string; name?: string } | undefined;
+  const branch = srcRec.branch as { branchCode?: string; branchName?: string } | undefined;
+
+  return {
+    bookingCode: String(
+      srcRec.bookingCode ?? srcRec.code ?? raw.bookingCode ?? raw.code ?? "",
+    ),
+    bookingAccessToken: String(
+      srcRec.bookingAccessToken ?? raw.bookingAccessToken ?? nestedRec?.bookingAccessToken ?? "",
+    ) || undefined,
+    date: String(srcRec.date ?? srcRec.calendarDate ?? srcRec.workDate ?? ""),
+    time: String(srcRec.time ?? ""),
+    barberName: String(srcRec.barberName ?? barber?.nameAr ?? barber?.name ?? ""),
+    services,
+    totalPrice:
+      (srcRec.totalPrice as number | undefined) ??
+      (srcRec.total as number | undefined) ??
+      (nestedRec?.total as number | undefined),
+    totalDurationMinutes:
+      (srcRec.totalDurationMinutes as number | undefined) ??
+      (nestedRec?.totalDurationMinutes as number | undefined),
+    message: raw.message ?? (nestedRec?.message as string | undefined),
+    branchCode:
+      (srcRec.branchCode as string | undefined) ??
+      branch?.branchCode ??
+      (nestedRec?.branch as { branchCode?: string } | undefined)?.branchCode,
+    branchName:
+      (srcRec.branchName as string | undefined) ??
+      branch?.branchName ??
+      (nestedRec?.branch as { branchName?: string } | undefined)?.branchName,
+  };
+}
+
+function normalizePublicBooking(raw: unknown): PublicBooking {
+  const envelope = (raw && typeof raw === "object" ? raw : {}) as {
+    ok?: boolean;
+    booking?: Record<string, unknown>;
+    bookingAccessToken?: string;
+    meta?: { ownership?: string };
+    ownershipLevel?: string;
+  } & Record<string, unknown>;
+
+  const nested =
+    envelope.booking && typeof envelope.booking === "object"
+      ? envelope.booking
+      : envelope;
+  const barber = nested.barber as { nameAr?: string; name?: string } | undefined;
+  const branch = nested.branch as { branchCode?: string; branchName?: string } | undefined;
+  const servicesRaw = nested.services;
+
+  let services: PublicBooking["services"];
+  if (Array.isArray(servicesRaw)) {
+    services = servicesRaw.map((s) => {
+      if (typeof s === "string") return { name: s };
+      const item = s as {
+        nameAr?: string;
+        nameEn?: string;
+        name?: string;
+        price?: number;
+        durationMinutes?: number;
+        duration?: number;
+      };
+      return {
+        name: String(item.nameAr || item.nameEn || item.name || ""),
+        price: item.price ?? null,
+        duration: item.durationMinutes ?? item.duration ?? null,
+      };
+    }) as PublicBooking["services"];
+  } else if (typeof nested.servicesSummary === "string") {
+    services = [nested.servicesSummary];
+  }
+
+  const ownership =
+    envelope.meta?.ownership ??
+    envelope.ownershipLevel ??
+    (nested.ownershipLevel as string | undefined);
+
+  return {
+    bookingCode: String(nested.bookingCode ?? nested.code ?? ""),
+    date: String(nested.date ?? nested.calendarDate ?? nested.workDate ?? ""),
+    time: String(nested.time ?? ""),
+    dayOffset: (nested.dayOffset as number | null | undefined) ?? null,
+    barberName: String(nested.barberName ?? barber?.nameAr ?? barber?.name ?? "") || null,
+    services,
+    totalPrice: (nested.totalPrice as number | null | undefined) ?? (nested.total as number | null | undefined) ?? null,
+    totalDuration:
+      (nested.totalDuration as number | null | undefined) ??
+      (nested.totalDurationMinutes as number | null | undefined) ??
+      null,
+    status: (nested.status as string | null | undefined) ?? null,
+    canCancel: (nested.canCancel as boolean | null | undefined) ?? null,
+    branchCode: (nested.branchCode as string | null | undefined) ?? branch?.branchCode ?? null,
+    branchName: (nested.branchName as string | null | undefined) ?? branch?.branchName ?? null,
+    customerName: (nested.customerName as string | null | undefined) ?? null,
+    ownershipLevel:
+      ownership === "owner" ? "full" : ownership === "minimal" ? "minimal" : ownership ?? null,
+  };
 }
 
 export async function submitBookingFromPlan(params: {
@@ -270,22 +407,10 @@ export async function submitBookingFromPlan(params: {
       timeoutMs: 20_000,
     });
 
-    // Success — prefer nested `booking`; compat may flatten fields onto the root.
-    const raw = res.data as unknown as CreateApiResponse & Partial<BookingCreateResponse>;
-    const booking: BookingCreateResponse = raw.booking ?? {
-      bookingCode: String(raw.bookingCode ?? ""),
-      date: String(raw.date ?? ""),
-      time: String(raw.time ?? ""),
-      barberName: String(raw.barberName ?? ""),
-      services: Array.isArray(raw.services) ? raw.services : [],
-      totalPrice: raw.totalPrice,
-      totalDurationMinutes: raw.totalDurationMinutes,
-      message: raw.message,
-      branchCode: raw.branchCode,
-      branchName: raw.branchName,
-      bookingAccessToken: raw.bookingAccessToken,
-    };
-    const accessToken = raw.bookingAccessToken ?? booking.bookingAccessToken;
+    // Success — prefer nested `booking`; compat may use `code` and nest tokens.
+    const raw = res.data as unknown as CreateApiResponse;
+    const booking = normalizeCreateResponse(raw);
+    const accessToken = booking.bookingAccessToken;
 
     if (accessToken && booking.bookingCode) {
       saveBookingAccess({
@@ -439,13 +564,24 @@ export async function lookupBooking(
     headers["Authorization"] = `Bearer ${token}`;
   }
 
-  return bookingApiRequest<PublicBooking>({
+  const res = await bookingApiRequest<unknown>({
     path: `/api/public/booking/${encodeURIComponent(normalized)}`,
     query: !token && opts?.phone ? { phone: opts.phone } : undefined,
     headers: Object.keys(headers).length > 0 ? headers : undefined,
     signal: opts?.signal,
     timeoutMs: 15_000,
   });
+
+  const booking = normalizePublicBooking(res.data);
+  const envelope = res.data as { bookingAccessToken?: string } | null;
+  if (envelope?.bookingAccessToken && booking.bookingCode) {
+    saveBookingAccess({
+      bookingCode: booking.bookingCode,
+      bookingAccessToken: envelope.bookingAccessToken,
+    });
+  }
+
+  return { ...res, data: booking };
 }
 
 // ─── Upcoming ────────────────────────────────────────────────────────────────
@@ -455,12 +591,13 @@ export async function getUpcomingBookings(
   opts?: { limit?: number; signal?: AbortSignal },
 ): Promise<BookingApiResponse<PublicBooking[]>> {
   const limit = clampUpcomingLimit(opts?.limit);
-  const res = await bookingApiRequest<{ ok: boolean; bookings: PublicBooking[] }>({
+  const res = await bookingApiRequest<{ ok: boolean; bookings: unknown[] }>({
     path: "/api/public/booking/upcoming",
     method: "POST",
     body: { phone, limit },
     signal: opts?.signal,
     timeoutMs: 15_000,
   });
-  return { ...res, data: res.data.bookings ?? [] };
+  const bookings = (res.data.bookings ?? []).map((b) => normalizePublicBooking(b));
+  return { ...res, data: bookings };
 }

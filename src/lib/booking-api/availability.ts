@@ -1,5 +1,6 @@
 import { bookingApiRequest } from "./client";
 import { buildRequestKey, deduplicatedRequest } from "./request-dedup";
+import { TIMEOUT_MS } from "./timeout";
 import type {
   AvailableDay,
   AvailableSlot,
@@ -53,7 +54,7 @@ export async function getAvailableDays(
       path: "/api/public/booking/available-days",
       query,
       signal: dedupSignal,
-      timeoutMs: 20_000,
+      timeoutMs: TIMEOUT_MS.availableDays,
     });
     // Compat: backend may emit `isAvailable` instead of `available`.
     const days = (res.data.days ?? []).map((d) => {
