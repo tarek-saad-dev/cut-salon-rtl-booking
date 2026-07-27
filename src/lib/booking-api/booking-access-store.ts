@@ -6,6 +6,8 @@
  * a client-side SPA accessing a separate backend domain.
  */
 
+import { normalizeBookingCode } from "./limits";
+
 const KEY_PREFIX = "cut_bk_access:";
 const INDEX_KEY = "cut_bk_access_index";
 
@@ -29,7 +31,7 @@ function storageAvailable(): boolean {
 }
 
 function normalizeCode(code: string): string {
-  return code.trim().toUpperCase();
+  return normalizeBookingCode(code);
 }
 
 function getKey(code: string): string {

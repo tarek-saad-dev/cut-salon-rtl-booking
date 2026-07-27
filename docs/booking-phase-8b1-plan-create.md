@@ -19,14 +19,8 @@ Review displays backend `totalPrice`, `totalDurationMinutes`, plan line items, b
 
 CTAs: **تعديل الاختيارات** | **تأكيد الحجز**
 
-## Create (`submitBookingFromPlan`)
+## Success → details (Phase 8B2)
 
-- Double-click guarded (`createInFlightRef`)
-- Progress: جاري تأكيد حجزك...
-- No automatic retry
-- Close while creating/unknown → confirm dialog warning
-- Success: store access token, clear plan session, show `bookingCode`, prevent another create from success screen
+After create success, **عرض تفاصيل الحجز** navigates to `/booking?code={bookingCode}` only.
+The destination reads `bookingAccessToken` from the access store — never from the URL.
 
-## Conflict / token / unknown / rate-limit
-
-See `booking-phase-8b1-error-ux.md`.

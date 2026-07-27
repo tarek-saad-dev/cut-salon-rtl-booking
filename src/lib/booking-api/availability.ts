@@ -101,7 +101,8 @@ export async function getAvailableSlots(
       const raw = s as AvailableSlot & { isAvailable?: boolean };
       return {
         ...raw,
-        available: raw.available ?? raw.isAvailable === true,
+        // Compat: listed slots without an explicit flag are bookable.
+        available: (raw.available ?? raw.isAvailable ?? true) === true,
       } satisfies AvailableSlot;
     });
     return { ...res, data: slots };

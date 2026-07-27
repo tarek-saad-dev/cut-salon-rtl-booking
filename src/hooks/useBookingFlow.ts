@@ -10,6 +10,7 @@ import {
   getBookingConfig,
   getServices,
   listBranchBarbers,
+  getPublicBarberProfile,
   getAvailableDays,
   getAvailableSlots,
   createBookingPlan,
@@ -24,11 +25,13 @@ import {
   type BookingConfig,
   type BookingService,
   type PublicBarber,
+  type PublicBarberBranch,
   type AvailableDay,
   type AvailableSlot,
   type BookingPlan,
   type BookingCreateResponse,
   type BookingMode,
+  type BookingEntryMode,
   type BookingCustomer,
 } from "@/lib/booking-api";
 
@@ -73,11 +76,24 @@ export function useBookingFlow(opts: {
   initialBarber?: { id?: number; name: string } | null;
   bookingNote?: string;
   skipModeStep?: boolean;
+  entryMode?: BookingEntryMode;
 }) {
-  const { open, branchCode, initialMode, initialBarber, bookingNote, skipModeStep } = opts;
+  const {
+    open,
+    branchCode,
+    initialMode,
+    initialBarber,
+    bookingNote,
+    skipModeStep,
+    entryMode = "branch_first",
+  } = opts;
+
+  const isBarberFirst = entryMode === "barber_first";
 
   const [step, setStep] = useState<BookingUiStep>("branch");
-  const [mode, setMode] = useState<BookingMode>(initialMode ?? "specific");
+  const [mode, setMode] = useState<BookingMode>(
+    isBarberFirst ? "specific" : (initialMode ?? "specific"),
+  );
   const [serviceIds, setServiceIds] = useState<number[]>([]);
   const [barber, setBarber] = useState<{ id: number; name: string } | null>(
     initialBarber?.id != null ? { id: initialBarber.id, name: initialBarber.name } : null,
@@ -86,6 +102,10 @@ export function useBookingFlow(opts: {
   const [config, setConfig] = useState<BookingConfig | null>(null);
   const [services, setServices] = useState<BookingService[]>([]);
   const [barbers, setBarbers] = useState<PublicBarber[]>([]);
+  const [barberBranches, setBarberBranches] = useState<PublicBarberBranch[]>([]);
+  const [barberServiceIds, setBarberServiceIds] = useState<number[] | null>(null);
+  const [barberProfileLoading, setBarberProfileLoading] = useState(false);
+  const [barberProfileError, setBarberProfileError] = useState<string | null>(null);
   const [catalogLoading, setCatalogLoading] = useState(false);
   const [catalogError, setCatalogError] = useState<string | null>(null);
 
@@ -127,8 +147,13 @@ export function useBookingFlow(opts: {
     slotsAbortRef.current?.abort();
     planAbortRef.current?.abort();
     setServiceIds([]);
-    // Branch change always clears barber — IDs are not portable across branches.
-    setBarber(null);
+    // Barber-first keeps the entry barber locked; branch-first clears it.
+    if (!isBarberFirst) {
+      setBarber(null);
+    } else if (initialBarber?.id != null) {
+      setBarber({ id: initialBarber.id, name: initialBarber.name });
+      setMode("specific");
+    }
     setSelectedDate(undefined);
     setSelectedSlot(undefined);
     setDays([]);
@@ -139,7 +164,74 @@ export function useBookingFlow(opts: {
     setMutationUi({ kind: "idle" });
     setDaysError(null);
     setSlotsError(null);
-  }, [bumpSelection]);
+  }, [bumpSelection, isBarberFirst, initialBarber]);
+
+  // Barber-first: load public branches + serviceIds for the selected barber
+  const [barberProfileReload, setBarberProfileReload] = useState(0);
+  const retryBarberProfile = useCallback(() => {
+    setBarberProfileReload((n) => n + 1);
+  }, []);
+
+  useEffect(() => {
+    if (!open || !isBarberFirst) {
+      setBarberBranches([]);
+      setBarberServiceIds(null);
+      setBarberProfileError(null);
+      setBarberProfileLoading(false);
+      return;
+    }
+
+    if (initialBarber?.id == null || !Number.isFinite(initialBarber.id) || initialBarber.id <= 0) {
+      setBarberBranches([]);
+      setBarberServiceIds(null);
+      setBarberProfileLoading(false);
+      setBarberProfileError("تعذر بدء الحجز: معرف الحلاق غير متاح");
+      setBarber(null);
+      return;
+    }
+
+    let cancelled = false;
+    const controller = new AbortController();
+    setBarberProfileLoading(true);
+    setBarberProfileError(null);
+    setMode("specific");
+    setBarber({ id: initialBarber.id, name: initialBarber.name });
+
+    (async () => {
+      try {
+        const res = await getPublicBarberProfile(initialBarber.id!, controller.signal);
+        if (cancelled) return;
+        const profile = res.data;
+        if (!profile) {
+          setBarberProfileError("هذا الحلاق غير متاح للحجز الإلكتروني حالياً");
+          setBarberBranches([]);
+          setBarberServiceIds(null);
+          return;
+        }
+        setBarber({ id: profile.id, name: profile.name || initialBarber.name });
+        setBarberBranches(profile.branches ?? []);
+        setBarberServiceIds(
+          Array.isArray(profile.serviceIds) ? profile.serviceIds : [],
+        );
+      } catch (err) {
+        if (cancelled || (err instanceof DOMException && err.name === "AbortError")) return;
+        if (err instanceof BookingApiError) {
+          setBarberProfileError(err.message);
+        } else {
+          setBarberProfileError("تعذر تحميل فروع الحلاق، حاول مرة أخرى");
+        }
+        setBarberBranches([]);
+        setBarberServiceIds(null);
+      } finally {
+        if (!cancelled) setBarberProfileLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
+  }, [open, isBarberFirst, initialBarber?.id, initialBarber?.name, barberProfileReload]);
 
   // Branch change mid-flow
   useEffect(() => {
@@ -148,12 +240,22 @@ export function useBookingFlow(opts: {
     if (!open) return;
     if (prev === undefined || prev === branchCode) return;
     clearDownstreamFromBranch();
-    setStep(skipModeStep || initialMode ? "service" : "mode");
-  }, [branchCode, open, clearDownstreamFromBranch, skipModeStep, initialMode]);
+    setStep(isBarberFirst || skipModeStep || initialMode ? "service" : "mode");
+  }, [
+    branchCode,
+    open,
+    clearDownstreamFromBranch,
+    skipModeStep,
+    initialMode,
+    isBarberFirst,
+  ]);
 
   // Catalog load
   useEffect(() => {
     if (!open || !branchCode) return;
+    // Barber-first: wait for profile serviceIds before filtering catalog
+    if (isBarberFirst && barberServiceIds === null && !barberProfileError) return;
+
     let cancelled = false;
     const controller = new AbortController();
     setCatalogLoading(true);
@@ -168,9 +270,25 @@ export function useBookingFlow(opts: {
         ]);
         if (cancelled) return;
         setConfig(cfg.data);
-        const bookable = (svc.data ?? []).filter((s) => s.isBookableOnline);
+        let bookable = (svc.data ?? []).filter((s) => s.isBookableOnline);
+        if (isBarberFirst && barberServiceIds !== null) {
+          const allowed = new Set(barberServiceIds);
+          bookable = bookable.filter((s) => allowed.has(s.id));
+        }
         setServices(bookable);
-        setBarbers((bar.data ?? []).filter((b) => b.isBookableOnline));
+        const branchBarbers = (bar.data ?? []).filter((b) => b.isBookableOnline);
+        setBarbers(branchBarbers);
+
+        // Keep locked barber if still bookable at this branch; otherwise clear (branch-first only).
+        if (isBarberFirst && initialBarber?.id != null) {
+          const stillHere = branchBarbers.some((b) => b.id === initialBarber.id);
+          if (stillHere) {
+            setBarber({ id: initialBarber.id, name: initialBarber.name });
+            setMode("specific");
+          } else if (branchBarbers.length === 0) {
+            setCatalogError("هذا الحلاق غير متاح في الفرع المختار");
+          }
+        }
       } catch (err) {
         if (cancelled || (err instanceof DOMException && err.name === "AbortError")) return;
         if (err instanceof BookingApiError) {
@@ -187,7 +305,15 @@ export function useBookingFlow(opts: {
       cancelled = true;
       controller.abort();
     };
-  }, [open, branchCode]);
+  }, [
+    open,
+    branchCode,
+    isBarberFirst,
+    barberServiceIds,
+    barberProfileError,
+    initialBarber?.id,
+    initialBarber?.name,
+  ]);
 
   // Available days
   useEffect(() => {
@@ -324,6 +450,7 @@ export function useBookingFlow(opts: {
   }, [bumpSelection]);
 
   const selectMode = useCallback((next: BookingMode) => {
+    if (isBarberFirst) return;
     bumpSelection();
     clearPlanSession();
     setMode(next);
@@ -334,7 +461,7 @@ export function useBookingFlow(opts: {
     setSlots([]);
     setPlan(null);
     setStep("service");
-  }, [bumpSelection]);
+  }, [bumpSelection, isBarberFirst]);
 
   const selectBarber = useCallback((b: { id: number; name: string } | null) => {
     bumpSelection();
@@ -345,6 +472,8 @@ export function useBookingFlow(opts: {
     setDays([]);
     setSlots([]);
     setPlan(null);
+    // Changing barber invalidates services selection
+    setServiceIds([]);
   }, [bumpSelection]);
 
   const selectDate = useCallback((date: Date) => {
@@ -600,7 +729,7 @@ export function useBookingFlow(opts: {
     }
     clearPlanSession();
     setStep("branch");
-    setMode(initialMode ?? "specific");
+    setMode(isBarberFirst ? "specific" : (initialMode ?? "specific"));
     setServiceIds([]);
     setBarber(
       initialBarber?.id != null ? { id: initialBarber.id, name: initialBarber.name } : null,
@@ -629,6 +758,7 @@ export function useBookingFlow(opts: {
     initialMode,
     initialBarber,
     bookingNote,
+    isBarberFirst,
   ]);
 
   const rateLimitRemainingSeconds =
@@ -643,9 +773,15 @@ export function useBookingFlow(opts: {
     step,
     setStep,
     mode,
+    entryMode,
+    isBarberFirst,
     config,
     services,
     barbers,
+    barberBranches,
+    barberProfileLoading,
+    barberProfileError,
+    retryBarberProfile,
     catalogLoading,
     catalogError,
     serviceIds,

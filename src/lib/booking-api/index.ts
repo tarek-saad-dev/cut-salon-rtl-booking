@@ -6,7 +6,7 @@ export { BookingApiError, getArabicErrorMessage } from "./errors";
 // API modules
 export { listPublicBranches } from "./branches";
 export { getBookingConfig, getBookingStatus, getServices } from "./services";
-export { listBranchBarbers, listGlobalBarbers, getBarberCalendar, getBarberLocation } from "./barbers";
+export { listBranchBarbers, listGlobalBarbers, getPublicBarberProfile, getBarberCalendar, getBarberLocation } from "./barbers";
 export { getAvailableDays, getAvailableSlots, checkSlot } from "./availability";
 export {
   createBookingPlan,
@@ -54,6 +54,17 @@ export {
 
 // Timeout
 export { TIMEOUT_MS, getTimeoutMs } from "./timeout";
+
+// Contract limits (booking-public-v1)
+export {
+  UPCOMING_BOOKINGS_MAX_LIMIT,
+  UPCOMING_BOOKINGS_DEFAULT_LIMIT,
+  BOOKING_CODE_MAX_LENGTH,
+  BOOKING_CODE_MIN_LENGTH,
+  clampUpcomingLimit,
+  normalizeBookingCode,
+  isValidBookingCodeShape,
+} from "./limits";
 
 // State
 export {

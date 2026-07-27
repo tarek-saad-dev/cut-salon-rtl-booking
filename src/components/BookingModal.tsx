@@ -24,7 +24,7 @@ import CustomerUpcomingBookings from "./CustomerUpcomingBookings";
 import { useBranch } from "@/context/BranchContext";
 import { getCoreServiceIdSet } from "@/lib/bookingServiceGroups";
 import { useBookingFlow, type BookingUiStep } from "@/hooks/useBookingFlow";
-import type { PublicBranch, BookingMode } from "@/lib/booking-api";
+import type { PublicBranch, BookingMode, BookingEntryMode } from "@/lib/booking-api";
 
 export interface BarberBookingInfo {
   id?: number;
@@ -44,6 +44,8 @@ interface BookingModalProps {
   initialMode?: BookingMode;
   initialServiceMatches?: string[];
   bookingNote?: string;
+  /** barber_first locks specific mode and filters branches to that barber. */
+  entryMode?: BookingEntryMode;
 }
 
 const steps = [
@@ -68,6 +70,7 @@ const BookingModal = ({
   initialMode,
   initialServiceMatches,
   bookingNote,
+  entryMode = "branch_first",
 }: BookingModalProps) => {
   const {
     branches,
@@ -76,17 +79,59 @@ const BookingModal = ({
     selectedBranch,
     hasConfirmedBranch,
     selectBranch,
+    refetchBranches,
   } = useBranch();
   const branchCode = selectedBranch?.branchCode;
 
+  const isBarberFirst = entryMode === "barber_first";
+  const hasBarberEmpId =
+    barber.id != null && Number.isFinite(barber.id) && barber.id > 0;
+  const effectiveInitialMode = isBarberFirst ? "specific" : initialMode;
+
   const flow = useBookingFlow({
-    open,
+    open: open && (!isBarberFirst || hasBarberEmpId),
     branchCode,
-    initialMode,
-    initialBarber: barber,
+    initialMode: effectiveInitialMode,
+    initialBarber: hasBarberEmpId ? barber : isBarberFirst ? null : barber,
     bookingNote,
-    skipModeStep: Boolean(initialMode),
+    skipModeStep: Boolean(effectiveInitialMode) || isBarberFirst,
+    entryMode,
   });
+
+  const allowedBranches = isBarberFirst
+    ? branches.filter((b) =>
+        flow.barberBranches.some(
+          (bb) => bb.branchCode.toUpperCase() === b.branchCode.toUpperCase(),
+        ),
+      )
+    : branches;
+
+  // If saved branch is not valid for this barber, force branch step.
+  useEffect(() => {
+    if (!open || !isBarberFirst) return;
+    if (flow.barberProfileLoading) return;
+    if (
+      selectedBranch &&
+      flow.barberBranches.length > 0 &&
+      !flow.barberBranches.some(
+        (bb) => bb.branchCode.toUpperCase() === selectedBranch.branchCode.toUpperCase(),
+      )
+    ) {
+      flow.setStep("branch");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, isBarberFirst, selectedBranch?.branchCode, flow.barberBranches, flow.barberProfileLoading]);
+
+  // Auto-confirm single barber branch
+  useEffect(() => {
+    if (!open || !isBarberFirst) return;
+    if (flow.barberProfileLoading) return;
+    if (allowedBranches.length === 1 && !hasConfirmedBranch) {
+      selectBranch(allowedBranches[0]);
+      flow.setStep("service");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, isBarberFirst, allowedBranches, hasConfirmedBranch, flow.barberProfileLoading]);
 
   const [confettiTrigger, setConfettiTrigger] = useState(0);
   const [copied, setCopied] = useState(false);
@@ -112,14 +157,21 @@ const BookingModal = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, initialServiceMatches, flow.services]);
 
-  // Enter after branch when opened with initialMode
+  // Enter after branch when opened with initialMode / barber-first
   useEffect(() => {
     if (!open) return;
     if (hasConfirmedBranch && branchCode && flow.step === "branch") {
-      flow.setStep(initialMode ? "service" : "mode");
+      // Barber-first: only advance when branch is allowed for this barber
+      if (isBarberFirst && allowedBranches.length > 0) {
+        const ok = allowedBranches.some(
+          (b) => b.branchCode.toUpperCase() === branchCode.toUpperCase(),
+        );
+        if (!ok) return;
+      }
+      flow.setStep(effectiveInitialMode || isBarberFirst ? "service" : "mode");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, hasConfirmedBranch, branchCode]);
+  }, [open, hasConfirmedBranch, branchCode, isBarberFirst, allowedBranches.length]);
 
   const handleClose = () => {
     if (flow.mutationUi.kind === "creating" || flow.mutationUi.kind === "unknown") {
@@ -137,7 +189,7 @@ const BookingModal = ({
 
   const handleBranchSelect = (branch: PublicBranch) => {
     selectBranch(branch);
-    flow.setStep(initialMode ? "service" : "mode");
+    flow.setStep(effectiveInitialMode || isBarberFirst ? "service" : "mode");
   };
 
   const handleCoreServiceSelect = (id: number) => {
@@ -157,7 +209,7 @@ const BookingModal = ({
   const handleBack = () => {
     flow.invalidatePlan();
     if (flow.step === "mode") flow.setStep("branch");
-    else if (flow.step === "service") flow.setStep(initialMode ? "branch" : "mode");
+    else if (flow.step === "service") flow.setStep(effectiveInitialMode || isBarberFirst ? "branch" : "mode");
     else if (flow.step === "date") flow.setStep("service");
     else if (flow.step === "time") flow.setStep("date");
     else if (flow.step === "details") flow.setStep("time");
@@ -266,33 +318,95 @@ const BookingModal = ({
   };
 
   const renderContent = () => {
+    if (isBarberFirst && !hasBarberEmpId) {
+      return (
+        <div className="flex flex-col items-center justify-center h-64 gap-4 p-6 text-center" dir="rtl">
+          <div className="w-14 h-14 rounded-full bg-red-50 flex items-center justify-center">
+            <AlertCircle className="w-7 h-7 text-red-400" />
+          </div>
+          <p className="text-cut-black/85 font-medium">
+            تعذر بدء الحجز: معرف الحلاق غير متاح
+          </p>
+          <button
+            type="button"
+            onClick={handleClose}
+            className="px-4 py-2 rounded-lg border border-cut-gold/15 text-sm text-cut-black/70 hover:bg-cut-black/[0.04] transition-colors"
+          >
+            إغلاق
+          </button>
+        </div>
+      );
+    }
+
     if (flow.step === "branch") {
       return (
         <div className="p-5 md:p-6" dir="rtl">
           <div className="mb-5">
             <h3 className="text-lg font-heading font-bold text-cut-black mb-1">
-              في أي فرع تحب تحجز؟
+              {isBarberFirst ? `فرع ${barber.name}` : "في أي فرع تحب تحجز؟"}
             </h3>
-            <p className="text-cut-black/50 text-xs">اختار الفرع الأقرب ليك</p>
+            <p className="text-cut-black/50 text-xs">
+              {isBarberFirst
+                ? "اختار فرعاً يعمل به هذا الحلاق"
+                : "اختار الفرع الأقرب ليك"}
+            </p>
           </div>
-          <BranchPicker
-            branches={branches}
-            selectedBranchCode={selectedBranch?.branchCode}
-            isLoading={isLoadingBranches}
-            error={branchesError}
-            variant="light"
-            onSelect={handleBranchSelect}
-          />
-          {hasConfirmedBranch && selectedBranch && (
-            <button
-              type="button"
-              onClick={() => handleBranchSelect(selectedBranch)}
-              className="w-full mt-4 py-3 rounded-xl bg-cut-gold text-black font-bold hover:bg-cut-gold/80 transition-colors flex items-center justify-center gap-2"
+          {flow.barberProfileLoading && (
+            <div
+              className="flex items-center justify-center gap-2 py-8 text-cut-black/50 text-sm"
+              aria-live="polite"
             >
-              <Check className="w-4 h-4" />
-              تأكيد فرع {selectedBranch.shortName || selectedBranch.branchName} ومتابعة
-            </button>
+              <Loader2 className="w-4 h-4 animate-spin" />
+              جاري تحميل فروع الحلاق...
+            </div>
           )}
+          {(flow.barberProfileError || branchesError) && (
+            <div
+              className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm text-center space-y-3"
+              role="alert"
+            >
+              <p>{flow.barberProfileError || branchesError}</p>
+              <button
+                type="button"
+                onClick={() => {
+                  if (branchesError) refetchBranches();
+                  if (flow.barberProfileError) flow.retryBarberProfile();
+                }}
+                className="inline-flex items-center justify-center px-3 py-1.5 rounded-lg border border-red-200 bg-white text-red-700 text-xs font-bold hover:bg-red-50 transition-colors"
+              >
+                إعادة المحاولة
+              </button>
+            </div>
+          )}
+          {!flow.barberProfileLoading && (
+            <BranchPicker
+              branches={allowedBranches}
+              selectedBranchCode={selectedBranch?.branchCode}
+              isLoading={isLoadingBranches || (isBarberFirst && flow.barberProfileLoading)}
+              error={
+                !flow.barberProfileError &&
+                !branchesError &&
+                isBarberFirst &&
+                allowedBranches.length === 0
+                  ? "لا توجد فروع عامة متاحة لهذا الحلاق"
+                  : null
+              }
+              variant="light"
+              onSelect={handleBranchSelect}
+            />
+          )}
+          {hasConfirmedBranch &&
+            selectedBranch &&
+            allowedBranches.some((b) => b.branchCode === selectedBranch.branchCode) && (
+              <button
+                type="button"
+                onClick={() => handleBranchSelect(selectedBranch)}
+                className="w-full mt-4 py-3 rounded-xl bg-cut-gold text-black font-bold hover:bg-cut-gold/80 transition-colors flex items-center justify-center gap-2"
+              >
+                <Check className="w-4 h-4" />
+                تأكيد فرع {selectedBranch.shortName || selectedBranch.branchName} ومتابعة
+              </button>
+            )}
         </div>
       );
     }
@@ -786,16 +900,26 @@ const BookingModal = ({
             {booking?.message && (
               <p className="text-cut-black/60 text-xs mb-4">{booking.message}</p>
             )}
-            <button
-              type="button"
-              onClick={() => {
-                setConfettiTrigger((p) => p + 1);
-                setTimeout(handleClose, 400);
-              }}
-              className="w-full py-3 rounded-xl bg-cut-gold text-black font-bold"
-            >
-              إغلاق
-            </button>
+            <div className="flex flex-col gap-2">
+              {booking?.bookingCode && (
+                <a
+                  href={`/booking?code=${encodeURIComponent(booking.bookingCode)}`}
+                  className="w-full py-3 rounded-xl border border-cut-gold/30 text-cut-black font-bold text-center"
+                >
+                  عرض تفاصيل الحجز
+                </a>
+              )}
+              <button
+                type="button"
+                onClick={() => {
+                  setConfettiTrigger((p) => p + 1);
+                  setTimeout(handleClose, 400);
+                }}
+                className="w-full py-3 rounded-xl bg-cut-gold text-black font-bold"
+              >
+                إغلاق
+              </button>
+            </div>
           </div>
         );
       }
@@ -803,7 +927,10 @@ const BookingModal = ({
   };
 
   const activeStepId = stepForHeader(flow.step);
-  const headerSteps = initialMode ? steps.filter((s) => s.id !== "mode") : steps;
+  const headerSteps =
+    effectiveInitialMode || isBarberFirst
+      ? steps.filter((s) => s.id !== "mode")
+      : steps;
 
   return (
     <>

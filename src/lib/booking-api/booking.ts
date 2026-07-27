@@ -26,21 +26,95 @@ import {
   isPlanMatchingSelection,
 } from "./plan-session";
 import { saveBookingAccess, getBookingAccess } from "./booking-access-store";
+import { clampUpcomingLimit, normalizeBookingCode } from "./limits";
 
 // ─── Plan ────────────────────────────────────────────────────────────────────
 
 interface PlanApiResponse {
   ok: boolean;
-  plan: BookingPlan["plan"];
-  totalDurationMinutes: number;
-  totalPrice: number;
-  bookingCodes: string[];
+  /** Legacy flat shape OR nested booking-plan-v1 object. */
+  plan:
+    | BookingPlan["plan"]
+    | {
+        contractVersion?: string;
+        branch?: { branchCode?: string; branchName?: string };
+        barber?: { empId?: number; nameAr?: string; name?: string };
+        date?: string;
+        time?: string;
+        dayOffset?: number;
+        startDateTime?: string;
+        endDateTime?: string;
+        services?: Array<{
+          serviceId: number;
+          nameAr?: string;
+          nameEn?: string;
+          price?: number;
+          durationMinutes?: number;
+        }>;
+        totalDurationMinutes?: number;
+        total?: number;
+        totalPrice?: number;
+        subtotal?: number;
+        planToken?: string;
+        planFingerprint?: string;
+        planExpiresAt?: string;
+        evaluatedAt?: string;
+      };
+  totalDurationMinutes?: number;
+  totalPrice?: number;
+  total?: number;
+  bookingCodes?: string[];
   message?: string;
   branchCode?: string;
   branchName?: string;
   planToken?: string;
   planFingerprint?: string;
   evaluatedAt?: string;
+}
+
+function normalizePlanResponse(
+  data: PlanApiResponse,
+  params: BookingPlanRequest,
+): BookingPlan {
+  const nested =
+    data.plan && !Array.isArray(data.plan) ? data.plan : null;
+  const legacyItems = Array.isArray(data.plan) ? data.plan : null;
+
+  const items: BookingPlan["plan"] =
+    legacyItems ??
+    (nested?.services ?? []).map((s) => ({
+      serviceId: s.serviceId,
+      serviceName: s.nameAr || s.nameEn || "",
+      empId: nested?.barber?.empId ?? params.empId ?? 0,
+      empName: nested?.barber?.nameAr || nested?.barber?.name || "",
+      date: nested?.date || params.date,
+      startTime: nested?.time || params.time,
+      endTime: "",
+      durationMinutes: s.durationMinutes ?? 0,
+      price: s.price ?? 0,
+      bookingCode: "",
+    }));
+
+  return {
+    plan: items,
+    totalDurationMinutes:
+      nested?.totalDurationMinutes ??
+      data.totalDurationMinutes ??
+      items.reduce((sum, i) => sum + (i.durationMinutes || 0), 0),
+    totalPrice:
+      nested?.total ??
+      nested?.totalPrice ??
+      data.totalPrice ??
+      data.total ??
+      items.reduce((sum, i) => sum + (i.price || 0), 0),
+    bookingCodes: data.bookingCodes ?? [],
+    message: data.message,
+    branchCode: nested?.branch?.branchCode ?? data.branchCode ?? params.branchCode,
+    branchName: nested?.branch?.branchName ?? data.branchName,
+    planToken: nested?.planToken ?? data.planToken,
+    planFingerprint: nested?.planFingerprint ?? data.planFingerprint,
+    evaluatedAt: nested?.evaluatedAt ?? data.evaluatedAt,
+  };
 }
 
 export async function createBookingPlan(
@@ -55,18 +129,7 @@ export async function createBookingPlan(
     timeoutMs: 15_000,
   });
 
-  const planData: BookingPlan = {
-    plan: res.data.plan,
-    totalDurationMinutes: res.data.totalDurationMinutes,
-    totalPrice: res.data.totalPrice,
-    bookingCodes: res.data.bookingCodes,
-    message: res.data.message,
-    branchCode: res.data.branchCode,
-    branchName: res.data.branchName,
-    planToken: res.data.planToken,
-    planFingerprint: res.data.planFingerprint,
-    evaluatedAt: res.data.evaluatedAt,
-  };
+  const planData = normalizePlanResponse(res.data, params);
 
   if (planData.planToken) {
     savePlanSession(planData, {
@@ -292,14 +355,15 @@ export async function submitBookingCancellation(params: {
   reasonText?: string;
   signal?: AbortSignal;
 }): Promise<CancelBookingResult> {
-  const storedAccess = getBookingAccess(params.code);
+  const code = normalizeBookingCode(params.code);
+  const storedAccess = getBookingAccess(code);
   const token = params.bookingAccessToken ?? storedAccess?.bookingAccessToken;
 
-  const opKey = buildCancelOperationKey(params.code);
+  const opKey = buildCancelOperationKey(code);
   const clientRequestId = getOrCreateMutationId(opKey);
 
   const body: Record<string, unknown> = {
-    code: params.code,
+    code,
     clientRequestId,
   };
 
@@ -314,7 +378,7 @@ export async function submitBookingCancellation(params: {
 
   try {
     const res = await bookingApiRequest<{ ok: boolean; cancelled?: boolean; message?: string }>({
-      path: `/api/public/booking/${encodeURIComponent(params.code)}/cancel`,
+      path: `/api/public/booking/${encodeURIComponent(code)}/cancel`,
       method: "POST",
       body,
       idempotencyKey: clientRequestId,
@@ -360,9 +424,14 @@ export async function submitBookingCancellation(params: {
 
 export async function lookupBooking(
   code: string,
-  opts?: { bookingAccessToken?: string; signal?: AbortSignal },
+  opts?: {
+    bookingAccessToken?: string;
+    phone?: string;
+    signal?: AbortSignal;
+  },
 ): Promise<BookingApiResponse<PublicBooking>> {
-  const storedAccess = getBookingAccess(code);
+  const normalized = normalizeBookingCode(code);
+  const storedAccess = getBookingAccess(normalized);
   const token = opts?.bookingAccessToken ?? storedAccess?.bookingAccessToken;
 
   const headers: Record<string, string> = {};
@@ -371,7 +440,8 @@ export async function lookupBooking(
   }
 
   return bookingApiRequest<PublicBooking>({
-    path: `/api/public/booking/${encodeURIComponent(code)}`,
+    path: `/api/public/booking/${encodeURIComponent(normalized)}`,
+    query: !token && opts?.phone ? { phone: opts.phone } : undefined,
     headers: Object.keys(headers).length > 0 ? headers : undefined,
     signal: opts?.signal,
     timeoutMs: 15_000,
@@ -382,13 +452,14 @@ export async function lookupBooking(
 
 export async function getUpcomingBookings(
   phone: string,
-  signal?: AbortSignal,
+  opts?: { limit?: number; signal?: AbortSignal },
 ): Promise<BookingApiResponse<PublicBooking[]>> {
+  const limit = clampUpcomingLimit(opts?.limit);
   const res = await bookingApiRequest<{ ok: boolean; bookings: PublicBooking[] }>({
     path: "/api/public/booking/upcoming",
     method: "POST",
-    body: { phone },
-    signal,
+    body: { phone, limit },
+    signal: opts?.signal,
     timeoutMs: 15_000,
   });
   return { ...res, data: res.data.bookings ?? [] };

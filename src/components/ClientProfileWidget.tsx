@@ -3,14 +3,15 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { User, X, Calendar, Phone, LogOut, ChevronLeft } from "lucide-react";
 import { getClientProfile, type ClientProfile } from "@/lib/publicBookingApi";
-import { clearClient } from "@/lib/clientStorage";
+import { clearClient, getSavedClient } from "@/lib/clientStorage";
 import CustomerUpcomingBookings from "./CustomerUpcomingBookings";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
+/** Only deliberate client login (`cut_client`) — never auto-read cut_customer_phone. */
 function getStoredPhone(): string | null {
   if (typeof window === "undefined") return null;
-  return localStorage.getItem("cut_customer_phone")?.trim() || null;
+  return getSavedClient()?.phone?.trim() || null;
 }
 
 function getFirstName(name: string): string {
@@ -114,6 +115,7 @@ function ProfileDrawer({
           <div className="max-h-72 overflow-y-auto">
             <CustomerUpcomingBookings
               phone={phone}
+              variant="embedded"
               onCancelled={onBookingCancelled}
             />
           </div>
@@ -173,7 +175,12 @@ export default function ClientProfileWidget() {
   }, [initialized, phone, fetchProfile]);
 
   const handleClear = () => {
-    localStorage.removeItem("cut_customer_phone");
+    // Cleanup orphaned legacy key if present; do not reintroduce writes.
+    try {
+      localStorage.removeItem("cut_customer_phone");
+    } catch {
+      /* ignore */
+    }
     clearClient();
     setPhone(null);
     setClient(null);

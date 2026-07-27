@@ -57,6 +57,11 @@ export interface BookingService {
 
 // ─── Barbers ─────────────────────────────────────────────────────────────────
 
+export interface PublicBarberBranch {
+  branchCode: string;
+  branchName: string;
+}
+
 export interface PublicBarber {
   id: number;
   name: string;
@@ -64,6 +69,22 @@ export interface PublicBarber {
   photoUrl: string | null;
   bio: string | null;
   isBookableOnline: boolean;
+  /** Public service IDs this barber can perform (when returned by catalog). */
+  serviceIds?: number[];
+  /** Public branches/locations where this barber appears. */
+  branches?: PublicBarberBranch[];
+}
+
+export interface BarberLocation {
+  date: string;
+  isWorking: boolean;
+  status?: string | null;
+  branch: {
+    branchCode: string;
+    branchName: string;
+    address: string | null;
+    phone: string | null;
+  } | null;
 }
 
 // ─── Calendar ────────────────────────────────────────────────────────────────
@@ -192,8 +213,9 @@ export interface PublicBooking {
   bookingCode: string;
   date: string;
   time: string;
+  dayOffset?: number | null;
   barberName?: string | null;
-  services?: { name: string; price?: number | null; duration?: number | null }[];
+  services?: { name: string; price?: number | null; duration?: number | null }[] | string[];
   totalPrice?: number | null;
   totalDuration?: number | null;
   status?: string | null;
@@ -201,6 +223,8 @@ export interface PublicBooking {
   branchCode?: string | null;
   branchName?: string | null;
   customerName?: string | null;
+  /** When backend returns limited public fields without ownership proof */
+  ownershipLevel?: "full" | "minimal" | string | null;
 }
 
 // ─── Upcoming ────────────────────────────────────────────────────────────────
@@ -247,7 +271,14 @@ export type PublicBookingErrorCode =
   | "EMPLOYEE_INTERVAL_BUSY_GLOBAL"
   | "BARBER_FULLY_BOOKED"
   | "BOOKING_NOT_FOUND"
+  | "BOOKING_NOT_FOUND_OR_UNAUTHORIZED"
   | "BOOKING_ALREADY_CANCELLED"
+  | "BOOKING_ALREADY_IN_SERVICE"
+  | "BOOKING_ALREADY_COMPLETED"
+  | "BOOKING_HAS_PAYMENT"
+  | "BOOKING_CANCELLATION_REQUIRES_STAFF"
+  | "BOOKING_CANCELLATION_WINDOW_CLOSED"
+  | "BOOKING_NOT_CANCELLABLE"
   | "CANCEL_NOT_ALLOWED"
   | "CANCEL_TOO_LATE"
   | "CUSTOMER_PHONE_REQUIRED"

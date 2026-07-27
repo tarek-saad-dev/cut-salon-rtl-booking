@@ -19,7 +19,14 @@ interface StatusResponse {
 
 interface ServicesResponse {
   ok: boolean;
-  services: BookingService[];
+  services: Array<
+    BookingService & {
+      serviceId?: number;
+      nameAr?: string;
+      nameEn?: string;
+      bookable?: boolean;
+    }
+  >;
 }
 
 export async function getBookingConfig(
@@ -64,5 +71,17 @@ export async function getServices(
     signal,
     timeoutMs: 15_000,
   });
-  return { ...res, data: res.data.services };
+  const services = (res.data.services ?? []).map((raw) => {
+    const id = Number(raw.id ?? raw.serviceId);
+    return {
+      id,
+      name: raw.nameAr || raw.name || raw.nameEn || "",
+      price: Number(raw.price) || 0,
+      durationMinutes: Number(raw.durationMinutes) || 0,
+      categoryName: raw.categoryName ?? null,
+      // Compat: backend may emit `bookable` instead of `isBookableOnline`.
+      isBookableOnline: raw.isBookableOnline ?? raw.bookable !== false,
+    } satisfies BookingService;
+  });
+  return { ...res, data: services };
 }

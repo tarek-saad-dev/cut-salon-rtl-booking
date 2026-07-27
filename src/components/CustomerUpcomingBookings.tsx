@@ -1,231 +1,24 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { Calendar, Clock, User, Scissors, AlertCircle, Loader2, X, ChevronDown, ChevronUp } from "lucide-react";
-import { getUpcomingBookings, cancelBooking, type UpcomingBooking } from "@/lib/publicBookingApi";
-import { getSavedClient } from "@/lib/clientStorage";
+import { useCallback, useEffect, useState } from "react";
+import { ChevronDown, ChevronUp, Loader2, Search } from "lucide-react";
+import Link from "next/link";
+import {
+  getUpcomingBookings,
+  BookingApiError,
+  UPCOMING_BOOKINGS_DEFAULT_LIMIT,
+  type PublicBooking,
+} from "@/lib/booking-api";
+import { normalizeEgyptianPhone } from "@/lib/booking-management/display";
+import BookingManagementCard from "@/components/booking-management/BookingManagementCard";
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-
-function getPhoneFromStorage(): string | null {
-  if (typeof window === "undefined") return null;
-  const direct = localStorage.getItem("cut_customer_phone")?.trim();
-  if (direct) return direct;
-  return getSavedClient()?.phone?.trim() || null;
+interface CustomerUpcomingBookingsProps {
+  /** Explicit phone from a deliberate user action (e.g. logged-in client). Never auto-read storage. */
+  phone?: string;
+  onCancelled?: () => void;
+  /** compact = hero/modal CTA strip; form = phone entry + list; embedded = list only when phone provided */
+  variant?: "compact" | "form" | "embedded";
 }
-
-function getServiceNames(services: UpcomingBooking["services"]): string[] {
-  if (!services || services.length === 0) return [];
-  return services.map(s =>
-    typeof s === "string" ? s : (s as { name: string }).name
-  );
-}
-
-// ─── Date/Time helpers (Cairo local — no UTC conversion) ──────────────────────
-
-function formatBookingDate(date: string): string {
-  const [y, m, d] = date.split("-").map(Number);
-  const dateObj = new Date(y, m - 1, d);
-  const days = ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
-  const months = ["يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو", "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"];
-  return `${days[dateObj.getDay()]} ${d} ${months[m - 1]}`;
-}
-
-function formatBookingTime(time: string): string {
-  const [hStr, mStr] = time.split(":");
-  const h = parseInt(hStr, 10);
-  const min = mStr;
-  const suffix = h >= 5 && h < 12 ? "صباحًا" : h >= 12 && h < 17 ? "مساءً" : h >= 17 && h < 21 ? "مساءً" : "ليلاً";
-  const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
-  return `${h12}:${min} ${suffix}`;
-}
-
-// ─── Cancel Confirmation Modal ─────────────────────────────────────────────────
-
-function CancelConfirmModal({
-  booking,
-  phone,
-  onConfirm,
-  onClose,
-}: {
-  booking: UpcomingBooking;
-  phone: string;
-  onConfirm: () => void;
-  onClose: () => void;
-}) {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const handleCancel = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      await cancelBooking({ bookingId: booking.id, phone });
-      onConfirm();
-    } catch {
-      setError("لم نتمكن من إلغاء الحجز، حاول مرة أخرى");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center px-4" dir="rtl">
-      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full max-w-sm rounded-2xl bg-[#0f0f0f] border border-white/10 p-6 shadow-2xl">
-        <button onClick={onClose} className="absolute left-4 top-4 text-cut-ivory/30 hover:text-cut-ivory/60 transition-colors">
-          <X className="w-4 h-4" />
-        </button>
-
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 rounded-xl bg-red-500/10 flex items-center justify-center flex-shrink-0">
-            <AlertCircle className="w-5 h-5 text-red-400" />
-          </div>
-          <div>
-            <h3 className="text-cut-ivory font-bold text-base">إلغاء الحجز؟</h3>
-            <p className="text-gray-500 text-xs">{formatBookingDate(booking.date)} — {formatBookingTime(booking.time)}</p>
-          </div>
-        </div>
-
-        <p className="text-gray-400 text-sm mb-5">هل أنت متأكد من إلغاء هذا الحجز؟ لا يمكن التراجع عن هذا الإجراء.</p>
-
-        {error && (
-          <div className="mb-4 px-3 py-2 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs text-center">
-            {error}
-          </div>
-        )}
-
-        <div className="flex gap-2">
-          <button
-            onClick={onClose}
-            disabled={loading}
-            className="flex-1 py-2.5 rounded-xl border border-white/10 text-cut-ivory/60 text-sm hover:border-white/20 hover:text-cut-ivory/80 transition-colors disabled:opacity-40"
-          >
-            لا، احتفظ بالحجز
-          </button>
-          <button
-            onClick={handleCancel}
-            disabled={loading}
-            className="flex-1 py-2.5 rounded-xl bg-red-500 text-cut-ivory text-sm font-bold hover:bg-red-600 transition-colors disabled:opacity-60 flex items-center justify-center gap-1.5"
-          >
-            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "نعم، إلغاء الحجز"}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── Booking Card ──────────────────────────────────────────────────────────────
-
-function BookingCard({
-  booking,
-  phone,
-  onCancelled,
-  isPrimary = false,
-}: {
-  booking: UpcomingBooking;
-  phone: string;
-  onCancelled: () => void;
-  isPrimary?: boolean;
-}) {
-  const [showConfirm, setShowConfirm] = useState(false);
-
-  const statusKey = (booking.status ?? "").toLowerCase();
-  const statusLabel: Record<string, { text: string; cls: string }> = {
-    confirmed: { text: "مؤكد", cls: "bg-cut-bronze/10 text-cut-bronze border-cut-bronze/25" },
-    pending: { text: "قيد الانتظار", cls: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20" },
-    cancelled: { text: "ملغي", cls: "bg-red-500/10 text-red-400 border-red-500/20" },
-  };
-  const badge = statusLabel[statusKey] ?? { text: booking.status ?? "غير معروف", cls: "bg-gray-500/10 text-gray-400 border-gray-500/20" };
-
-  return (
-    <>
-      <div className={`rounded-xl overflow-hidden border ${isPrimary
-        ? "bg-gradient-to-b from-cut-gold/[0.07] to-[#0f0f0f] border-cut-gold/30 shadow-[0_0_24px_rgba(164,136,121,0.08)]"
-        : "bg-[#0f0f0f] border-cut-gold/15"
-        }`}>
-        {/* Header stripe */}
-        <div className="px-4 py-2 bg-cut-gold/5 border-b border-cut-gold/10 flex items-center justify-between">
-          <span className="text-cut-gold text-xs font-bold">{isPrimary ? "حجزك القادم" : "حجز قادم"}</span>
-          <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full border ${badge.cls}`}>{badge.text}</span>
-        </div>
-
-        <div className="px-4 py-3 space-y-2">
-          {/* Date + Time */}
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-1.5 text-cut-ivory/80 text-sm">
-              <Calendar className="w-3.5 h-3.5 text-cut-gold flex-shrink-0" />
-              <span>{formatBookingDate(booking.date)}</span>
-            </div>
-            <div className="flex items-center gap-1.5 text-cut-ivory/80 text-sm">
-              <Clock className="w-3.5 h-3.5 text-cut-gold flex-shrink-0" />
-              <span>{formatBookingTime(booking.time)}</span>
-            </div>
-          </div>
-
-          {/* Barber */}
-          {booking.barberName && (
-            <div className="flex items-center gap-1.5 text-cut-ivory/60 text-xs">
-              <User className="w-3.5 h-3.5 flex-shrink-0" />
-              <span>مع {booking.barberName}</span>
-            </div>
-          )}
-
-          {/* Services */}
-          {(() => {
-            const names = getServiceNames(booking.services);
-            return names.length > 0 ? (
-              <div className="flex items-start gap-1.5 text-cut-ivory/60 text-xs">
-                <Scissors className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
-                <span>{names.join(" + ")}</span>
-              </div>
-            ) : null;
-          })()}
-
-          {/* Price + Duration */}
-          <div className="flex items-center gap-3">
-            {booking.totalPrice != null && booking.totalPrice > 0 && (
-              <span className="text-cut-gold text-xs font-bold">
-                الإجمالي: {booking.totalPrice} جنيه
-              </span>
-            )}
-            {booking.totalDuration != null && booking.totalDuration > 0 && (
-              <span className="text-cut-ivory/40 text-xs">
-                {booking.totalDuration} دقيقة
-              </span>
-            )}
-          </div>
-        </div>
-
-        {/* Footer */}
-        <div className="px-4 pb-3">
-          {booking.canCancel === true ? (
-            <button
-              onClick={() => setShowConfirm(true)}
-              className="w-full py-2 rounded-xl border border-red-500/20 text-red-400 text-xs font-medium hover:bg-red-500/10 transition-colors"
-            >
-              إلغاء الحجز
-            </button>
-          ) : (
-            <p className="text-center text-cut-ivory/20 text-[11px]">لا يمكن إلغاء هذا الحجز الآن</p>
-          )}
-        </div>
-      </div>
-
-      {showConfirm && (
-        <CancelConfirmModal
-          booking={booking}
-          phone={phone}
-          onConfirm={() => { setShowConfirm(false); onCancelled(); }}
-          onClose={() => setShowConfirm(false)}
-        />
-      )}
-    </>
-  );
-}
-
-// ─── Skeleton ─────────────────────────────────────────────────────────────────
 
 function BookingSkeleton() {
   return (
@@ -234,123 +27,217 @@ function BookingSkeleton() {
       <div className="px-4 py-3 space-y-2">
         <div className="h-4 bg-white/5 rounded w-3/4" />
         <div className="h-3 bg-white/5 rounded w-1/2" />
-        <div className="h-3 bg-white/5 rounded w-2/3" />
-      </div>
-      <div className="px-4 pb-3">
-        <div className="h-8 bg-white/5 rounded-xl" />
       </div>
     </div>
   );
 }
 
-// ─── Main Component ───────────────────────────────────────────────────────────
-
-interface CustomerUpcomingBookingsProps {
-  phone?: string;
-  onCancelled?: () => void;
-}
-
-export default function CustomerUpcomingBookings({ phone: phoneProp, onCancelled }: CustomerUpcomingBookingsProps) {
-  const [phone, setPhone] = useState<string | null>(null);
-  const [bookings, setBookings] = useState<UpcomingBooking[]>([]);
+export default function CustomerUpcomingBookings({
+  phone: phoneProp,
+  onCancelled,
+  variant = "compact",
+}: CustomerUpcomingBookingsProps) {
+  const [phoneInput, setPhoneInput] = useState("");
+  const [activePhone, setActivePhone] = useState<string | null>(
+    phoneProp?.trim() ? phoneProp.trim() : null,
+  );
+  const [bookings, setBookings] = useState<PublicBooking[]>([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [requestId, setRequestId] = useState<string | null>(null);
+  const [rateLimitUntil, setRateLimitUntil] = useState<number | null>(null);
+  const [rateRemaining, setRateRemaining] = useState(0);
   const [expanded, setExpanded] = useState(true);
-  const [initialized, setInitialized] = useState(false);
+  const [searched, setSearched] = useState(false);
 
-  // Resolve phone from prop or localStorage
   useEffect(() => {
-    const resolved = phoneProp?.trim() || getPhoneFromStorage() || null;
-    if (process.env.NODE_ENV === "development") {
-      console.log("[upcoming] resolved phone:", resolved);
-    }
-    setPhone(resolved || null);
-    setInitialized(true);
+    if (phoneProp?.trim()) setActivePhone(phoneProp.trim());
   }, [phoneProp]);
+
+  useEffect(() => {
+    if (!rateLimitUntil) return;
+    const id = setInterval(() => {
+      const rem = Math.max(0, Math.ceil((rateLimitUntil - Date.now()) / 1000));
+      setRateRemaining(rem);
+      if (rem <= 0) setRateLimitUntil(null);
+    }, 500);
+    return () => clearInterval(id);
+  }, [rateLimitUntil]);
 
   const fetchBookings = useCallback(async (p: string) => {
     setLoading(true);
+    setError(null);
+    setRequestId(null);
     try {
-      const res = await getUpcomingBookings(p);
-      if (process.env.NODE_ENV === "development") {
-        console.log("[upcoming] API response:", res);
-      }
-      if (res.ok) setBookings(res.bookings ?? []);
-      else setBookings([]);
+      const res = await getUpcomingBookings(p, { limit: UPCOMING_BOOKINGS_DEFAULT_LIMIT });
+      setBookings(res.data ?? []);
+      setSearched(true);
     } catch (err) {
-      if (process.env.NODE_ENV === "development") {
-        console.warn("[upcoming] fetch error:", err);
-      }
       setBookings([]);
+      setSearched(true);
+      if (err instanceof BookingApiError) {
+        setRequestId(err.requestId);
+        if (err.isRateLimited && err.retryAfterSeconds) {
+          setRateLimitUntil(Date.now() + err.retryAfterSeconds * 1000);
+          setRateRemaining(err.retryAfterSeconds);
+          setError(err.message);
+        } else {
+          setError(err.message);
+        }
+      } else {
+        setError("تعذر تحميل الحجوزات، حاول مرة أخرى");
+      }
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    if (!initialized || !phone) return;
-    if (process.env.NODE_ENV === "development") {
-      console.log("[upcoming] auto load start:", phone);
-    }
-    fetchBookings(phone);
-  }, [initialized, phone, fetchBookings]);
+    if (!activePhone) return;
+    if (rateLimitUntil && Date.now() < rateLimitUntil) return;
+    void fetchBookings(activePhone);
+  }, [activePhone, fetchBookings, rateLimitUntil]);
 
-  const handleCancelled = () => {
-    if (phone) fetchBookings(phone);
+  const handleSubmitPhone = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (rateLimitUntil && Date.now() < rateLimitUntil) return;
+    const normalized = normalizeEgyptianPhone(phoneInput);
+    if (!normalized) {
+      setError("يرجى إدخال رقم هاتف صحيح");
+      return;
+    }
+    setActivePhone(normalized);
+  };
+
+  const handleUpdated = (updated: PublicBooking) => {
+    setBookings((prev) =>
+      prev.map((b) =>
+        b.bookingCode === updated.bookingCode ? updated : b,
+      ),
+    );
     onCancelled?.();
   };
 
-  // Don't render anything if no phone or still resolving
-  if (!initialized || !phone) return null;
-
-  // Loading skeleton
-  if (loading) {
+  if (variant === "compact" && !phoneProp) {
     return (
       <div className="px-6 pt-4 pb-2" dir="rtl">
-        <BookingSkeleton />
+        <Link
+          href="/booking"
+          className="flex items-center justify-between gap-3 rounded-xl border border-cut-gold/20 bg-cut-gold/[0.06] px-4 py-3 text-sm text-cut-ivory/80 hover:border-cut-gold/40 transition-colors"
+        >
+          <span className="font-medium">إدارة حجوزاتك أو البحث بكود الحجز</span>
+          <Search className="w-4 h-4 text-cut-gold flex-shrink-0" />
+        </Link>
       </div>
     );
   }
 
-  // No bookings — silent
-  if (bookings.length === 0) return null;
-
-  const title = bookings.length === 1 ? "تذكير بحجزك القادم" : "حجوزاتك القادمة";
+  const showForm = variant === "form" || (variant === "embedded" && !phoneProp);
 
   return (
     <div className="px-6 pt-4 pb-2" dir="rtl">
-      {/* Section header with collapse toggle */}
-      <button
-        onClick={() => setExpanded(v => !v)}
-        className="flex items-center justify-between w-full mb-3 group"
-      >
-        <div className="flex items-center gap-2">
-          <span className="text-cut-ivory/70 text-xs font-bold">{title}</span>
-          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-cut-gold/15 text-cut-gold border border-cut-gold/20">
-            {bookings.length}
-          </span>
-        </div>
-        {expanded
-          ? <ChevronUp className="w-3.5 h-3.5 text-cut-ivory/30 group-hover:text-cut-ivory/50 transition-colors" />
-          : <ChevronDown className="w-3.5 h-3.5 text-cut-ivory/30 group-hover:text-cut-ivory/50 transition-colors" />
-        }
-      </button>
-
-      {expanded && (
-        <div className="space-y-3">
-          {bookings.map((b, i) => (
-            <BookingCard
-              key={String(b.id)}
-              booking={b}
-              phone={phone}
-              onCancelled={handleCancelled}
-              isPrimary={i === 0}
+      {showForm && (
+        <form onSubmit={handleSubmitPhone} className="mb-4 space-y-2">
+          <label htmlFor="upcoming-phone" className="block text-xs text-cut-ivory/50">
+            أدخل رقم هاتفك لعرض الحجوزات القادمة
+          </label>
+          <div className="flex gap-2">
+            <input
+              id="upcoming-phone"
+              type="tel"
+              inputMode="tel"
+              autoComplete="tel"
+              value={phoneInput}
+              onChange={(e) => setPhoneInput(e.target.value)}
+              disabled={Boolean(rateLimitUntil && rateRemaining > 0)}
+              className="flex-1 rounded-xl bg-white/5 border border-white/10 text-cut-ivory text-sm px-3 py-2.5"
+              placeholder="01xxxxxxxxx"
+              dir="ltr"
             />
-          ))}
+            <button
+              type="submit"
+              disabled={loading || Boolean(rateLimitUntil && rateRemaining > 0)}
+              className="px-4 rounded-xl bg-cut-gold text-black text-sm font-bold disabled:opacity-50"
+            >
+              عرض
+            </button>
+          </div>
+          <p className="text-[11px] text-cut-ivory/30">
+            لن يتم حفظ رقم الهاتف تلقائياً على هذا الجهاز.
+          </p>
+        </form>
+      )}
+
+      {error && (
+        <div
+          className="mb-3 px-3 py-2 rounded-xl bg-red-500/10 border border-red-500/20 text-red-300 text-xs text-center"
+          aria-live="assertive"
+          role="alert"
+        >
+          {error}
+          {rateRemaining > 0 && (
+            <p className="mt-1 font-bold tabular-nums">
+              حاول مرة أخرى بعد {rateRemaining} ثانية
+            </p>
+          )}
+          {requestId && (
+            <p className="mt-1 text-[10px] text-cut-ivory/30">رقم مرجع الخطأ: {requestId}</p>
+          )}
         </div>
       )}
 
-      {/* Divider */}
-      <div className="mt-4 border-t border-white/5" />
+      {loading && <BookingSkeleton />}
+
+      {!loading && searched && !error && bookings.length === 0 && activePhone && (
+        <p className="text-center text-cut-ivory/40 text-sm py-4" aria-live="polite">
+          لا توجد حجوزات قادمة لهذا الرقم
+        </p>
+      )}
+
+      {!loading && bookings.length > 0 && (
+        <>
+          <button
+            type="button"
+            onClick={() => setExpanded((v) => !v)}
+            className="flex items-center justify-between w-full mb-3 group"
+          >
+            <div className="flex items-center gap-2">
+              <span className="text-cut-ivory/70 text-xs font-bold">
+                {bookings.length === 1 ? "تذكير بحجزك القادم" : "حجوزاتك القادمة"}
+              </span>
+              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-cut-gold/15 text-cut-gold border border-cut-gold/20">
+                {bookings.length}
+              </span>
+            </div>
+            {expanded ? (
+              <ChevronUp className="w-3.5 h-3.5 text-cut-ivory/30" />
+            ) : (
+              <ChevronDown className="w-3.5 h-3.5 text-cut-ivory/30" />
+            )}
+          </button>
+
+          {expanded && (
+            <div className="space-y-3">
+              {bookings.map((b, i) => (
+                <BookingManagementCard
+                  key={b.bookingCode}
+                  booking={b}
+                  phone={activePhone}
+                  onUpdated={handleUpdated}
+                  isPrimary={i === 0}
+                />
+              ))}
+            </div>
+          )}
+        </>
+      )}
+
+      {loading && (
+        <span className="sr-only" aria-live="polite">
+          جاري تحميل الحجوزات
+          <Loader2 className="w-4 h-4" />
+        </span>
+      )}
     </div>
   );
 }
