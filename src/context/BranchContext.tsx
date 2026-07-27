@@ -9,10 +9,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import {
-  fetchPublicBranches,
-  type PublicBranch,
-} from "@/lib/publicBookingApi";
+import { listPublicBranches, type PublicBranch } from "@/lib/booking-api";
 import { getSavedBranch, saveBranch, clearBranch as clearBranchStorage } from "@/lib/branchStorage";
 
 interface BranchContextValue {
@@ -39,17 +36,20 @@ export function BranchProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let cancelled = false;
+    const controller = new AbortController();
 
     (async () => {
       setIsLoadingBranches(true);
       setBranchesError(null);
       try {
-        const res = await fetchPublicBranches();
+        const res = await listPublicBranches(controller.signal);
         if (cancelled) return;
-        const list = res.branches ?? [];
+        // Public API must never include Camp Caesar; still filter defensively.
+        const list = (res.data ?? []).filter(
+          (b) => b.branchCode && b.branchCode.toUpperCase() !== "CAMP_CAESAR",
+        );
         setBranches(list);
 
-        // Restore a previously confirmed branch only if it still exists & is active.
         const saved = getSavedBranch();
         if (saved) {
           const match = list.find((b) => b.branchCode === saved.branchCode);
@@ -58,12 +58,20 @@ export function BranchProvider({ children }: { children: ReactNode }) {
             setHasConfirmedBranch(true);
           } else {
             clearBranchStorage();
+            setSelectedBranch(null);
+            setHasConfirmedBranch(false);
           }
         }
+
+        // Single public branch: preselect for UX; name still comes from API.
+        if (!saved && list.length === 1) {
+          setSelectedBranch(list[0]);
+          // Do not mark confirmed until user taps confirm (explicit pick).
+        }
       } catch (err) {
-        if (!cancelled) {
+        if (!cancelled && !(err instanceof DOMException && err.name === "AbortError")) {
           if (process.env.NODE_ENV === "development") {
-            console.warn("[BranchContext] failed to load branches:", err);
+            console.warn("[BranchContext] failed to load branches");
           }
           setBranchesError("تعذر تحميل قائمة الفروع");
         }
@@ -74,10 +82,12 @@ export function BranchProvider({ children }: { children: ReactNode }) {
 
     return () => {
       cancelled = true;
+      controller.abort();
     };
   }, [reloadToken]);
 
   const selectBranch = useCallback((branch: PublicBranch) => {
+    if (branch.branchCode?.toUpperCase() === "CAMP_CAESAR") return;
     setSelectedBranch(branch);
     setHasConfirmedBranch(true);
     saveBranch(branch);
@@ -104,7 +114,16 @@ export function BranchProvider({ children }: { children: ReactNode }) {
       clearBranch,
       refetchBranches,
     }),
-    [branches, isLoadingBranches, branchesError, selectedBranch, hasConfirmedBranch, selectBranch, clearBranch, refetchBranches],
+    [
+      branches,
+      isLoadingBranches,
+      branchesError,
+      selectedBranch,
+      hasConfirmedBranch,
+      selectBranch,
+      clearBranch,
+      refetchBranches,
+    ],
   );
 
   return <BranchContext.Provider value={value}>{children}</BranchContext.Provider>;

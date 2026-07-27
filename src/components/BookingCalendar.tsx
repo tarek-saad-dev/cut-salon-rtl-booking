@@ -3,7 +3,7 @@
 import { useState, useMemo } from "react";
 import { format } from "date-fns";
 import { ChevronLeft, ChevronRight, CalendarX } from "lucide-react";
-import type { AvailableDay } from "@/lib/publicBookingApi";
+import type { AvailableDay } from "@/lib/booking-api";
 
 interface BookingCalendarProps {
   selectedDate?: Date;

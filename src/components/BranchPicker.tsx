@@ -1,7 +1,7 @@
 "use client";
 
 import { MapPin, Phone, Check, Loader2, Building2 } from "lucide-react";
-import type { PublicBranch } from "@/lib/publicBookingApi";
+import type { PublicBranch } from "@/lib/booking-api";
 import { useLanguage } from "@/context/LanguageContext";
 
 interface BranchPickerProps {

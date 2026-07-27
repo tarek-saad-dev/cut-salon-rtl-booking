@@ -1,10 +1,11 @@
-import type { PublicBranch } from "./publicBookingApi";
+import type { PublicBranch } from "@/lib/booking-api";
 
 const KEY = "cut_branch";
 
+/** Persist only public codes/names — never BranchID. */
 export type StoredBranch = Pick<
   PublicBranch,
-  "branchId" | "branchCode" | "branchName" | "shortName"
+  "branchCode" | "branchName" | "shortName"
 >;
 
 export function getSavedBranch(): StoredBranch | null {
@@ -12,9 +13,13 @@ export function getSavedBranch(): StoredBranch | null {
   try {
     const raw = localStorage.getItem(KEY);
     if (!raw) return null;
-    const parsed = JSON.parse(raw) as StoredBranch;
+    const parsed = JSON.parse(raw) as StoredBranch & { branchId?: number };
     if (!parsed?.branchCode) return null;
-    return parsed;
+    return {
+      branchCode: parsed.branchCode,
+      branchName: parsed.branchName,
+      shortName: parsed.shortName ?? null,
+    };
   } catch {
     return null;
   }
@@ -23,7 +28,6 @@ export function getSavedBranch(): StoredBranch | null {
 export function saveBranch(branch: PublicBranch): void {
   if (typeof window === "undefined") return;
   const toStore: StoredBranch = {
-    branchId: branch.branchId,
     branchCode: branch.branchCode,
     branchName: branch.branchName,
     shortName: branch.shortName,

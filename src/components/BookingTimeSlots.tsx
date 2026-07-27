@@ -1,7 +1,7 @@
 "use client";
 
 import { Clock, CalendarX, Zap, MoonStar } from "lucide-react";
-import type { AvailableSlot } from "@/lib/publicBookingApi";
+import type { AvailableSlot } from "@/lib/booking-api";
 
 interface BookingTimeSlotsProps {
   selectedTime?: string;
@@ -43,25 +43,6 @@ function formatSlotDisplay(time: string): string {
   const ampm = h >= 12 ? "م" : "ص";
   return `${h12}:${m} ${ampm}`;
 }
-
-// ─── After-midnight filter (client-side only, temporary) ────────────────────
-
-function timeToMinutes(time: string): number {
-  const [h, m] = time.split(":").map(Number);
-  return (Number.isFinite(h) ? h : 0) * 60 + (Number.isFinite(m) ? m : 0);
-}
-
-function isClientVisibleSlot(slot: AvailableSlot): boolean {
-  const start = timeToMinutes(slot.time);
-  // hide slots that start between 00:00 and 03:59 (after-midnight)
-  if (start < 4 * 60) return false;
-  // hide slots whose service crosses midnight
-  const duration = (slot as { durationMinutes?: number }).durationMinutes ?? 0;
-  if (duration > 0 && start + duration > 24 * 60) return false;
-  return true;
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
 
 function slotKey(slot: AvailableSlot): string {
   return `${getDayOffset(slot)}-${slot.time}`;
@@ -193,10 +174,8 @@ const BookingTimeSlots = ({
   if (isLoading) return <SlotsSkeleton />;
 
   const availableSlots = slots.filter(s => s.available);
-
-  // Client-facing: hide after-midnight slots temporarily
-  const visibleSlots = availableSlots.filter(isClientVisibleSlot);
-  const hiddenAfterMidnightCount = availableSlots.length - visibleSlots.length;
+  const visibleSlots = availableSlots;
+  const overnightSlots = visibleSlots.filter((s) => getDayOffset(s) === 1);
 
   // Dev logs
   if (process.env.NODE_ENV === "development" && slots.length > 0) {
@@ -205,12 +184,8 @@ const BookingTimeSlots = ({
     console.log("[time slots] raw slots:", slots.length);
     console.log("[time slots] dayOffset=0:", d0.length);
     console.log("[time slots] dayOffset=1:", d1.length);
-    if (d1.length > 0) {
-      console.log("[time slots] after-midnight slots:", d1.map(s => ({ time: s.time, label: s.label, available: s.available })));
-    }
   }
 
-  // All slots hidden (either all after midnight, or truly empty)
   if (visibleSlots.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-14 gap-4 text-center px-6" dir="rtl">
@@ -218,22 +193,11 @@ const BookingTimeSlots = ({
           <CalendarX className="w-7 h-7 text-[#71717a]" />
         </div>
         <div>
-          {hiddenAfterMidnightCount > 0 ? (
-            <>
-              <p className="text-[#a1a1aa] font-heading font-bold text-sm mb-1">لا توجد مواعيد متاحة قبل منتصف الليل في هذا اليوم</p>
-              <p className="text-[#71717a] text-xs leading-relaxed max-w-[260px] mx-auto">
-                للحجز بعد الساعة 12 منتصف الليل، يرجى التواصل معنا مباشرة.
-              </p>
-            </>
-          ) : (
-            <>
-              <p className="text-red-400 font-heading font-bold text-sm mb-2">لا توجد أوقات متاحة لهذا اليوم</p>
-              {onSwitchToNearest && (
-                <p className="text-[#a1a1aa] text-xs leading-relaxed max-w-[240px] mx-auto">
-                  الحلاق مش متاح في اليوم ده، بس فيه حلاقين تانيين بجودة عالية في نفس اليوم
-                </p>
-              )}
-            </>
+          <p className="text-red-400 font-heading font-bold text-sm mb-2">لا توجد أوقات متاحة لهذا اليوم</p>
+          {onSwitchToNearest && (
+            <p className="text-[#a1a1aa] text-xs leading-relaxed max-w-[240px] mx-auto">
+              الحلاق مش متاح في اليوم ده، بس فيه حلاقين تانيين بجودة عالية في نفس اليوم
+            </p>
           )}
         </div>
         <div className="flex flex-col gap-2 w-full max-w-[260px]">
@@ -259,12 +223,11 @@ const BookingTimeSlots = ({
     );
   }
 
-  // Split by dayOffset — use visibleSlots only for display
+  // Split by dayOffset — preserve overnight dayOffset=1 as same board day
   const todaySlots = visibleSlots.filter(s => getDayOffset(s) === 0);
-  // Nearest available from visible slots only
-  const nearest = todaySlots[0];
+  const nearest = todaySlots[0] ?? overnightSlots[0];
 
-  // Group today slots only (dayOffset=0) into periods
+  // Group dayOffset=0 slots into periods
   const hourGroups = groupSlotsByHour(todaySlots);
   const periods = organizePeriods(hourGroups);
 
@@ -354,36 +317,39 @@ const BookingTimeSlots = ({
         </div>
       ))}
 
-      {/* ── After Midnight Notice ── */}
-      {hiddenAfterMidnightCount > 0 && (
-        <div className="rounded-2xl bg-[#0d0d0d] border border-[rgba(164,136,121,0.12)] p-4 flex items-start gap-3">
-          <MoonStar className="w-4 h-4 text-cut-gold/50 flex-shrink-0 mt-0.5" />
-          <div>
-            <p className="text-[#a1a1aa] text-xs font-bold mb-0.5">مواعيد بعد منتصف الليل</p>
-            <p className="text-[#71717a] text-[11px] leading-relaxed">
-              للحجز بعد الساعة 12 منتصف الليل، يرجى التواصل معنا مباشرة لتأكيد الموعد.
-            </p>
-            <div className="flex items-center gap-2 mt-2 flex-wrap">
-              <a
-                href="tel:035861483"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-white/10 text-cut-ivory/60 text-xs font-bold hover:border-white/20 hover:text-cut-ivory/80 transition-colors"
+      {/* ── Overnight slots (dayOffset=1) — same operational board day ── */}
+      {overnightSlots.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2.5 pt-1">
+            <MoonStar className="w-3.5 h-3.5 text-cut-gold/50" />
+            <span className="text-sm font-heading font-bold text-[#a1a1aa]">بعد منتصف الليل</span>
+            <div className="flex-1 h-px bg-gradient-to-l from-transparent via-[rgba(164,136,121,0.1)] to-transparent" />
+          </div>
+          <p className="text-[11px] text-[#71717a]">
+            هذه المواعيد تتبع لليوم التشغيلي المختار (dayOffset=1)
+          </p>
+          <div className="flex flex-wrap gap-2.5">
+            {overnightSlots.map((slot) => (
+              <button
+                key={slotKey(slot)}
+                type="button"
+                onClick={() => onTimeSelect(slot)}
+                className={`
+                  relative py-2.5 px-4 rounded-xl text-sm font-medium tabular-nums
+                  transition-all duration-150 cursor-pointer
+                  ${isSlotSelected(slot, selectedTime, selectedSlotProp)
+                    ? "bg-gradient-to-b from-cut-gold to-cut-gold/80 text-cut-black font-bold shadow-[0_6px_20px_rgba(164,136,121,0.22)]"
+                    : "bg-[#171717] border border-[rgba(164,136,121,0.1)] text-[#f7f7f2] hover:border-[rgba(164,136,121,0.35)] hover:text-cut-gold"
+                  }
+                `}
               >
-                اتصل للحجز بعد 12
-              </a>
-              <a
-                href="https://wa.me/201012126899"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#25D366]/30 text-[#25D366] text-xs font-bold hover:bg-[#25D366]/10 hover:border-[#25D366]/60 transition-colors"
-              >
-                واتساب
-              </a>
-            </div>
+                <span>{formatSlotDisplay(slot.time)} — تابع لليوم التشغيلي المختار</span>
+              </button>
+            ))}
           </div>
         </div>
       )}
 
-      {/* midnight scroll CTA removed — midnight slots hidden */}
       {onNextDay && (
         <div className="pt-2 space-y-3">
           <div className="h-px bg-gradient-to-l from-transparent via-[rgba(164,136,121,0.12)] to-transparent" />

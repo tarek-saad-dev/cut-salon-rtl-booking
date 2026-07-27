@@ -5,7 +5,7 @@ import {
   Scissors, Clock, Banknote, Check, Sparkles, Droplets, Plus, Paintbrush, HandHelping,
   type LucideIcon,
 } from "lucide-react";
-import type { BookingService } from "@/lib/publicBookingApi";
+import type { BookingService } from "@/lib/booking-api";
 import {
   isServiceVisible,
   resolveCoreServices,

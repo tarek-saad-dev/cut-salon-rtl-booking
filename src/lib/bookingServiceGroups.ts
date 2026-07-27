@@ -1,4 +1,4 @@
-import type { BookingService } from "@/lib/publicBookingApi";
+import type { BookingService } from "@/lib/booking-api";
 
 /** Normalize a service name for flexible comparison */
 export function normalizeName(name: string): string {
