@@ -1,10 +1,12 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { Clock, Scissors, MapPin, Star, CalendarDays, Banknote, Zap } from "lucide-react";
+import BarberPhoto from "./BarberPhoto";
 
 interface BarberInfo {
   name: string;
-  image: string;
+  image: string | null;
   role?: string;
   specialty?: string;
   experience?: string;
@@ -17,7 +19,8 @@ interface BookingInfoPanelProps {
   barber: BarberInfo;
   selectedDate?: Date;
   selectedTime?: string;
-  service?: string;
+  /** Plain string or bilingual React node. */
+  service?: ReactNode;
   servicePrice?: number;
   serviceDuration?: number;
   mode?: "specific" | "nearest";
@@ -48,10 +51,10 @@ const BookingInfoPanel = ({ barber, selectedDate, selectedTime, service, service
           </div>
         ) : (
           <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-cut-gold/30 flex-shrink-0 shadow-[0_0_20px_rgba(164,136,121,0.1)]">
-            <img
+            <BarberPhoto
               src={barber.image}
-              alt={barber.name}
-              className="w-full h-full object-cover object-top"
+              name={barber.name}
+              imgClassName="w-full h-full object-cover object-top"
             />
           </div>
         )}
@@ -118,9 +121,9 @@ const BookingInfoPanel = ({ barber, selectedDate, selectedTime, service, service
               <div className="w-8 h-8 rounded-lg bg-cut-gold/10 flex items-center justify-center flex-shrink-0">
                 <Scissors className="w-4 h-4 text-cut-gold" />
               </div>
-              <div>
+              <div className="min-w-0">
                 <p className="text-cut-ivory/40 text-xs mb-0.5">الخدمة</p>
-                <p className="text-cut-ivory font-medium text-sm">{service}</p>
+                <div className="text-cut-ivory font-medium text-sm">{service}</div>
               </div>
             </div>
           )}

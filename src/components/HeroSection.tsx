@@ -1,20 +1,16 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Calendar, Zap, Shield, Gem, Clock, Star } from "lucide-react";
+import { Calendar, Zap, Shield, Gem, Clock } from "lucide-react";
 import CustomerUpcomingBookings from "./CustomerUpcomingBookings";
+import BarberPhoto from "./BarberPhoto";
+import { listGlobalBarbers, resolveBarberPhotoUrl, resolveBarberDisplayName } from "@/lib/booking-api";
 
 const heroImg = "/hero.png";
 const heroVerticalImg = "/hero_vertical.png";
 
-const barberStrip = [
-  { image: "/barber-kareem.jpg", name: "كريم", rating: "4.9" },
-  { image: "/barber-mohamed.jpg", name: "محمد", rating: "4.8" },
-  { image: "/barber-ziad.jpg", name: "ذياد", rating: "4.7" },
-  { image: "/omar.png", name: "عمر", rating: "4.8" },
-  { image: "/barber-bassem.jpg", name: "باسم", rating: "4.7" },
-  { image: "/ahmed.jpg", name: "أحمد", rating: "4.9" },
-];
+type HeroBarber = { id: number; name: string; image: string | null };
 
 const fadeUp = {
   hidden: { opacity: 0, y: 24 },
@@ -26,6 +22,31 @@ const fadeUp = {
 };
 
 const HeroSection = () => {
+  const [barberStrip, setBarberStrip] = useState<HeroBarber[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    listGlobalBarbers()
+      .then((res) => {
+        if (cancelled) return;
+        setBarberStrip(
+          (res.data ?? [])
+            .filter((b) => b.isBookableOnline && b.id > 0)
+            .map((b) => ({
+              id: b.id,
+              name: resolveBarberDisplayName(b, "ar"),
+              image: resolveBarberPhotoUrl(b),
+            })),
+        );
+      })
+      .catch(() => {
+        if (!cancelled) setBarberStrip([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   return (
     <section className="relative min-h-[700px] md:min-h-screen overflow-hidden hero-gradient cut-grain" dir="rtl" aria-label="القسم الرئيسي">
 
@@ -141,7 +162,7 @@ const HeroSection = () => {
             aria-label="حلاقين متاحين" role="list">
             {barberStrip.map((b, i) => (
               <motion.button
-                key={b.name}
+                key={b.id}
                 onClick={() => window.dispatchEvent(new CustomEvent("cut:book-barber", { detail: { name: b.name, image: b.image } }))}
                 initial={{ opacity: 0, x: 30 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -151,14 +172,11 @@ const HeroSection = () => {
                 role="listitem"
               >
                 <div className="w-11 h-11 rounded-full overflow-hidden flex-shrink-0 ring-2 ring-cut-bronze/30">
-                  <img src={b.image} alt={b.name} className="w-full h-full object-cover object-top" loading="lazy" />
+                  <BarberPhoto src={b.image} name={b.name} imgClassName="w-full h-full object-cover object-top" />
                 </div>
                 <div className="flex-1 text-right min-w-0">
                   <p className="cut-ar-ui-title text-cut-ivory font-bold text-sm truncate">{b.name}</p>
-                  <div className="flex items-center justify-end gap-1 mt-0.5">
-                    <span className="cut-ar-meta cut-ar-numeric text-cut-ivory/45 text-xs">{b.rating}</span>
-                    <Star className="w-3 h-3 text-cut-warm-beige fill-cut-warm-beige" />
-                  </div>
+                  <p className="cut-ar-meta text-cut-ivory/45 text-xs mt-0.5">حلاق محترف</p>
                 </div>
               </motion.button>
             ))}

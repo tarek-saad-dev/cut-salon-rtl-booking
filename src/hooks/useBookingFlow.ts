@@ -248,7 +248,7 @@ export function useBookingFlow(opts: {
           setBarberServiceIds(null);
           return;
         }
-        setBarber({ id: profile.id, name: profile.name || initialBarber.name });
+        setBarber({ id: profile.id, name: initialBarber.name || profile.name });
         setBarberBranches(profile.branches ?? []);
         setBarberServiceIds(
           Array.isArray(profile.serviceIds) ? profile.serviceIds : [],

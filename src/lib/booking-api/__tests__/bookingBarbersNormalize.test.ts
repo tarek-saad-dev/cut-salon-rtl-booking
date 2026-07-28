@@ -38,6 +38,60 @@ describe("booking barbers normalize (8B3)", () => {
     vi.clearAllMocks();
   });
 
+  it("keeps nameAr and nameEn from API", async () => {
+    wireOk([
+      {
+        empId: 12,
+        nameAr: "زياد",
+        nameEn: "Ziad",
+        name: "زياد",
+        isBookableOnline: true,
+      },
+    ]);
+    const res = await listGlobalBarbers();
+    expect(res.data[0].nameAr).toBe("زياد");
+    expect(res.data[0].nameEn).toBe("Ziad");
+    expect(res.data[0].name).toBe("زياد");
+  });
+
+  it("resolves imageUrl over photoUrl and keeps CAMP branches", async () => {
+    wireOk([
+      {
+        id: 12,
+        nameAr: "زياد",
+        imageUrl: "https://res.cloudinary.com/demo/image/upload/ziad.jpg",
+        photoUrl: "https://res.cloudinary.com/demo/image/upload/legacy.jpg",
+        isBookableOnline: true,
+        branches: [
+          { branchCode: "GLEEM", branchName: "جليم" },
+          { branchCode: "CAMP_CAESAR", branchName: "Camp" },
+        ],
+      },
+    ]);
+
+    const res = await listGlobalBarbers();
+    expect(res.data[0].imageUrl).toBe(
+      "https://res.cloudinary.com/demo/image/upload/ziad.jpg",
+    );
+    expect(res.data[0].photoUrl).toBe(
+      "https://res.cloudinary.com/demo/image/upload/ziad.jpg",
+    );
+  });
+
+  it("rejects relative local photo paths", async () => {
+    wireOk([
+      {
+        id: 7,
+        name: "محمد",
+        photoUrl: "/barber-mohamed.jpg",
+        isBookableOnline: true,
+      },
+    ]);
+    const res = await listGlobalBarbers();
+    expect(res.data[0].imageUrl).toBeNull();
+    expect(res.data[0].photoUrl).toBeNull();
+  });
+
   it("keeps CAMP_CAESAR in barber branches for cross-branch booking", async () => {
     wireOk([
       {

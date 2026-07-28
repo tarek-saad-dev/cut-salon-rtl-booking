@@ -6,6 +6,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import type { BookingService } from "@/lib/booking-api";
+import { serviceNameAr, serviceNameEn } from "@/lib/booking-api";
 import {
   isServiceVisible,
   resolveCoreServices,
@@ -104,6 +105,56 @@ function getPres(name: string): ServicePres | null {
   return null;
 }
 
+function getPresForService(service: BookingService): ServicePres | null {
+  return (
+    getPres(service.nameEn || "") ||
+    getPres(service.name) ||
+    getPres(service.nameAr || "")
+  );
+}
+
+/** Arabic (heading) + English (editorial) — brand fonts. */
+function ServiceBilingualTitle({
+  service,
+  selected,
+  compact = false,
+}: {
+  service: BookingService;
+  selected?: boolean;
+  compact?: boolean;
+}) {
+  const ar = serviceNameAr(service);
+  const en = serviceNameEn(service);
+  const showEn = Boolean(en && en !== ar);
+  const tone = selected ? "text-gray-900" : "text-gray-800";
+  const enTone = selected ? "text-cut-bronze" : "text-cut-bronze/75";
+
+  return (
+    <div className="min-w-0">
+      <p
+        className={`font-heading font-bold leading-tight ${tone} ${
+          compact ? "text-sm" : "text-base md:text-[17px]"
+        }`}
+        lang="ar"
+        dir="rtl"
+      >
+        {ar}
+      </p>
+      {showEn ? (
+        <p
+          className={`font-editorial font-medium leading-snug tracking-wide ${enTone} ${
+            compact ? "mt-0.5 text-[11px]" : "mt-1 text-xs md:text-[13px]"
+          }`}
+          lang="en"
+          dir="ltr"
+        >
+          {en}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
 const TAB_ICONS: Record<OtherServiceCatKey, LucideIcon> = {
   skincare: Droplets,
   masks: Sparkles,
@@ -130,9 +181,8 @@ const SkeletonCard = () => (
 const PrimaryCard = ({
   service, isSelected, onSelect,
 }: { service: BookingService; isSelected: boolean; onSelect: () => void }) => {
-  const p = getPres(service.name);
+  const p = getPresForService(service);
   const Icon = p?.icon ?? Scissors;
-  const title = p?.arabicTitle ?? service.name;
   const desc = p?.description ?? "";
   const sales = p?.salesText ?? "";
   const badge = p?.badge;
@@ -165,8 +215,8 @@ const PrimaryCard = ({
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
-                <h4 className={`font-heading font-bold text-base md:text-[17px] leading-tight mb-0.5 ${isSelected ? "text-gray-900" : "text-gray-800"}`}>{title}</h4>
-                {desc && <p className="text-gray-500 text-xs leading-relaxed">{desc}</p>}
+                <ServiceBilingualTitle service={service} selected={isSelected} />
+                {desc && <p className="text-gray-500 text-xs leading-relaxed mt-1.5">{desc}</p>}
               </div>
               <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-0.5 transition-all ${isSelected ? "border-cut-gold bg-cut-gold" : "border-gray-200"}`}>
                 {isSelected && <Check className="w-3.5 h-3.5 text-black" />}
@@ -194,9 +244,8 @@ const PrimaryCard = ({
 const SecondaryCard = ({
   service, isSelected, onSelect,
 }: { service: BookingService; isSelected: boolean; onSelect: () => void }) => {
-  const p = getPres(service.name);
+  const p = getPresForService(service);
   const Icon = p?.icon ?? Scissors;
-  const title = p?.arabicTitle ?? service.name;
   const desc = p?.description ?? "";
 
   return (
@@ -212,8 +261,8 @@ const SecondaryCard = ({
           <Icon className={`w-4 h-4 transition-colors ${isSelected ? "text-black" : "text-gray-400 group-hover:text-cut-gold"}`} />
         </div>
         <div className="flex-1 min-w-0">
-          <p className={`font-bold text-sm leading-tight ${isSelected ? "text-gray-900" : "text-gray-800"}`}>{title}</p>
-          {desc && <p className="text-gray-400 text-[11px] mt-0.5 leading-snug">{desc}</p>}
+          <ServiceBilingualTitle service={service} selected={isSelected} compact />
+          {desc && <p className="text-gray-400 text-[11px] mt-1 leading-snug">{desc}</p>}
           <p className="text-gray-400 text-xs mt-1.5 flex items-center gap-2">
             <span className="flex items-center gap-0.5 text-cut-gold font-bold"><Banknote className="w-3 h-3" />{service.price} جنيه</span>
             <span className="text-gray-300">·</span>
@@ -231,9 +280,8 @@ const SecondaryCard = ({
 const OtherServiceCard = ({
   service, isSelected, onToggle,
 }: { service: BookingService; isSelected: boolean; onToggle: () => void }) => {
-  const p = getPres(service.name);
+  const p = getPresForService(service);
   const Icon = p?.icon ?? Plus;
-  const title = p?.arabicTitle ?? service.name;
   const desc = p?.description ?? "";
   const badge = p?.badge;
 
@@ -250,13 +298,15 @@ const OtherServiceCard = ({
           <Icon className={`w-4 h-4 transition-colors ${isSelected ? "text-black" : "text-gray-400 group-hover:text-cut-gold"}`} />
         </div>
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <p className={`font-bold text-sm leading-tight ${isSelected ? "text-gray-900" : "text-gray-800"}`}>{title}</p>
+          <div className="flex items-start gap-2 flex-wrap">
+            <div className="min-w-0 flex-1">
+              <ServiceBilingualTitle service={service} selected={isSelected} compact />
+            </div>
             {badge && (
               <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-cut-gold/10 text-cut-gold border border-cut-gold/15 whitespace-nowrap">{badge}</span>
             )}
           </div>
-          {desc && <p className="text-gray-400 text-[11px] mt-0.5 leading-snug">{desc}</p>}
+          {desc && <p className="text-gray-400 text-[11px] mt-1 leading-snug">{desc}</p>}
           <p className="text-gray-400 text-xs mt-1.5 flex items-center gap-2">
             <span className="flex items-center gap-0.5 text-cut-gold font-bold"><Banknote className="w-3 h-3" />{service.price} جنيه</span>
             <span className="text-gray-300">·</span>
@@ -274,9 +324,8 @@ const OtherServiceCard = ({
 const UpsellCard = ({
   service, isSelected, onToggle,
 }: { service: BookingService; isSelected: boolean; onToggle: () => void }) => {
-  const p = getPres(service.name);
+  const p = getPresForService(service);
   const Icon = p?.icon ?? Plus;
-  const title = p?.arabicTitle ?? service.name;
   const desc = p?.description ?? "";
   const badge = p?.badge;
 
@@ -296,13 +345,15 @@ const UpsellCard = ({
           <Icon className={`w-3.5 h-3.5 ${isSelected ? "text-cut-gold" : "text-gray-400"}`} />
         </div>
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <p className={`font-bold text-sm leading-tight ${isSelected ? "text-gray-900" : "text-gray-700"}`}>{title}</p>
+          <div className="flex items-start gap-2">
+            <div className="min-w-0 flex-1">
+              <ServiceBilingualTitle service={service} selected={isSelected} compact />
+            </div>
             {badge && (
               <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-cut-gold/10 text-cut-gold border border-cut-gold/15 whitespace-nowrap">{badge}</span>
             )}
           </div>
-          {desc && <p className="text-gray-400 text-[11px] mt-0.5 leading-snug">{desc}</p>}
+          {desc && <p className="text-gray-400 text-[11px] mt-1 leading-snug">{desc}</p>}
         </div>
         <div className="text-left flex-shrink-0">
           <p className="text-cut-gold font-bold text-xs">+{service.price} ج</p>

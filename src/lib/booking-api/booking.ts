@@ -38,7 +38,7 @@ interface PlanApiResponse {
     | {
         contractVersion?: string;
         branch?: { branchCode?: string; branchName?: string };
-        barber?: { empId?: number; nameAr?: string; name?: string };
+        barber?: { empId?: number; nameAr?: string; nameEn?: string; name?: string };
         date?: string;
         time?: string;
         dayOffset?: number;
@@ -86,7 +86,8 @@ function normalizePlanResponse(
       serviceId: s.serviceId,
       serviceName: s.nameAr || s.nameEn || "",
       empId: nested?.barber?.empId ?? params.empId ?? 0,
-      empName: nested?.barber?.nameAr || nested?.barber?.name || "",
+      empName: nested?.barber?.nameAr || nested?.barber?.name || nested?.barber?.nameEn || "",
+      empNameEn: nested?.barber?.nameEn?.trim() || null,
       date: nested?.date || params.date,
       startTime: nested?.time || params.time,
       endTime: "",
@@ -200,7 +201,7 @@ function normalizeCreateResponse(raw: CreateApiResponse): BookingCreateResponse 
 
   const nestedRec = nested as Record<string, unknown> | null;
   const srcRec = src as Record<string, unknown>;
-  const barber = srcRec.barber as { nameAr?: string; name?: string } | undefined;
+  const barber = srcRec.barber as { nameAr?: string; nameEn?: string; name?: string } | undefined;
   const branch = srcRec.branch as { branchCode?: string; branchName?: string } | undefined;
 
   return {
@@ -212,7 +213,9 @@ function normalizeCreateResponse(raw: CreateApiResponse): BookingCreateResponse 
     ) || undefined,
     date: String(srcRec.date ?? srcRec.calendarDate ?? srcRec.workDate ?? ""),
     time: String(srcRec.time ?? ""),
-    barberName: String(srcRec.barberName ?? barber?.nameAr ?? barber?.name ?? ""),
+    barberName: String(
+      srcRec.barberName ?? barber?.nameAr ?? barber?.name ?? barber?.nameEn ?? "",
+    ),
     services,
     totalPrice:
       (srcRec.totalPrice as number | undefined) ??
@@ -246,7 +249,7 @@ function normalizePublicBooking(raw: unknown): PublicBooking {
     envelope.booking && typeof envelope.booking === "object"
       ? envelope.booking
       : envelope;
-  const barber = nested.barber as { nameAr?: string; name?: string } | undefined;
+  const barber = nested.barber as { nameAr?: string; nameEn?: string; name?: string } | undefined;
   const branch = nested.branch as { branchCode?: string; branchName?: string } | undefined;
   const servicesRaw = nested.services;
 
@@ -282,7 +285,7 @@ function normalizePublicBooking(raw: unknown): PublicBooking {
     date: String(nested.date ?? nested.calendarDate ?? nested.workDate ?? ""),
     time: String(nested.time ?? ""),
     dayOffset: (nested.dayOffset as number | null | undefined) ?? null,
-    barberName: String(nested.barberName ?? barber?.nameAr ?? barber?.name ?? "") || null,
+    barberName: String(nested.barberName ?? barber?.nameAr ?? barber?.name ?? barber?.nameEn ?? "") || null,
     services,
     totalPrice: (nested.totalPrice as number | null | undefined) ?? (nested.total as number | null | undefined) ?? null,
     totalDuration:

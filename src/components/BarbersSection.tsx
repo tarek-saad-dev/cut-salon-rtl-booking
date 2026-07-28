@@ -4,63 +4,27 @@ import { useState, useCallback, useEffect } from "react";
 import useEmblaCarousel from "embla-carousel-react";
 import { ChevronLeft, ChevronRight, Scissors, Clock, Loader2, Zap } from "lucide-react";
 import BookingModal, { type BarberBookingInfo, type BookingMode } from "./BookingModal";
+import BarberPhoto from "./BarberPhoto";
 import { getBookingStatus } from "@/lib/publicBookingApi";
-import { listGlobalBarbers, type PublicBarber } from "@/lib/booking-api";
+import { listGlobalBarbers, resolveBarberPhotoUrl, resolveBarberDisplayName, type PublicBarber } from "@/lib/booking-api";
 import { useBranch } from "@/context/BranchContext";
 
 type DisplayBarber = BarberBookingInfo & { buttonText: string };
-
-/** Local image map only — never used as a booking identity source. */
-const LOCAL_IMAGE_MAP: Record<string, string> = {
-  "محمد": "/barber-mohamed.jpg",
-  "باسم": "/barber-bassem.jpg",
-  "كريم": "/barber-kareem.jpg",
-  "زياد": "/barber-ziad.jpg",
-  "ذياد": "/barber-ziad.jpg",
-  "عمر": "/omar.png",
-  "يوسف": "/yousef.jpg",
-  "أحمد الصنايعي": "/ahmed.jpg",
-  "أحمد": "/ahmed.jpg",
-  "احمد": "/ahmed.jpg",
-};
-
-const PLACEHOLDER_SENTINEL = "__placeholder__";
 
 function hasEmpId(barber: { id?: number } | null | undefined): barber is { id: number } {
   return barber?.id != null && Number.isFinite(barber.id) && barber.id > 0;
 }
 
 function apiToDisplay(b: PublicBarber): DisplayBarber {
-  const localImage = LOCAL_IMAGE_MAP[b.name];
-  const image =
-    b.photoUrl && b.photoUrl.trim() !== ""
-      ? b.photoUrl
-      : (localImage ?? PLACEHOLDER_SENTINEL);
   return {
     id: b.id,
-    name: b.name,
+    name: resolveBarberDisplayName(b, "ar"),
     role: b.job ?? "حلاق محترف",
-    image,
+    image: resolveBarberPhotoUrl(b),
     location: "Cut Salon · الإسكندرية",
-    buttonText: `احجز مع ${b.name}`,
+    buttonText: `احجز مع ${resolveBarberDisplayName(b, "ar")}`,
   };
 }
-
-const LuxuryPlaceholder = ({ name }: { name: string }) => {
-  const initials = name
-    .split(" ")
-    .map((w) => w[0])
-    .join("")
-    .slice(0, 2);
-  return (
-    <div className="w-full h-full flex flex-col items-center justify-center bg-[radial-gradient(circle_at_center,rgba(229,188,134,0.14),rgba(255,255,255,0.02)_50%,rgba(0,0,0,0.85))]">
-      <div className="w-16 h-16 rounded-full border border-cut-gold/30 bg-black/40 flex items-center justify-center mb-2">
-        <span className="text-cut-gold text-xl font-black font-heading">{initials}</span>
-      </div>
-      <span className="text-cut-gold/40 text-[10px] tracking-[0.3em] font-bold">CUT SALON</span>
-    </div>
-  );
-};
 
 const SkeletonCard = ({ className }: { className?: string }) => (
   <div
@@ -84,7 +48,6 @@ const BarberCard = ({
   onSelect: () => void;
   isActive?: boolean;
 }) => {
-  const isMissing = barber.image === PLACEHOLDER_SENTINEL;
   const canBook = hasEmpId(barber);
   return (
     <div
@@ -96,19 +59,11 @@ const BarberCard = ({
       } bg-gradient-to-br from-cut-black via-cut-burgundy-dark/30 to-cut-black`}
     >
       <div className="aspect-[3/4] overflow-hidden relative">
-        {isMissing ? (
-          <LuxuryPlaceholder name={barber.name} />
-        ) : (
-          <img
-            src={barber.image}
-            alt={barber.name}
-            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-            onError={(e) => {
-              (e.target as HTMLImageElement).style.display = "none";
-              e.currentTarget.parentElement?.classList.add("placeholder-active");
-            }}
-          />
-        )}
+        <BarberPhoto
+          src={barber.image}
+          name={barber.name}
+          imgClassName="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+        />
         <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-cut-surface to-transparent" />
       </div>
       <div className="p-4 md:p-5 text-center -mt-2 relative z-10">
@@ -153,7 +108,7 @@ type BookingGate =
 /** Nearest mode is branch_first — no empId required. */
 const NEAREST_PLACEHOLDER_BARBER: DisplayBarber = {
   name: "أقرب حلاق متاح",
-  image: "/cutsalon.png",
+  image: null,
   role: "أقرب حلاق متاح",
   location: "Cut Salon · الإسكندرية",
   buttonText: "احجز أقرب ميعاد",

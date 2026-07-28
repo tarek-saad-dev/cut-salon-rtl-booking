@@ -1,4 +1,5 @@
 import { bookingApiRequest } from "./client";
+import { resolveBarberPhotoUrl } from "./barber-photo";
 import { TIMEOUT_MS } from "./timeout";
 import type {
   PublicBarber,
@@ -15,13 +16,20 @@ export const CROSS_BRANCH_AVAILABILITY_DEFAULT_DAYS = 7;
 
 interface BarbersResponse {
   ok: boolean;
-  barbers: Array<
-    PublicBarber & {
-      empId?: number;
-      nameAr?: string;
-      job?: string | null;
-    }
-  >;
+  barbers: Array<{
+    id?: number;
+    empId?: number;
+    name?: string;
+    nameAr?: string;
+    nameEn?: string | null;
+    job?: string | null;
+    imageUrl?: string | null;
+    photoUrl?: string | null;
+    bio?: string | null;
+    isBookableOnline?: boolean;
+    serviceIds?: number[];
+    branches?: PublicBarberBranch[];
+  }>;
 }
 
 interface CalendarResponse {
@@ -50,11 +58,17 @@ function normalizeBarber(raw: BarbersResponse["barbers"][number]): PublicBarber 
         branchName: b.branchName,
       }),
     );
+  const photo = resolveBarberPhotoUrl(raw);
+  const nameAr = (raw.nameAr ?? raw.name ?? "").trim() || null;
+  const nameEn = (raw.nameEn ?? "").trim() || null;
   return {
     id,
-    name: raw.name ?? raw.nameAr ?? "",
+    name: nameAr || nameEn || "",
+    nameAr,
+    nameEn,
     job: raw.job ?? null,
-    photoUrl: raw.photoUrl ?? null,
+    imageUrl: photo,
+    photoUrl: photo,
     bio: raw.bio ?? null,
     isBookableOnline: raw.isBookableOnline !== false,
     serviceIds: Array.isArray(raw.serviceIds)

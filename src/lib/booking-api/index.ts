@@ -18,6 +18,14 @@ export {
   CROSS_BRANCH_AVAILABILITY_DEFAULT_DAYS,
   CROSS_BRANCH_AVAILABILITY_MAX_DAYS,
 } from "./barbers";
+export { resolveBarberPhotoUrl } from "./barber-photo";
+export { resolveBarberDisplayName } from "./barber-name";
+export {
+  serviceNameAr,
+  serviceNameEn,
+  formatServiceLabelBilingual,
+  formatServicesSummary,
+} from "./service-name";
 export { getAvailableDays, getAvailableSlots, checkSlot } from "./availability";
 export {
   createBookingPlan,

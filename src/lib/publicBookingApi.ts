@@ -96,7 +96,10 @@ export interface BookingServicesResponse {
 export interface BookingBarber {
   id: number;
   name: string;
+  nameAr: string | null;
+  nameEn: string | null;
   job: string | null;
+  imageUrl: string | null;
   photoUrl: string | null;
   bio: string | null;
   isBookableOnline: boolean;
@@ -179,7 +182,25 @@ export async function getBookingServices(branchCode: string): Promise<BookingSer
 export async function getBookingBarbers(branchCode: string): Promise<BookingBarbersResponse> {
   const qs = new URLSearchParams();
   qs.set("branchCode", branchCode);
-  return apiFetch<BookingBarbersResponse>(`/api/public/booking/barbers?${qs.toString()}`);
+  const data = await apiFetch<BookingBarbersResponse>(`/api/public/booking/barbers?${qs.toString()}`);
+  const barbers = (data.barbers ?? []).map((b) => {
+    const photo =
+      (typeof b.imageUrl === "string" && b.imageUrl.trim()) ||
+      (typeof b.photoUrl === "string" && b.photoUrl.trim()) ||
+      null;
+    const absolute = photo && /^https?:\/\//i.test(photo) ? photo : null;
+    const nameAr = (b.nameAr ?? b.name ?? "").trim() || null;
+    const nameEn = (b.nameEn ?? "").trim() || null;
+    return {
+      ...b,
+      name: nameAr || nameEn || b.name || "",
+      nameAr,
+      nameEn,
+      imageUrl: absolute,
+      photoUrl: absolute,
+    };
+  });
+  return { ...data, barbers };
 }
 
 // ─── Available days ───────────────────────────────────────────────────────────

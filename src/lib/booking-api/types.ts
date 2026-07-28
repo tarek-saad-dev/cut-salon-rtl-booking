@@ -48,7 +48,10 @@ export interface ServiceCategory {
 
 export interface BookingService {
   id: number;
+  /** Matching / fallback label (prefer English for grouping). */
   name: string;
+  nameAr: string | null;
+  nameEn: string | null;
   price: number;
   durationMinutes: number;
   categoryName: string | null;
@@ -64,8 +67,14 @@ export interface PublicBarberBranch {
 
 export interface PublicBarber {
   id: number;
+  /** Display fallback (usually Arabic / API `name`). Prefer nameAr/nameEn via resolveBarberDisplayName. */
   name: string;
+  nameAr: string | null;
+  nameEn: string | null;
   job: string | null;
+  /** Canonical photo from API (imageUrl preferred; photoUrl is compat alias). */
+  imageUrl: string | null;
+  /** Compat alias — same value as imageUrl when API sends both. */
   photoUrl: string | null;
   bio: string | null;
   isBookableOnline: boolean;
@@ -187,6 +196,8 @@ export interface BookingPlanItem {
   serviceName: string;
   empId: number;
   empName: string;
+  /** English barber name when API provides nameEn. */
+  empNameEn?: string | null;
   date: string;
   startTime: string;
   endTime: string;

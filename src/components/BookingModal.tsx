@@ -21,16 +21,70 @@ import BookingTimeSlots from "./BookingTimeSlots";
 import BookingServiceSelect from "./BookingServiceSelect";
 import BranchPicker from "./BranchPicker";
 import CrossBranchSlotsPanel from "@/components/CrossBranchSlotsPanel";
-import CustomerUpcomingBookings from "./CustomerUpcomingBookings";
+import BarberPhoto from "./BarberPhoto";
 import { useBranch } from "@/context/BranchContext";
 import { getCoreServiceIdSet } from "@/lib/bookingServiceGroups";
 import { useBookingFlow, type BookingUiStep } from "@/hooks/useBookingFlow";
-import type { PublicBranch, BookingMode, BookingEntryMode } from "@/lib/booking-api";
+import {
+  resolveBarberDisplayName,
+  serviceNameAr,
+  serviceNameEn,
+  type PublicBranch,
+  type BookingMode,
+  type BookingEntryMode,
+  type BookingService,
+} from "@/lib/booking-api";
+
+function SelectedServicesBilingual({
+  services,
+  compact = false,
+  dark = false,
+}: {
+  services: BookingService[];
+  compact?: boolean;
+  dark?: boolean;
+}) {
+  if (services.length === 0) return null;
+  return (
+    <div className={compact ? "space-y-0.5" : "space-y-1.5"}>
+      {services.map((s) => {
+        const ar = serviceNameAr(s);
+        const en = serviceNameEn(s);
+        const showEn = Boolean(en && en !== ar);
+        return (
+          <div key={s.id} className="min-w-0">
+            <p
+              className={`font-heading font-bold leading-tight ${
+                dark ? "text-cut-ivory" : "text-cut-black"
+              } ${compact ? "text-xs" : "text-sm"}`}
+              lang="ar"
+              dir="rtl"
+            >
+              {ar}
+            </p>
+            {showEn ? (
+              <p
+                className={`font-editorial leading-snug tracking-wide ${
+                  dark ? "text-cut-warm-beige/80" : "text-cut-bronze"
+                } ${compact ? "text-[10px]" : "text-xs"}`}
+                lang="en"
+                dir="ltr"
+              >
+                {en}
+              </p>
+            ) : null}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
 export interface BarberBookingInfo {
   id?: number;
   name: string;
-  image: string;
+  /** Absolute API photo URL, or null for initials placeholder. */
+  image: string | null;
   role?: string;
   specialty?: string;
   rating?: number;
@@ -188,7 +242,6 @@ const BookingModal = ({
   };
 
   const selectedServices = flow.services.filter((s) => flow.serviceIds.includes(s.id));
-  const selectedService = selectedServices[0];
   const isNearestMode = flow.mode === "nearest";
   const displayBarberName = isNearestMode
     ? flow.selectedSlot?.barberName ?? "أقرب حلاق متاح"
@@ -450,11 +503,13 @@ const BookingModal = ({
                       </p>
                       {barber.name && (
                         <div className="flex items-center gap-2 mt-2">
-                          <img
-                            src={barber.image}
-                            alt={barber.name}
-                            className="w-6 h-6 rounded-full object-cover object-top border border-cut-gold/20"
-                          />
+                          <div className="w-6 h-6 rounded-full overflow-hidden border border-cut-gold/20 flex-shrink-0">
+                            <BarberPhoto
+                              src={barber.image}
+                              name={barber.name}
+                              imgClassName="w-full h-full object-cover object-top"
+                            />
+                          </div>
                           <span className="text-cut-black/70 text-xs font-medium">{barber.name}</span>
                         </div>
                       )}
@@ -685,9 +740,9 @@ const BookingModal = ({
                   <span className="text-cut-black/50 text-xs">الفرع</span>
                 </div>
               )}
-              <div className="flex justify-between">
-                <span>{selectedServices.map((s) => s.name).join(" + ")}</span>
-                <span className="text-cut-black/50 text-xs">الخدمات</span>
+              <div className="flex justify-between gap-3 items-start">
+                <SelectedServicesBilingual services={selectedServices} />
+                <span className="text-cut-black/50 text-xs flex-shrink-0">الخدمات</span>
               </div>
               {flow.selectedDate && (
                 <div className="flex justify-between">
@@ -748,8 +803,21 @@ const BookingModal = ({
               <div className="flex justify-between">
                 <span>
                   {isNearestMode
-                    ? p?.plan?.[0]?.empName ?? "يُحدد عند التأكيد"
-                    : p?.plan?.[0]?.empName ?? displayBarberName}
+                    ? resolveBarberDisplayName(
+                        {
+                          nameAr: p?.plan?.[0]?.empName,
+                          nameEn: p?.plan?.[0]?.empNameEn,
+                        },
+                        "ar",
+                      ) || "يُحدد عند التأكيد"
+                    : displayBarberName ||
+                      resolveBarberDisplayName(
+                        {
+                          nameAr: p?.plan?.[0]?.empName,
+                          nameEn: p?.plan?.[0]?.empNameEn,
+                        },
+                        "ar",
+                      )}
                 </span>
                 <span className="text-cut-black/50 text-xs">الحلاق</span>
               </div>
@@ -947,7 +1015,11 @@ const BookingModal = ({
                 barber={barber}
                 selectedDate={flow.selectedDate}
                 selectedTime={flow.selectedSlot?.time}
-                service={selectedServices.map((s) => s.name).join(" + ") || undefined}
+                service={
+                  selectedServices.length > 0 ? (
+                    <SelectedServicesBilingual services={selectedServices} dark />
+                  ) : undefined
+                }
                 servicePrice={
                   flow.plan?.totalPrice ??
                   (flow.catalogPrice || undefined)
@@ -962,9 +1034,6 @@ const BookingModal = ({
             </div>
 
             <div className="flex-1 flex flex-col overflow-hidden min-h-0">
-              {(flow.step === "mode" || flow.step === "service") && (
-                <CustomerUpcomingBookings />
-              )}
               <div
                 className={`flex-1 bg-cut-ivory ${
                   flow.step === "service"
@@ -978,8 +1047,8 @@ const BookingModal = ({
                   (flow.serviceIds.length > 0 || flow.selectedDate || flow.selectedSlot) && (
                     <div className="md:hidden bg-cut-black/[0.04] px-4 py-2.5 border-b border-cut-gold/10 flex-shrink-0">
                       <div className="flex items-center gap-2 text-xs" dir="rtl">
-                        {selectedService && (
-                          <span className="text-cut-black/70 font-medium">{selectedService.name}</span>
+                        {selectedServices.length > 0 && (
+                          <SelectedServicesBilingual services={selectedServices} compact />
                         )}
                         {flow.selectedDate && (
                           <span className="text-cut-black/70">
@@ -1017,11 +1086,13 @@ const BookingModal = ({
                   <Zap className="w-4 h-4 text-cut-gold" />
                 </div>
               ) : (
-                <img
-                  src={barber.image}
-                  alt={barber.name}
-                  className="w-9 h-9 rounded-full object-cover object-top border border-cut-gold/30 flex-shrink-0"
-                />
+                <div className="w-9 h-9 rounded-full overflow-hidden border border-cut-gold/30 flex-shrink-0">
+                  <BarberPhoto
+                    src={barber.image}
+                    name={barber.name}
+                    imgClassName="w-full h-full object-cover object-top"
+                  />
+                </div>
               )}
               <div className="flex-1 min-w-0">
                 <p className="font-bold text-cut-ivory text-sm leading-none">{displayBarberName}</p>

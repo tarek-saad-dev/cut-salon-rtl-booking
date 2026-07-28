@@ -73,9 +73,16 @@ export async function getServices(
   });
   const services = (res.data.services ?? []).map((raw) => {
     const id = Number(raw.id ?? raw.serviceId);
+    const nameAr = (raw.nameAr ?? "").trim() || null;
+    const nameEn = (raw.nameEn ?? "").trim() || null;
+    const fallback = (raw.name ?? "").trim() || null;
+    // English-leaning key for bookingServiceGroups matching.
+    const name = nameEn || fallback || nameAr || "";
     return {
       id,
-      name: raw.nameAr || raw.name || raw.nameEn || "",
+      name,
+      nameAr,
+      nameEn,
       price: Number(raw.price) || 0,
       durationMinutes: Number(raw.durationMinutes) || 0,
       categoryName: raw.categoryName ?? null,

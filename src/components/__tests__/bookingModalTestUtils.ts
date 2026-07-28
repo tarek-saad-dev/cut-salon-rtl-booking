@@ -35,7 +35,9 @@ export const mockConfig: BookingConfig = {
 export const mockServices: BookingService[] = [
   {
     id: 10,
-    name: "حلاقة",
+    name: "Hair Cut",
+    nameAr: "حلاقة",
+    nameEn: "Hair Cut",
     price: 100,
     durationMinutes: 30,
     categoryName: "حلاقة",
@@ -43,7 +45,9 @@ export const mockServices: BookingService[] = [
   },
   {
     id: 11,
-    name: "ذقن",
+    name: "Beard",
+    nameAr: "ذقن",
+    nameEn: "Beard",
     price: 50,
     durationMinutes: 15,
     categoryName: "حلاقة",
@@ -52,8 +56,8 @@ export const mockServices: BookingService[] = [
 ];
 
 export const mockBarbers: PublicBarber[] = [
-  { id: 5, name: "أحمد", job: null, photoUrl: null, bio: null, isBookableOnline: true },
-  { id: 6, name: "محمود", job: null, photoUrl: null, bio: null, isBookableOnline: true },
+  { id: 5, name: "أحمد", nameAr: "أحمد", nameEn: "Ahmed", job: null, imageUrl: null, photoUrl: null, bio: null, isBookableOnline: true },
+  { id: 6, name: "محمود", nameAr: "محمود", nameEn: "Mahmoud", job: null, imageUrl: null, photoUrl: null, bio: null, isBookableOnline: true },
 ];
 
 export const mockDays: AvailableDay[] = [

@@ -58,7 +58,10 @@ import { useBookingFlow } from "@/hooks/useBookingFlow";
 const barberProfile = {
   id: 5,
   name: "أحمد",
+  nameAr: "أحمد",
+  nameEn: "Ahmed",
   job: null,
+  imageUrl: null,
   photoUrl: null,
   bio: null,
   isBookableOnline: true,
