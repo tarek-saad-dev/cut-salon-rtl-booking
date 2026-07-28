@@ -6,7 +6,18 @@ export { BookingApiError, getArabicErrorMessage } from "./errors";
 // API modules
 export { listPublicBranches } from "./branches";
 export { getBookingConfig, getBookingStatus, getServices } from "./services";
-export { listBranchBarbers, listGlobalBarbers, getPublicBarberProfile, getBarberCalendar, getBarberLocation } from "./barbers";
+export {
+  listBranchBarbers,
+  listGlobalBarbers,
+  getPublicBarberProfile,
+  getBarberCalendar,
+  getBarberLocation,
+  getCrossBranchAvailability,
+  crossBranchSlotKey,
+  cairoTodayYmd,
+  CROSS_BRANCH_AVAILABILITY_DEFAULT_DAYS,
+  CROSS_BRANCH_AVAILABILITY_MAX_DAYS,
+} from "./barbers";
 export { getAvailableDays, getAvailableSlots, checkSlot } from "./availability";
 export {
   createBookingPlan,

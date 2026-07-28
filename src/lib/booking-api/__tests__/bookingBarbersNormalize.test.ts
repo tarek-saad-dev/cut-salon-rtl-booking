@@ -38,7 +38,7 @@ describe("booking barbers normalize (8B3)", () => {
     vi.clearAllMocks();
   });
 
-  it("filters CAMP_CAESAR from public barber branches", async () => {
+  it("keeps CAMP_CAESAR in barber branches for cross-branch booking", async () => {
     wireOk([
       {
         id: 5,
@@ -56,6 +56,7 @@ describe("booking barbers normalize (8B3)", () => {
     const res = await listGlobalBarbers();
     expect(res.data[0].branches?.map((b) => b.branchCode)).toEqual([
       "GLEEM",
+      "CAMP_CAESAR",
       "SMOUHA",
     ]);
   });

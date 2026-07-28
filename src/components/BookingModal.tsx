@@ -20,6 +20,7 @@ import BookingCalendar from "./BookingCalendar";
 import BookingTimeSlots from "./BookingTimeSlots";
 import BookingServiceSelect from "./BookingServiceSelect";
 import BranchPicker from "./BranchPicker";
+import CrossBranchSlotsPanel from "@/components/CrossBranchSlotsPanel";
 import CustomerUpcomingBookings from "./CustomerUpcomingBookings";
 import { useBranch } from "@/context/BranchContext";
 import { getCoreServiceIdSet } from "@/lib/bookingServiceGroups";
@@ -98,43 +99,18 @@ const BookingModal = ({
     entryMode,
   });
 
-  const allowedBranches = isBarberFirst
-    ? branches.filter((b) =>
-        flow.barberBranches.some(
-          (bb) => bb.branchCode.toUpperCase() === b.branchCode.toUpperCase(),
-        ),
-      )
-    : branches;
+  const [confettiTrigger, setConfettiTrigger] = useState(0);
+  const [copied, setCopied] = useState(false);
 
-  // If saved branch is not valid for this barber, force branch step.
+  // Barber-first: never stay on branch step — jump to service once profile is ready.
   useEffect(() => {
     if (!open || !isBarberFirst) return;
     if (flow.barberProfileLoading) return;
-    if (
-      selectedBranch &&
-      flow.barberBranches.length > 0 &&
-      !flow.barberBranches.some(
-        (bb) => bb.branchCode.toUpperCase() === selectedBranch.branchCode.toUpperCase(),
-      )
-    ) {
-      flow.setStep("branch");
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, isBarberFirst, selectedBranch?.branchCode, flow.barberBranches, flow.barberProfileLoading]);
-
-  // Auto-confirm single barber branch
-  useEffect(() => {
-    if (!open || !isBarberFirst) return;
-    if (flow.barberProfileLoading) return;
-    if (allowedBranches.length === 1 && !hasConfirmedBranch) {
-      selectBranch(allowedBranches[0]);
+    if (flow.step === "branch") {
       flow.setStep("service");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, isBarberFirst, allowedBranches, hasConfirmedBranch, flow.barberProfileLoading]);
-
-  const [confettiTrigger, setConfettiTrigger] = useState(0);
-  const [copied, setCopied] = useState(false);
+  }, [open, isBarberFirst, flow.barberProfileLoading, flow.step]);
 
   // Optional groom service preselect from catalog names (display only until plan)
   useEffect(() => {
@@ -152,26 +128,19 @@ const BookingModal = ({
       .map((s) => s.id);
     if (matched.length) {
       flow.selectServices([...new Set(matched)]);
-      flow.setStep("date");
+      flow.setStep(isBarberFirst ? "slots" : "date");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, initialServiceMatches, flow.services]);
+  }, [open, initialServiceMatches, flow.services, isBarberFirst]);
 
-  // Enter after branch when opened with initialMode / barber-first
+  // Enter after branch when opened with initialMode (branch-first only)
   useEffect(() => {
-    if (!open) return;
+    if (!open || isBarberFirst) return;
     if (hasConfirmedBranch && branchCode && flow.step === "branch") {
-      // Barber-first: only advance when branch is allowed for this barber
-      if (isBarberFirst && allowedBranches.length > 0) {
-        const ok = allowedBranches.some(
-          (b) => b.branchCode.toUpperCase() === branchCode.toUpperCase(),
-        );
-        if (!ok) return;
-      }
-      flow.setStep(effectiveInitialMode || isBarberFirst ? "service" : "mode");
+      flow.setStep(effectiveInitialMode ? "service" : "mode");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, hasConfirmedBranch, branchCode, isBarberFirst, allowedBranches.length]);
+  }, [open, hasConfirmedBranch, branchCode, isBarberFirst, effectiveInitialMode]);
 
   const handleClose = () => {
     if (flow.mutationUi.kind === "creating" || flow.mutationUi.kind === "unknown") {
@@ -189,7 +158,7 @@ const BookingModal = ({
 
   const handleBranchSelect = (branch: PublicBranch) => {
     selectBranch(branch);
-    flow.setStep(effectiveInitialMode || isBarberFirst ? "service" : "mode");
+    flow.setStep(effectiveInitialMode ? "service" : "mode");
   };
 
   const handleCoreServiceSelect = (id: number) => {
@@ -209,10 +178,12 @@ const BookingModal = ({
   const handleBack = () => {
     flow.invalidatePlan();
     if (flow.step === "mode") flow.setStep("branch");
-    else if (flow.step === "service") flow.setStep(effectiveInitialMode || isBarberFirst ? "branch" : "mode");
+    else if (flow.step === "service") {
+      if (!isBarberFirst) flow.setStep(effectiveInitialMode ? "branch" : "mode");
+    } else if (flow.step === "slots") flow.setStep("service");
     else if (flow.step === "date") flow.setStep("service");
     else if (flow.step === "time") flow.setStep("date");
-    else if (flow.step === "details") flow.setStep("time");
+    else if (flow.step === "details") flow.setStep(isBarberFirst ? "slots" : "time");
     else if (flow.step === "review") flow.setStep("details");
   };
 
@@ -222,6 +193,7 @@ const BookingModal = ({
   const displayBarberName = isNearestMode
     ? flow.selectedSlot?.barberName ?? "أقرب حلاق متاح"
     : flow.barber?.name ?? barber.name;
+  const displayBranchName = flow.bookingBranchName ?? selectedBranch?.branchName;
 
   const allowSpecific = flow.config?.settings.allowSpecificBarber !== false;
   const allowNearest = flow.config?.settings.allowNearestBarber !== false;
@@ -339,74 +311,50 @@ const BookingModal = ({
     }
 
     if (flow.step === "branch") {
+      // Barber-first never uses the branch picker (redirect via effect above).
+      if (isBarberFirst) return null;
+
       return (
         <div className="p-5 md:p-6" dir="rtl">
           <div className="mb-5">
             <h3 className="text-lg font-heading font-bold text-cut-black mb-1">
-              {isBarberFirst ? `فرع ${barber.name}` : "في أي فرع تحب تحجز؟"}
+              في أي فرع تحب تحجز؟
             </h3>
-            <p className="text-cut-black/50 text-xs">
-              {isBarberFirst
-                ? "اختار فرعاً يعمل به هذا الحلاق"
-                : "اختار الفرع الأقرب ليك"}
-            </p>
+            <p className="text-cut-black/50 text-xs">اختار الفرع الأقرب ليك</p>
           </div>
-          {flow.barberProfileLoading && (
-            <div
-              className="flex items-center justify-center gap-2 py-8 text-cut-black/50 text-sm"
-              aria-live="polite"
-            >
-              <Loader2 className="w-4 h-4 animate-spin" />
-              جاري تحميل فروع الحلاق...
-            </div>
-          )}
-          {(flow.barberProfileError || branchesError) && (
+          {(branchesError) && (
             <div
               className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm text-center space-y-3"
               role="alert"
             >
-              <p>{flow.barberProfileError || branchesError}</p>
+              <p>{branchesError}</p>
               <button
                 type="button"
-                onClick={() => {
-                  if (branchesError) refetchBranches();
-                  if (flow.barberProfileError) flow.retryBarberProfile();
-                }}
+                onClick={() => refetchBranches()}
                 className="inline-flex items-center justify-center px-3 py-1.5 rounded-lg border border-red-200 bg-white text-red-700 text-xs font-bold hover:bg-red-50 transition-colors"
               >
                 إعادة المحاولة
               </button>
             </div>
           )}
-          {!flow.barberProfileLoading && (
-            <BranchPicker
-              branches={allowedBranches}
-              selectedBranchCode={selectedBranch?.branchCode}
-              isLoading={isLoadingBranches || (isBarberFirst && flow.barberProfileLoading)}
-              error={
-                !flow.barberProfileError &&
-                !branchesError &&
-                isBarberFirst &&
-                allowedBranches.length === 0
-                  ? "لا توجد فروع عامة متاحة لهذا الحلاق"
-                  : null
-              }
-              variant="light"
-              onSelect={handleBranchSelect}
-            />
+          <BranchPicker
+            branches={branches}
+            selectedBranchCode={selectedBranch?.branchCode}
+            isLoading={isLoadingBranches}
+            error={null}
+            variant="light"
+            onSelect={handleBranchSelect}
+          />
+          {hasConfirmedBranch && selectedBranch && (
+            <button
+              type="button"
+              onClick={() => handleBranchSelect(selectedBranch)}
+              className="w-full mt-4 py-3 rounded-xl bg-cut-gold text-black font-bold hover:bg-cut-gold/80 transition-colors flex items-center justify-center gap-2"
+            >
+              <Check className="w-4 h-4" />
+              تأكيد فرع {selectedBranch.shortName || selectedBranch.branchName} ومتابعة
+            </button>
           )}
-          {hasConfirmedBranch &&
-            selectedBranch &&
-            allowedBranches.some((b) => b.branchCode === selectedBranch.branchCode) && (
-              <button
-                type="button"
-                onClick={() => handleBranchSelect(selectedBranch)}
-                className="w-full mt-4 py-3 rounded-xl bg-cut-gold text-black font-bold hover:bg-cut-gold/80 transition-colors flex items-center justify-center gap-2"
-              >
-                <Check className="w-4 h-4" />
-                تأكيد فرع {selectedBranch.shortName || selectedBranch.branchName} ومتابعة
-              </button>
-            )}
         </div>
       );
     }
@@ -552,7 +500,7 @@ const BookingModal = ({
               selectedCount={selectedServices.length}
               onContinue={() => {
                 if (flow.mode === "specific" && flow.barber?.id == null) return;
-                flow.setStep("date");
+                flow.goToSlotsStep();
               }}
             />
             <div className="px-6 pb-4 flex-shrink-0">
@@ -568,6 +516,34 @@ const BookingModal = ({
           </div>
         );
       }
+
+      case "slots":
+        return (
+          <div dir="rtl">
+            {renderMutationBanner()}
+            <CrossBranchSlotsPanel
+              branches={flow.crossBranches}
+              slots={flow.crossSlots}
+              activeTab={flow.crossTab}
+              onTabChange={flow.setCrossBranchTab}
+              selectedKey={flow.selectedCrossSlotKey}
+              onSelect={flow.selectCrossBranchSlot}
+              isLoading={flow.crossSlotsLoading}
+              error={flow.crossSlotsError}
+              onRetry={flow.retryCrossBranchSlots}
+            />
+            <div className="px-5 md:px-6 pb-6">
+              <button
+                type="button"
+                onClick={handleBack}
+                className="w-full py-3 rounded-xl border border-cut-gold/15 text-cut-black/70 font-medium flex items-center justify-center gap-2 text-sm"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                رجوع للخدمات
+              </button>
+            </div>
+          </div>
+        );
 
       case "date":
         return (
@@ -703,9 +679,9 @@ const BookingModal = ({
               </div>
             </div>
             <div className="bg-cut-black/[0.04] rounded-xl p-4 mb-4 border border-cut-gold/15 space-y-2 text-sm">
-              {selectedBranch && (
+              {displayBranchName && (
                 <div className="flex justify-between">
-                  <span>{selectedBranch.branchName}</span>
+                  <span>{displayBranchName}</span>
                   <span className="text-cut-black/50 text-xs">الفرع</span>
                 </div>
               )}
@@ -766,7 +742,7 @@ const BookingModal = ({
             {renderMutationBanner()}
             <div className="bg-cut-black/[0.04] rounded-xl p-5 mb-4 border border-cut-gold/15 space-y-2.5 text-sm">
               <div className="flex justify-between">
-                <span className="font-medium">{p?.branchName ?? selectedBranch?.branchName}</span>
+                <span className="font-medium">{p?.branchName ?? displayBranchName}</span>
                 <span className="text-cut-black/50 text-xs">الفرع</span>
               </div>
               <div className="flex justify-between">
@@ -860,9 +836,9 @@ const BookingModal = ({
               </div>
             )}
             <div className="bg-cut-black/[0.04] rounded-xl p-4 mb-5 text-right border border-cut-gold/10 space-y-2 text-sm">
-              {(booking?.branchName || selectedBranch?.branchName) && (
+              {(booking?.branchName || displayBranchName) && (
                 <div className="flex justify-between">
-                  <span>{booking?.branchName ?? selectedBranch?.branchName}</span>
+                  <span>{booking?.branchName ?? displayBranchName}</span>
                   <span className="text-cut-black/50 text-xs">الفرع</span>
                 </div>
               )}
@@ -927,8 +903,14 @@ const BookingModal = ({
   };
 
   const activeStepId = stepForHeader(flow.step);
-  const headerSteps =
-    effectiveInitialMode || isBarberFirst
+  const headerSteps = isBarberFirst
+    ? [
+        { id: "service", label: "الخدمة", number: 1 },
+        { id: "slots", label: "الموعد", number: 2 },
+        { id: "details", label: "بياناتك", number: 3 },
+        { id: "review", label: "مراجعة", number: 4 },
+      ]
+    : effectiveInitialMode
       ? steps.filter((s) => s.id !== "mode")
       : steps;
 
@@ -975,6 +957,7 @@ const BookingModal = ({
                   (flow.catalogDuration || undefined)
                 }
                 mode={flow.mode}
+                branchName={displayBranchName}
               />
             </div>
 

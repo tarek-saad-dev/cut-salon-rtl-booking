@@ -104,3 +104,13 @@ Reasons:
 2. available-days can exceed 20s under cold load; 35s timeout is in the hotfix only.
 
 After `85af015` is live: re-check one controlled UI success code display → then **GO** for enforce is appropriate. Backend stays **compat** until then.
+
+---
+
+## Follow-up (8B4A)
+
+See `docs/booking-phase-8b4a-closure.md`.
+
+Hotfix confirmed live; UI smoke booking `BK-2U29QJ` created, looked up by stored token, cancelled.
+
+**Updated enforce readiness: GO** (activation still a separate ops step).

@@ -13,6 +13,10 @@ import {
   getPublicBarberProfile,
   getAvailableDays,
   getAvailableSlots,
+  getCrossBranchAvailability,
+  crossBranchSlotKey,
+  cairoTodayYmd,
+  CROSS_BRANCH_AVAILABILITY_DEFAULT_DAYS,
   createBookingPlan,
   submitBookingFromPlan,
   clearPlanSession,
@@ -28,6 +32,7 @@ import {
   type PublicBarberBranch,
   type AvailableDay,
   type AvailableSlot,
+  type CrossBranchSlot,
   type BookingPlan,
   type BookingCreateResponse,
   type BookingMode,
@@ -41,11 +46,24 @@ export type BookingUiStep =
   | "service"
   | "date"
   | "time"
+  | "slots"
   | "details"
   | "review"
   | "success";
 
 const MAX_SERVICES = 12;
+const ALL_CROSS_TAB = "all";
+
+function pickCatalogBranchCode(branches: PublicBarberBranch[]): string | undefined {
+  if (!branches.length) return undefined;
+  const gleem = branches.find((b) => b.branchCode.toUpperCase() === "GLEEM");
+  return (gleem ?? branches[0]).branchCode;
+}
+
+function parseYmdToLocalDate(ymd: string): Date {
+  const [y, m, d] = ymd.split("-").map(Number);
+  return new Date(y, (m || 1) - 1, d || 1, 12, 0, 0, 0);
+}
 
 export type FlowMutationUi =
   | { kind: "idle" }
@@ -90,7 +108,9 @@ export function useBookingFlow(opts: {
 
   const isBarberFirst = entryMode === "barber_first";
 
-  const [step, setStep] = useState<BookingUiStep>("branch");
+  const [step, setStep] = useState<BookingUiStep>(
+    isBarberFirst ? "service" : "branch",
+  );
   const [mode, setMode] = useState<BookingMode>(
     isBarberFirst ? "specific" : (initialMode ?? "specific"),
   );
@@ -117,8 +137,18 @@ export function useBookingFlow(opts: {
   const [slotsLoading, setSlotsLoading] = useState(false);
   const [slotsError, setSlotsError] = useState<string | null>(null);
 
+  const [crossSlots, setCrossSlots] = useState<CrossBranchSlot[]>([]);
+  const [crossBranches, setCrossBranches] = useState<PublicBarberBranch[]>([]);
+  const [crossSlotsLoading, setCrossSlotsLoading] = useState(false);
+  const [crossSlotsError, setCrossSlotsError] = useState<string | null>(null);
+  const [crossTab, setCrossTab] = useState<string>(ALL_CROSS_TAB);
+  const [crossReloadToken, setCrossReloadToken] = useState(0);
+
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [selectedSlot, setSelectedSlot] = useState<AvailableSlot | undefined>();
+  /** Barber-first booking branch (may be CAMP_CAESAR; not BranchContext). */
+  const [bookingBranchCode, setBookingBranchCode] = useState<string | undefined>();
+  const [bookingBranchName, setBookingBranchName] = useState<string | undefined>();
 
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
@@ -132,9 +162,12 @@ export function useBookingFlow(opts: {
   const selectionVersionRef = useRef(0);
   const daysAbortRef = useRef<AbortController | null>(null);
   const slotsAbortRef = useRef<AbortController | null>(null);
+  const crossAbortRef = useRef<AbortController | null>(null);
   const planAbortRef = useRef<AbortController | null>(null);
   const prevBranchRef = useRef<string | undefined>(undefined);
   const createInFlightRef = useRef(false);
+
+  const effectiveBranchCode = isBarberFirst ? bookingBranchCode : branchCode;
 
   const bumpSelection = useCallback(() => {
     selectionVersionRef.current = incrementSelectionVersion();
@@ -145,6 +178,7 @@ export function useBookingFlow(opts: {
     bumpSelection();
     daysAbortRef.current?.abort();
     slotsAbortRef.current?.abort();
+    crossAbortRef.current?.abort();
     planAbortRef.current?.abort();
     setServiceIds([]);
     // Barber-first keeps the entry barber locked; branch-first clears it.
@@ -156,8 +190,14 @@ export function useBookingFlow(opts: {
     }
     setSelectedDate(undefined);
     setSelectedSlot(undefined);
+    setBookingBranchCode(undefined);
+    setBookingBranchName(undefined);
     setDays([]);
     setSlots([]);
+    setCrossSlots([]);
+    setCrossBranches([]);
+    setCrossTab(ALL_CROSS_TAB);
+    setCrossSlotsError(null);
     setPlan(null);
     clearPlanSession();
     setCreated(null);
@@ -233,14 +273,15 @@ export function useBookingFlow(opts: {
     };
   }, [open, isBarberFirst, initialBarber?.id, initialBarber?.name, barberProfileReload]);
 
-  // Branch change mid-flow
+  // Branch change mid-flow (branch-first only — barber-first does not use BranchContext)
   useEffect(() => {
+    if (isBarberFirst) return;
     const prev = prevBranchRef.current;
     prevBranchRef.current = branchCode;
     if (!open) return;
     if (prev === undefined || prev === branchCode) return;
     clearDownstreamFromBranch();
-    setStep(isBarberFirst || skipModeStep || initialMode ? "service" : "mode");
+    setStep(skipModeStep || initialMode ? "service" : "mode");
   }, [
     branchCode,
     open,
@@ -252,9 +293,26 @@ export function useBookingFlow(opts: {
 
   // Catalog load
   useEffect(() => {
-    if (!open || !branchCode) return;
-    // Barber-first: wait for profile serviceIds before filtering catalog
-    if (isBarberFirst && barberServiceIds === null && !barberProfileError) return;
+    if (!open) return;
+
+    let catalogBranch: string | undefined;
+    if (isBarberFirst) {
+      if (barberServiceIds === null && !barberProfileError) {
+        setCatalogLoading(true);
+        return;
+      }
+      catalogBranch = pickCatalogBranchCode(barberBranches);
+      if (!catalogBranch) {
+        if (!barberProfileLoading && barberServiceIds !== null) {
+          setCatalogError("لا توجد فروع متاحة لتحميل خدمات هذا الحلاق");
+          setCatalogLoading(false);
+        }
+        return;
+      }
+    } else {
+      if (!branchCode) return;
+      catalogBranch = branchCode;
+    }
 
     let cancelled = false;
     const controller = new AbortController();
@@ -264,9 +322,11 @@ export function useBookingFlow(opts: {
     (async () => {
       try {
         const [cfg, svc, bar] = await Promise.all([
-          getBookingConfig(branchCode, controller.signal),
-          getServices(branchCode, controller.signal),
-          listBranchBarbers(branchCode, controller.signal),
+          getBookingConfig(catalogBranch!, controller.signal),
+          getServices(catalogBranch!, controller.signal),
+          isBarberFirst
+            ? Promise.resolve({ data: [] as PublicBarber[] })
+            : listBranchBarbers(catalogBranch!, controller.signal),
         ]);
         if (cancelled) return;
         setConfig(cfg.data);
@@ -279,14 +339,13 @@ export function useBookingFlow(opts: {
         const branchBarbers = (bar.data ?? []).filter((b) => b.isBookableOnline);
         setBarbers(branchBarbers);
 
-        // Keep locked barber if still bookable at this branch; otherwise clear (branch-first only).
         if (isBarberFirst && initialBarber?.id != null) {
+          setBarber({ id: initialBarber.id, name: initialBarber.name });
+          setMode("specific");
+        } else if (!isBarberFirst && initialBarber?.id != null) {
           const stillHere = branchBarbers.some((b) => b.id === initialBarber.id);
           if (stillHere) {
             setBarber({ id: initialBarber.id, name: initialBarber.name });
-            setMode("specific");
-          } else if (branchBarbers.length === 0) {
-            setCatalogError("هذا الحلاق غير متاح في الفرع المختار");
           }
         }
       } catch (err) {
@@ -309,14 +368,17 @@ export function useBookingFlow(opts: {
     open,
     branchCode,
     isBarberFirst,
+    barberBranches,
     barberServiceIds,
     barberProfileError,
+    barberProfileLoading,
     initialBarber?.id,
     initialBarber?.name,
   ]);
 
-  // Available days
+  // Available days (branch-first date step only)
   useEffect(() => {
+    if (isBarberFirst) return;
     if (step !== "date" || !branchCode || serviceIds.length === 0) return;
     if (mode === "specific" && barber?.id == null) return;
 
@@ -364,10 +426,11 @@ export function useBookingFlow(opts: {
       });
 
     return () => controller.abort();
-  }, [step, branchCode, serviceIds, mode, barber?.id, bumpSelection]);
+  }, [step, branchCode, serviceIds, mode, barber?.id, bumpSelection, isBarberFirst]);
 
-  // Available slots
+  // Available slots (branch-first time step only)
   useEffect(() => {
+    if (isBarberFirst) return;
     if (step !== "time" || !branchCode || !selectedDate || serviceIds.length === 0) return;
     if (mode === "specific" && barber?.id == null) return;
 
@@ -415,7 +478,66 @@ export function useBookingFlow(opts: {
       });
 
     return () => controller.abort();
-  }, [step, branchCode, selectedDate, serviceIds, mode, barber?.id, bumpSelection]);
+  }, [step, branchCode, selectedDate, serviceIds, mode, barber?.id, bumpSelection, isBarberFirst]);
+
+  // Cross-branch slots (barber-first) — one request per barber/service selection
+  useEffect(() => {
+    if (!isBarberFirst) return;
+    if (step !== "slots" || serviceIds.length === 0 || barber?.id == null) return;
+
+    crossAbortRef.current?.abort();
+    const controller = new AbortController();
+    crossAbortRef.current = controller;
+    const version = bumpSelection();
+
+    setCrossSlotsLoading(true);
+    setCrossSlotsError(null);
+    setCrossSlots([]);
+    setCrossBranches([]);
+    setCrossTab(ALL_CROSS_TAB);
+
+    getCrossBranchAvailability(
+      barber.id,
+      {
+        serviceIds,
+        dateFrom: cairoTodayYmd(),
+        days: CROSS_BRANCH_AVAILABILITY_DEFAULT_DAYS,
+      },
+      controller.signal,
+    )
+      .then((res) => {
+        if (isStaleResponse(version) || controller.signal.aborted) return;
+        setCrossSlots(res.data.slots ?? []);
+        setCrossBranches(res.data.branches ?? []);
+        setCrossSlotsLoading(false);
+      })
+      .catch((err) => {
+        if (controller.signal.aborted || isStaleResponse(version)) return;
+        setCrossSlotsLoading(false);
+        if (err instanceof BookingApiError) {
+          setCrossSlotsError(err.message);
+          if (err.isRateLimited && err.retryAfterSeconds) {
+            setMutationUi({
+              kind: "rate_limited",
+              message: err.message,
+              retryAfterSeconds: err.retryAfterSeconds,
+              until: Date.now() + err.retryAfterSeconds * 1000,
+            });
+          }
+        } else {
+          setCrossSlotsError(getArabicErrorMessage("UNKNOWN_ERROR"));
+        }
+      });
+
+    return () => controller.abort();
+  }, [
+    isBarberFirst,
+    step,
+    serviceIds,
+    barber?.id,
+    bumpSelection,
+    crossReloadToken,
+  ]);
 
   // Rate-limit countdown ticker
   useEffect(() => {
@@ -440,11 +562,18 @@ export function useBookingFlow(opts: {
     const unique = [...new Set(ids)].slice(0, MAX_SERVICES);
     bumpSelection();
     clearPlanSession();
+    crossAbortRef.current?.abort();
     setServiceIds(unique);
     setSelectedDate(undefined);
     setSelectedSlot(undefined);
+    setBookingBranchCode(undefined);
+    setBookingBranchName(undefined);
     setDays([]);
     setSlots([]);
+    setCrossSlots([]);
+    setCrossBranches([]);
+    setCrossTab(ALL_CROSS_TAB);
+    setCrossSlotsError(null);
     setPlan(null);
     setMutationUi({ kind: "idle" });
   }, [bumpSelection]);
@@ -466,11 +595,17 @@ export function useBookingFlow(opts: {
   const selectBarber = useCallback((b: { id: number; name: string } | null) => {
     bumpSelection();
     clearPlanSession();
+    crossAbortRef.current?.abort();
     setBarber(b);
     setSelectedDate(undefined);
     setSelectedSlot(undefined);
+    setBookingBranchCode(undefined);
+    setBookingBranchName(undefined);
     setDays([]);
     setSlots([]);
+    setCrossSlots([]);
+    setCrossBranches([]);
+    setCrossTab(ALL_CROSS_TAB);
     setPlan(null);
     // Changing barber invalidates services selection
     setServiceIds([]);
@@ -494,13 +629,44 @@ export function useBookingFlow(opts: {
     setStep("details");
   }, []);
 
+  const selectCrossBranchSlot = useCallback((slot: CrossBranchSlot) => {
+    clearPlanSession();
+    setBookingBranchCode(slot.branchCode);
+    setBookingBranchName(slot.branchName);
+    setSelectedDate(parseYmdToLocalDate(slot.date));
+    setSelectedSlot({
+      time: slot.time,
+      available: true,
+      dayOffset: slot.dayOffset,
+      branchCode: slot.branchCode,
+      branchName: slot.branchName,
+      date: slot.date,
+    });
+    setPlan(null);
+    setMutationUi({ kind: "idle" });
+    setStep("details");
+  }, []);
+
+  const setCrossBranchTab = useCallback((tab: string) => {
+    // Local filter only — never re-fetch
+    setCrossTab(tab);
+  }, []);
+
+  const retryCrossBranchSlots = useCallback(() => {
+    setCrossReloadToken((n) => n + 1);
+  }, []);
+
+  const goToSlotsStep = useCallback(() => {
+    setStep(isBarberFirst ? "slots" : "date");
+  }, [isBarberFirst]);
+
   const invalidatePlan = useCallback(() => {
     clearPlanSession();
     setPlan(null);
   }, []);
 
   const requestPlan = useCallback(async () => {
-    if (!branchCode || !selectedDate || !selectedSlot || serviceIds.length === 0) return;
+    if (!effectiveBranchCode || !selectedDate || !selectedSlot || serviceIds.length === 0) return;
     if (mode === "specific" && barber?.id == null) return;
     if (mutationUi.kind === "planning" || mutationUi.kind === "creating") return;
     if (mutationUi.kind === "rate_limited" && Date.now() < mutationUi.until) return;
@@ -517,7 +683,10 @@ export function useBookingFlow(opts: {
     planAbortRef.current = controller;
     setMutationUi({ kind: "planning" });
 
-    const dateStr = format(selectedDate, "yyyy-MM-dd");
+    const dateStr =
+      selectedSlot.date && /^\d{4}-\d{2}-\d{2}$/.test(selectedSlot.date)
+        ? selectedSlot.date
+        : format(selectedDate, "yyyy-MM-dd");
     const dayOffset = selectedSlot.dayOffset ?? 0;
     const empId =
       mode === "specific"
@@ -527,7 +696,7 @@ export function useBookingFlow(opts: {
     try {
       const res = await createBookingPlan(
         {
-          branchCode,
+          branchCode: effectiveBranchCode,
           customer: { name, phone },
           serviceIds,
           date: dateStr,
@@ -577,7 +746,7 @@ export function useBookingFlow(opts: {
       setMutationUi({ kind: "error", message: getArabicErrorMessage("UNKNOWN_ERROR") });
     }
   }, [
-    branchCode,
+    effectiveBranchCode,
     selectedDate,
     selectedSlot,
     serviceIds,
@@ -590,7 +759,7 @@ export function useBookingFlow(opts: {
   ]);
 
   const confirmCreate = useCallback(async () => {
-    if (!plan || !branchCode || !selectedDate || !selectedSlot) return;
+    if (!plan || !effectiveBranchCode || !selectedDate || !selectedSlot) return;
     if (createInFlightRef.current) return;
     if (mutationUi.kind === "rate_limited" && Date.now() < mutationUi.until) return;
     if (mutationUi.kind === "creating") return;
@@ -602,7 +771,10 @@ export function useBookingFlow(opts: {
     createInFlightRef.current = true;
     setMutationUi({ kind: "creating" });
 
-    const dateStr = format(selectedDate, "yyyy-MM-dd");
+    const dateStr =
+      selectedSlot.date && /^\d{4}-\d{2}-\d{2}$/.test(selectedSlot.date)
+        ? selectedSlot.date
+        : format(selectedDate, "yyyy-MM-dd");
     const dayOffset = selectedSlot.dayOffset ?? 0;
     const empId = mode === "specific" ? barber?.id : undefined;
     const customer: BookingCustomer = { name, phone };
@@ -612,7 +784,7 @@ export function useBookingFlow(opts: {
         plan,
         customer,
         notes: notes.trim() || undefined,
-        branchCode,
+        branchCode: effectiveBranchCode,
         date: dateStr,
         time: selectedSlot.time,
         dayOffset,
@@ -642,10 +814,6 @@ export function useBookingFlow(opts: {
       const err = result.error;
       const code = err?.code;
       const conflictCodes = new Set([
-        "SLOT_NOT_AVAILABLE",
-        "SLOT_CONFLICT",
-        "BARBER_NOT_AVAILABLE",
-        "BARBER_NOT_FOUND",
         "PLAN_TOKEN_EXPIRED",
         "PLAN_TOKEN_REQUEST_MISMATCH",
         "PLAN_TOKEN_REQUIRED",
@@ -671,14 +839,17 @@ export function useBookingFlow(opts: {
         clearPlanSession();
         setPlan(null);
         setSelectedSlot(undefined);
+        setBookingBranchCode(undefined);
+        setBookingBranchName(undefined);
         setSlots([]);
         setDays([]);
+        setCrossSlots([]);
         setMutationUi({
           kind: "error",
           message: err?.message ?? getArabicErrorMessage(code as never),
           code,
         });
-        setStep("time");
+        setStep(isBarberFirst ? "slots" : "time");
         return;
       }
 
@@ -692,7 +863,7 @@ export function useBookingFlow(opts: {
     }
   }, [
     plan,
-    branchCode,
+    effectiveBranchCode,
     selectedDate,
     selectedSlot,
     customerName,
@@ -702,6 +873,7 @@ export function useBookingFlow(opts: {
     mode,
     barber?.id,
     mutationUi,
+    isBarberFirst,
   ]);
 
   const safeRetryCreate = useCallback(() => {
@@ -713,12 +885,16 @@ export function useBookingFlow(opts: {
     bumpSelection();
     daysAbortRef.current?.abort();
     slotsAbortRef.current?.abort();
+    crossAbortRef.current?.abort();
     planAbortRef.current?.abort();
-    if (branchCode && selectedDate && selectedSlot) {
+    if (effectiveBranchCode && selectedDate && selectedSlot) {
       abandonMutationId(
         buildCreateOperationKey({
-          branchCode,
-          date: format(selectedDate, "yyyy-MM-dd"),
+          branchCode: effectiveBranchCode,
+          date:
+            selectedSlot.date && /^\d{4}-\d{2}-\d{2}$/.test(selectedSlot.date)
+              ? selectedSlot.date
+              : format(selectedDate, "yyyy-MM-dd"),
           time: selectedSlot.time,
           serviceIds,
           mode,
@@ -728,7 +904,7 @@ export function useBookingFlow(opts: {
       );
     }
     clearPlanSession();
-    setStep("branch");
+    setStep(isBarberFirst ? "service" : "branch");
     setMode(isBarberFirst ? "specific" : (initialMode ?? "specific"));
     setServiceIds([]);
     setBarber(
@@ -736,8 +912,14 @@ export function useBookingFlow(opts: {
     );
     setSelectedDate(undefined);
     setSelectedSlot(undefined);
+    setBookingBranchCode(undefined);
+    setBookingBranchName(undefined);
     setDays([]);
     setSlots([]);
+    setCrossSlots([]);
+    setCrossBranches([]);
+    setCrossTab(ALL_CROSS_TAB);
+    setCrossSlotsError(null);
     setPlan(null);
     setCreated(null);
     setCustomerName("");
@@ -749,7 +931,7 @@ export function useBookingFlow(opts: {
     setSlotsError(null);
   }, [
     bumpSelection,
-    branchCode,
+    effectiveBranchCode,
     selectedDate,
     selectedSlot,
     serviceIds,
@@ -795,10 +977,32 @@ export function useBookingFlow(opts: {
     slots,
     slotsLoading,
     slotsError,
+    crossSlots,
+    crossBranches,
+    crossSlotsLoading,
+    crossSlotsError,
+    crossTab,
+    setCrossBranchTab,
+    retryCrossBranchSlots,
+    goToSlotsStep,
     selectedDate,
     selectedSlot,
+    bookingBranchCode,
+    bookingBranchName,
+    effectiveBranchCode,
     selectDate,
     selectSlot,
+    selectCrossBranchSlot,
+    selectedCrossSlotKey:
+      selectedSlot?.branchCode && selectedSlot.date
+        ? crossBranchSlotKey({
+            branchCode: selectedSlot.branchCode,
+            branchName: selectedSlot.branchName || selectedSlot.branchCode,
+            date: selectedSlot.date,
+            time: selectedSlot.time,
+            dayOffset: selectedSlot.dayOffset === 1 ? 1 : 0,
+          })
+        : null,
     customerName,
     setCustomerName,
     customerPhone,

@@ -113,6 +113,42 @@ export interface AvailableSlot {
   durationMinutes?: number | null;
   durationSource?: string | null;
   reason?: string | null;
+  /** Set when selected from cross-branch availability (barber-first). */
+  branchCode?: string | null;
+  branchName?: string | null;
+  /** Calendar date YYYY-MM-DD when selected from cross-branch availability. */
+  date?: string | null;
+}
+
+// ─── Cross-branch availability (Phase 10C / 10D) ─────────────────────────────
+
+export interface CrossBranchSlot {
+  branchCode: string;
+  branchName: string;
+  date: string;
+  time: string;
+  dayOffset: 0 | 1;
+}
+
+export interface CrossBranchAvailabilityMeta {
+  slotCount: number;
+  branchCount: number;
+  dayCount: number;
+  queryCount?: number;
+  timingMs?: Record<string, number>;
+  cacheHit?: boolean;
+  failedBranchCodes?: string[];
+  contractVersion?: string;
+  generatedAt?: string;
+}
+
+export interface CrossBranchAvailabilityResponse {
+  ok: boolean;
+  barber: { empId: number; nameAr: string };
+  branches: PublicBarberBranch[];
+  days: string[];
+  slots: CrossBranchSlot[];
+  meta?: CrossBranchAvailabilityMeta;
 }
 
 // ─── Check Slot ──────────────────────────────────────────────────────────────

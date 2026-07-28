@@ -6,6 +6,8 @@ export const TIMEOUT_MS = {
   discovery: 15_000,
   /** Live available-days often takes 10–20s; keep headroom for cold starts. */
   availableDays: 35_000,
+  /** Cross-branch availability aggregates branches; cold runs can exceed 7s. */
+  crossBranchAvailability: 35_000,
   slots: 15_000,
   checkSlot: 15_000,
   plan: 15_000,
