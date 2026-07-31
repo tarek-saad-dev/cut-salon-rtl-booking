@@ -95,6 +95,7 @@ const BarberCard = ({
 
 type GroomBookingDetail = {
   serviceMatches: string[];
+  serviceIds?: number[];
   note: string;
 };
 
@@ -176,7 +177,7 @@ const BarbersSection = () => {
     };
     const handleBookGroom = (e: Event) => {
       const detail = (e as CustomEvent<GroomBookingDetail>).detail;
-      if (!detail?.serviceMatches?.length) return;
+      if (!detail?.serviceMatches?.length && !detail?.serviceIds?.length) return;
       setGroomBooking(detail);
       openNearestBooking();
     };
@@ -464,6 +465,7 @@ const BarbersSection = () => {
             initialMode={bookingMode}
             entryMode={entryMode}
             initialServiceMatches={groomBooking?.serviceMatches}
+            initialServiceIds={groomBooking?.serviceIds}
             bookingNote={groomBooking?.note}
           />
         )}

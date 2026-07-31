@@ -98,6 +98,7 @@ interface BookingModalProps {
   barber: BarberBookingInfo;
   initialMode?: BookingMode;
   initialServiceMatches?: string[];
+  initialServiceIds?: number[];
   bookingNote?: string;
   /** barber_first locks specific mode and filters branches to that barber. */
   entryMode?: BookingEntryMode;
@@ -124,6 +125,7 @@ const BookingModal = ({
   barber,
   initialMode,
   initialServiceMatches,
+  initialServiceIds,
   bookingNote,
   entryMode = "branch_first",
 }: BookingModalProps) => {
@@ -166,26 +168,33 @@ const BookingModal = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, isBarberFirst, flow.barberProfileLoading, flow.step]);
 
-  // Optional groom service preselect from catalog names (display only until plan)
+  // Optional groom service preselect: exact serviceId matches take priority, with
+  // fuzzy name matching as a fallback for services without a known ID.
   useEffect(() => {
-    if (!open || !initialServiceMatches?.length || flow.services.length === 0) return;
+    if (!open || flow.services.length === 0) return;
+    if (!initialServiceIds?.length && !initialServiceMatches?.length) return;
     if (flow.serviceIds.length > 0) return;
-    const normalizedMatches = initialServiceMatches.map((m) => m.trim().toLowerCase());
-    const matched = flow.services
-      .filter((service) =>
-        normalizedMatches.some(
-          (match) =>
-            service.name.trim().toLowerCase().includes(match) ||
-            match.includes(service.name.trim().toLowerCase()),
-        ),
-      )
-      .map((s) => s.id);
+    const knownIds = new Set(flow.services.map((s) => s.id));
+    const idMatched = (initialServiceIds ?? []).filter((id) => knownIds.has(id));
+    const normalizedMatches = (initialServiceMatches ?? []).map((m) => m.trim().toLowerCase());
+    const nameMatched = normalizedMatches.length
+      ? flow.services
+          .filter((service) =>
+            normalizedMatches.some(
+              (match) =>
+                service.name.trim().toLowerCase().includes(match) ||
+                match.includes(service.name.trim().toLowerCase()),
+            ),
+          )
+          .map((s) => s.id)
+      : [];
+    const matched = [...new Set([...idMatched, ...nameMatched])];
     if (matched.length) {
-      flow.selectServices([...new Set(matched)]);
+      flow.selectServices(matched);
       flow.setStep(isBarberFirst ? "slots" : "date");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, initialServiceMatches, flow.services, isBarberFirst]);
+  }, [open, initialServiceIds, initialServiceMatches, flow.services, isBarberFirst]);
 
   // Enter after branch when opened with initialMode (branch-first only)
   useEffect(() => {

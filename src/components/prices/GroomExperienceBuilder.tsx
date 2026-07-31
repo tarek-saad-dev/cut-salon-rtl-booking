@@ -1,52 +1,271 @@
-"use client";
+﻿"use client";
 
-import { useMemo, useState } from "react";
-import { Check, ChevronDown, Clock3, MapPin, Plus, Scissors, ShieldCheck, Sparkles, X } from "lucide-react";
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { Check, ChevronDown, MapPin, ShoppingBag, Sparkles } from "lucide-react";
 import type { Language } from "@/lib/i18n/types";
-import { getGroomTotals, groomAddons, groomPackages, locationVisits, type GroomAddon, type GroomPackage, type GroomSelection } from "@/lib/groomBuilder";
+import { groomAddons, locationVisits, type GroomAddon, type LocationVisit } from "@/lib/groomBuilder";
+import { getPackages, type ApiPackage } from "@/lib/packagesApi";
 
 type Props = { language: Language };
+type Selection = { selectedPackageId: number | null; selectedAddonIds: string[]; selectedLocationVisit: LocationVisit["id"] | null };
+const packageName = (item: ApiPackage, language: Language) => (language === "ar" ? item.nameAr ?? item.nameEn : item.nameEn ?? item.nameAr) ?? "";
+const includeName = (item: ApiPackage["includes"][number], language: Language) => (language === "ar" ? item.nameAr ?? item.name ?? item.nameEn : item.nameEn ?? item.name ?? item.nameAr) ?? "";
 const text = <T extends Record<Language, string>>(value: T, language: Language) => value[language];
 const money = (value: number, language: Language) => language === "ar" ? `${value.toLocaleString("en-US")} ج.م` : `EGP ${value.toLocaleString("en-US")}`;
 const mins = (value: number, language: Language) => language === "ar" ? `${value} دقيقة` : `${value} min`;
 
-function GroomHero({ language, onChoose, onQuiz }: { language: Language; onChoose: () => void; onQuiz: () => void }) {
+function GroomHeader({ language }: { language: Language }) {
   const ar = language === "ar";
-  return <section className="relative overflow-hidden bg-cut-black py-24 text-cut-ivory md:py-32"><div className="absolute inset-0 bg-[radial-gradient(circle_at_75%_50%,rgba(74,0,15,0.72),transparent_42%)]" /><div className="container relative px-5 md:px-8"><p className="cut-editorial-label">THE GROOM EXPERIENCE</p><h2 className={`mt-4 max-w-4xl text-5xl font-black leading-tight md:text-7xl ${ar ? "" : "font-editorial font-semibold"}`}>{ar ? "ادخل يومك الكبير بأفضل نسخة منك." : "Arrive at your big day as your best self."}</h2><p className="mt-6 max-w-2xl text-lg leading-9 text-cut-ivory/70">{ar ? "جلسة تجهيز محسوبة من أول القصة حتى اللمسة الأخيرة للتصوير — بتجربة هادئة في زيارة واحدة." : "A considered preparation from the first cut to the final camera-ready detail, in one calm visit."}</p><div className="mt-9 flex flex-col gap-3 sm:flex-row"><button type="button" onClick={onChoose} className="min-h-12 bg-cut-ivory px-6 font-bold text-cut-black transition hover:bg-cut-soft-ivory">{ar ? "اختر باكدجك" : "Choose your package"}</button><button type="button" onClick={onQuiz} className="min-h-12 border border-cut-bronze/55 px-6 font-bold text-cut-ivory transition hover:bg-cut-burgundy/35">{ar ? "ساعدني أختار" : "Help me choose"}</button></div><div className="mt-11 flex flex-wrap gap-3 text-sm text-cut-ivory/75">{[ar ? "90–195 دقيقة" : "90–195 minutes", ar ? "تجهيز كامل في زيارة واحدة" : "Full preparation in one visit", ar ? "متاح تجهيز في الموقع" : "On-location finishing available"].map((item) => <span key={item} className="flex min-h-10 items-center gap-2 border border-cut-bronze/30 bg-cut-black/40 px-4"><ShieldCheck className="h-4 w-4 text-cut-bronze" />{item}</span>)}</div></div></section>;
+  const sideBorder = ar ? "border-r pr-5 md:pr-8" : "border-l pl-5 md:pl-8";
+  return (
+    <div className={`flex flex-col gap-6 border-cut-bronze/35 md:flex-row md:items-end md:justify-between ${sideBorder}`}>
+      <div className="max-w-2xl">
+        <p className="cut-editorial-label">GROOM PACKAGE</p>
+        <h2 className={`mt-3 text-4xl font-black md:text-5xl ${ar ? "" : "font-editorial font-semibold"}`}>{ar ? "باكدج العريس" : "Groom Package"}</h2>
+        <p className="mt-4 text-base leading-8 text-cut-ivory/70">{ar ? "اختر الباكدج المناسب، ضيف اللي محتاجه، واحجز في خطوة واحدة." : "Pick a package, add what you need, and book in one step."}</p>
+      </div>
+      <p className="font-display text-sm tracking-[0.28em] text-cut-bronze">{ar ? "يوم يليق بك" : "YOUR BIG DAY"}</p>
+    </div>
+  );
 }
 
-function GroomRecommendationQuiz({ language, onRecommendation }: { language: Language; onRecommendation: (id: GroomPackage["id"]) => void }) {
-  const [answers, setAnswers] = useState(["", "", ""]);
+function SoonNotice({ language, label }: { language: Language; label?: string }) {
   const ar = language === "ar";
-  const choose = (question: number, value: string) => setAnswers((current) => current.map((item, index) => index === question ? value : item));
-  const recommendation = answers[0] === "complete" || answers[2] === "treatments" ? "complete" : answers[1] === "soon" || answers[0] === "full" ? "signature" : "essential";
-  const questions = [
-    { title: ar ? "مستوى التجهيز المطلوب؟" : "How complete should preparation feel?", options: [["simple", ar ? "أساسيات مرتبة" : "Refined essentials"], ["full", ar ? "تجهيز كامل" : "Complete preparation"], ["complete", ar ? "عناية موسعة" : "Extended care"]] },
-    { title: ar ? "متى موعدك؟" : "When is the wedding?", options: [["soon", ar ? "قريب جدًا" : "Very soon"], ["week", ar ? "خلال أسبوع" : "Within a week"], ["later", ar ? "لاحقًا" : "Later"]] },
-    { title: ar ? "هل تهمك علاجات إضافية؟" : "Are treatments important?", options: [["none", ar ? "لا، اللوك الأساسي" : "No, the core look"], ["treatments", ar ? "نعم، شعر وبشرة" : "Yes, hair and skin"], ["details", ar ? "فقط تفاصيل للتصوير" : "Photo-ready details only"]] },
-  ];
-  return <section id="groom-quiz" className="scroll-mt-28 bg-cut-warm-paper py-16 text-cut-black md:py-24"><div className="container px-5 md:px-8"><div className="max-w-2xl"><p className="font-display text-xs tracking-[0.25em] text-cut-burgundy">PERSONAL GUIDE</p><h2 className={`mt-3 text-4xl font-black ${ar ? "" : "font-editorial font-semibold"}`}>{ar ? "اختيار سريع، بدون ما يوقفك عن التصفح" : "A quick guide, without stopping your browsing"}</h2></div><div className="mt-9 grid gap-4 lg:grid-cols-3">{questions.map((question, index) => <fieldset key={question.title} className="border border-cut-bronze/35 bg-cut-ivory p-5"><legend className="font-bold">{index + 1}. {question.title}</legend><div className="mt-4 space-y-2">{question.options.map(([value, label]) => <button type="button" key={value} onClick={() => choose(index, value)} className={`min-h-11 w-full border px-3 text-start text-sm font-bold transition ${answers[index] === value ? "border-cut-burgundy bg-cut-burgundy text-cut-ivory" : "border-cut-bronze/35 hover:border-cut-burgundy"}`}>{label}</button>)}</div></fieldset>)}</div>{answers.every(Boolean) && <div className="mt-6 flex flex-col items-start justify-between gap-4 border border-cut-bronze/40 bg-cut-black p-5 text-cut-ivory sm:flex-row sm:items-center"><p>{ar ? "اقتراحنا لك:" : "Our recommendation:"} <strong className="text-cut-warm-beige">{text(groomPackages.find((item) => item.id === recommendation)!.name, language)}</strong></p><button type="button" onClick={() => onRecommendation(recommendation)} className="min-h-11 bg-cut-bronze px-5 font-bold text-cut-black">{ar ? "اختيار الباكدج" : "Select package"}</button></div>}</div></section>;
+  return (
+    <div className="mt-10 flex flex-col items-center gap-3 rounded-xl border border-dashed border-cut-bronze/35 bg-cut-black/30 px-6 py-14 text-center">
+      <span className="flex h-12 w-12 items-center justify-center rounded-full border border-cut-bronze/45 bg-cut-burgundy/25">
+        <Sparkles className="h-5 w-5 text-cut-bronze" />
+      </span>
+      <p className="font-editorial text-2xl font-semibold text-cut-warm-beige">{ar ? "قريبًا" : "Soon"}</p>
+      <p className="max-w-sm text-sm leading-7 text-cut-ivory/60">{label ?? (ar ? "هنضيف الباكدجات هنا قريبًا." : "Packages will be added here soon.")}</p>
+    </div>
+  );
 }
 
-function GroomPackageSelector({ language, selectedId, onSelect }: { language: Language; selectedId: GroomSelection["selectedPackageId"]; onSelect: (id: GroomPackage["id"]) => void }) {
+function GroomPackageCard({ item, selected, onSelect, language }: { item: ApiPackage; selected: boolean; onSelect: () => void; language: Language }) {
   const ar = language === "ar";
-  return <section id="groom-packages" className="scroll-mt-28 bg-cut-soft-black py-20 text-cut-ivory md:py-28"><div className="container px-5 md:px-8"><p className="cut-editorial-label">CHOOSE YOUR EXPERIENCE</p><h2 className={`mt-3 text-4xl font-black md:text-5xl ${ar ? "" : "font-editorial font-semibold"}`}>{ar ? "اختر نقطة البداية" : "Choose your starting point"}</h2><div className="mt-10 grid gap-4 lg:grid-cols-3">{groomPackages.map((item) => { const selected = selectedId === item.id; return <article key={item.id} className={`relative flex min-h-[350px] flex-col border p-6 transition duration-300 ${selected ? "border-cut-bronze bg-cut-burgundy shadow-cut-glow" : "border-cut-bronze/30 bg-cut-black hover:border-cut-bronze/70"}`}>{item.recommended && <span className="absolute top-5 rounded-full bg-cut-bronze px-3 py-1 text-xs font-black text-cut-black">{ar ? "موصى به" : "Recommended"}</span>}<p className="font-display text-xs tracking-[0.24em] text-cut-bronze">GROOM PACKAGE</p><h3 className="mt-4 font-editorial text-4xl font-semibold">{text(item.name, language)}</h3><p className="mt-3 min-h-12 text-sm leading-7 text-cut-ivory/70">{text(item.idealFor, language)}</p><div className="mt-6 grid grid-cols-2 gap-3 border-y border-cut-ivory/10 py-4 text-sm"><span><strong>{money(item.price, language)}</strong><br /><span className="text-cut-ivory/55">{ar ? "السعر" : "Price"}</span></span><span><strong>{mins(item.duration, language)}</strong><br /><span className="text-cut-ivory/55">{item.services.length} {ar ? "خدمات" : "services"}</span></span></div><p className="mt-5 text-sm text-cut-warm-beige">{text(item.primaryResult, language)}</p><button type="button" onClick={() => onSelect(item.id)} aria-pressed={selected} className={`mt-auto min-h-12 w-full px-5 font-bold transition ${selected ? "bg-cut-ivory text-cut-black" : "border border-cut-bronze/55 text-cut-ivory hover:bg-cut-burgundy"}`}>{selected ? <span className="flex items-center justify-center gap-2"><Check className="h-4 w-4" />{ar ? "تم الاختيار" : "Selected"}</span> : ar ? "اختر الباكدج" : "Choose package"}</button></article>; })}</div></div></section>;
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      aria-pressed={selected}
+      className={`relative flex h-full flex-col rounded-xl border p-5 text-start transition ${selected ? "border-cut-bronze bg-cut-burgundy/25 shadow-cut-glow" : "border-cut-bronze/25 bg-cut-black/40 hover:border-cut-bronze/55"}`}
+    >
+      {item.popular && (
+        <span className="absolute -top-3 right-4 rounded-full bg-cut-bronze px-3 py-1 text-[11px] font-black text-cut-black">
+          {ar ? "الأكثر طلبًا" : "Most popular"}
+        </span>
+      )}
+      <h3 className="font-editorial text-2xl font-semibold text-cut-ivory">{packageName(item, language)}</h3>
+      <p className="mt-1 text-xs text-cut-ivory/55">{mins(item.durationMinutes ?? 0, language)} · {item.includes.length} {ar ? "خدمات" : "services"}</p>
+      <ul className="mt-4 space-y-1.5 text-sm text-cut-ivory/80">
+        {item.includes.map((service) => (
+          <li key={service.serviceId} className="flex items-center gap-2">
+            <Check className="h-3.5 w-3.5 shrink-0 text-cut-bronze" />
+            {includeName(service, language)}
+          </li>
+        ))}
+      </ul>
+      <div className="mt-5 flex items-end justify-between border-t border-cut-ivory/10 pt-4">
+        <span className="flex items-baseline gap-2">
+          <span className="text-2xl font-black text-cut-warm-beige">{money(item.price, language)}</span>
+          {!!item.originalPrice && item.originalPrice > item.price && (
+            <span className="text-xs text-cut-ivory/45 line-through">{money(item.originalPrice, language)}</span>
+          )}
+        </span>
+        <span className={`rounded-md px-3 py-2 text-xs font-bold ${selected ? "bg-cut-ivory text-cut-black" : "border border-cut-bronze/45 text-cut-ivory"}`}>
+          {selected ? (ar ? "مختار" : "Selected") : (ar ? "اختيار" : "Select")}
+        </span>
+      </div>
+    </button>
+  );
 }
 
-function GroomServiceTimeline({ language, packageItem }: { language: Language; packageItem: GroomPackage }) { const ar = language === "ar"; const [expandedServiceId, setExpandedServiceId] = useState<string | null>(null); return <ol className="mt-8 grid gap-3 md:grid-cols-2">{packageItem.services.map((serviceItem, index) => { const expanded = expandedServiceId === serviceItem.id; const detailsId = `${packageItem.id}-${serviceItem.id}-details`; return <li key={serviceItem.id} className={`border p-5 transition-colors ${expanded ? "border-cut-bronze/70 bg-cut-burgundy/25" : "border-cut-bronze/30 bg-cut-black/30 hover:border-cut-bronze/55"}`}><span className="font-display text-sm text-cut-bronze">0{index + 1}</span><h4 className="mt-3 text-lg font-black">{text(serviceItem.name, language)}</h4><div className="mt-4 flex items-center justify-between border-t border-cut-ivory/10 pt-3 text-xs"><span>{mins(serviceItem.duration, language)}</span><span className="text-cut-warm-beige">{text(serviceItem.result, language)}</span></div><button type="button" onClick={() => setExpandedServiceId(expanded ? null : serviceItem.id)} aria-expanded={expanded} aria-controls={detailsId} className="mt-5 flex min-h-11 w-full items-center justify-between border border-cut-bronze/45 bg-cut-black/35 px-4 text-sm font-bold text-cut-warm-beige transition hover:border-cut-warm-beige hover:bg-cut-burgundy/45"><span>{ar ? "ماذا ستحصل عليه؟" : "What you will receive"}</span><ChevronDown className={`h-4 w-4 transition-transform ${expanded ? "rotate-180" : ""}`} /></button>{expanded && <div id={detailsId} className="mt-3 border-s-2 border-cut-bronze/70 bg-cut-black/25 p-4 text-sm leading-7 text-cut-ivory/75"><p>{text(serviceItem.benefit, language)}</p><p className="mt-2 font-bold text-cut-warm-beige">{ar ? "النتيجة المتوقعة: " : "Expected result: "}{text(serviceItem.result, language)}</p></div>}</li>; })}</ol>; }
+type MergedAddon =
+  | { kind: "service"; id: string; name: GroomAddon["name"]; price: number; duration: number }
+  | { kind: "visit"; id: LocationVisit["id"]; name: LocationVisit["name"]; price: number; duration: number };
 
-function GroomPackageExperience({ language, selectedId, onSelect }: { language: Language; selectedId: GroomSelection["selectedPackageId"]; onSelect: (id: GroomPackage["id"]) => void }) { const ar = language === "ar"; return <section className="bg-cut-black py-20 text-cut-ivory md:py-28"><div className="container space-y-5 px-5 md:px-8">{groomPackages.map((item, index) => <article key={item.id} className={`grid overflow-hidden border border-cut-bronze/30 ${index % 2 ? "md:grid-cols-[1.2fr_0.8fr]" : "md:grid-cols-[0.8fr_1.2fr]"}`}><div className={`p-7 md:p-10 ${index % 2 ? "order-2 bg-cut-wine-black" : "bg-cut-soft-black"}`}><p className="font-display text-xs tracking-[0.25em] text-cut-bronze">SESSION {String(index + 1).padStart(2, "0")}</p><h3 className="mt-4 font-editorial text-5xl font-semibold">{text(item.name, language)}</h3><p className="mt-5 max-w-xl leading-8 text-cut-ivory/75">{text(item.idealFor, language)}</p><div className="mt-8 flex flex-wrap gap-3 text-sm"><span className="border border-cut-bronze/35 px-3 py-2">{mins(item.duration, language)}</span><span className="border border-cut-bronze/35 px-3 py-2">{item.services.length} {ar ? "خدمات" : "services"}</span><span className="border border-cut-bronze/35 px-3 py-2">{ar ? "توفير" : "Saving"}: {money(item.saving, language)}</span></div><p className="mt-7 text-3xl font-black text-cut-warm-beige">{money(item.price, language)}</p><button type="button" onClick={() => onSelect(item.id)} className="mt-7 min-h-12 bg-cut-ivory px-5 font-bold text-cut-black">{selectedId === item.id ? (ar ? "الباكدج المختار" : "Selected package") : (ar ? "اختر الباكدج" : "Choose package")}</button></div><div className={`p-7 md:p-10 ${index % 2 ? "order-1 bg-cut-black" : "bg-cut-wine-black"}`}><p className="text-sm font-bold text-cut-warm-beige">{ar ? "رحلة الجلسة" : "Session journey"}</p><GroomServiceTimeline language={language} packageItem={item} /></div></article>)}</div></section>; }
+function GroomAddonsGrid({ language, selectedAddonIds, selectedLocationVisit, onToggleAddon, onSelectVisit }: {
+  language: Language;
+  selectedAddonIds: string[];
+  selectedLocationVisit: Selection["selectedLocationVisit"];
+  onToggleAddon: (id: string) => void;
+  onSelectVisit: (id: Selection["selectedLocationVisit"]) => void;
+}) {
+  const ar = language === "ar";
+  const services: MergedAddon[] = groomAddons.map((item) => ({ kind: "service" as const, id: item.id, name: item.name, price: item.packagePrice, duration: item.duration }));
+  const visits: MergedAddon[] = locationVisits.map((item) => ({ kind: "visit" as const, id: item.id, name: item.name, price: item.price, duration: item.duration }));
 
-function GroomPackageComparison({ language, selectedId, onSelect }: { language: Language; selectedId: GroomSelection["selectedPackageId"]; onSelect: (id: GroomPackage["id"]) => void }) { const ar = language === "ar"; return <section className="overflow-hidden bg-cut-soft-ivory py-20 text-cut-black"><div className="container px-5 md:px-8"><p className="font-display text-xs tracking-[0.25em] text-cut-burgundy">COMPARE WITH CLARITY</p><h2 className={`mt-3 text-4xl font-black ${ar ? "" : "font-editorial font-semibold"}`}>{ar ? "مقارنة التجارب" : "Compare experiences"}</h2><div className="mt-8 overflow-x-auto"><table className="min-w-[700px] w-full border-collapse text-sm"><thead><tr className="border-b border-cut-bronze/50 text-start"><th className="p-4">{ar ? "التفصيل" : "Detail"}</th>{groomPackages.map((item) => <th key={item.id} className="sticky top-0 bg-cut-soft-ivory p-4 font-editorial text-xl">{text(item.name, language)}</th>)}</tr></thead><tbody>{[[ar ? "مناسب لـ" : "Ideal for", (item: GroomPackage) => text(item.idealFor, language)], [ar ? "المدة" : "Duration", (item: GroomPackage) => mins(item.duration, language)], [ar ? "الخدمات" : "Services", (item: GroomPackage) => `${item.services.length} · ${item.services.map((serviceItem) => text(serviceItem.name, language)).join(" / ")}`], [ar ? "السعر" : "Price", (item: GroomPackage) => money(item.price, language)]].map(([label, value]) => <tr key={String(label)} className="border-b border-cut-bronze/25"><td className="p-4 font-bold">{label}</td>{groomPackages.map((item) => <td key={item.id} className="p-4 text-cut-black/70">{(value as (item: GroomPackage) => string)(item)}</td>)}</tr>)}<tr><td className="p-4" />{groomPackages.map((item) => <td key={item.id} className="p-4"><button type="button" onClick={() => onSelect(item.id)} className={`min-h-11 px-4 font-bold ${selectedId === item.id ? "bg-cut-burgundy text-cut-ivory" : "border border-cut-burgundy text-cut-burgundy"}`}>{selectedId === item.id ? (ar ? "مختار" : "Selected") : (ar ? "اختيار" : "Select")}</button></td>)}</tr></tbody></table></div></div></section>; }
+  const isSelected = (item: MergedAddon) => item.kind === "service" ? selectedAddonIds.includes(item.id) : selectedLocationVisit === item.id;
+  const toggle = (item: MergedAddon) => item.kind === "service" ? onToggleAddon(item.id) : onSelectVisit(selectedLocationVisit === item.id ? null : item.id);
 
-function GroomAddOnBuilder({ language, selectedPackageId, selectedIds, onToggle }: { language: Language; selectedPackageId: GroomSelection["selectedPackageId"]; selectedIds: string[]; onToggle: (id: string) => void }) { const ar = language === "ar"; const addons = selectedPackageId ? [...groomAddons].sort((a, b) => Number(b.recommendedFor.includes(selectedPackageId)) - Number(a.recommendedFor.includes(selectedPackageId))) : groomAddons; return <section className="bg-cut-ivory py-20 text-cut-black md:py-28"><div className="container px-5 md:px-8"><p className="font-display text-xs tracking-[0.25em] text-cut-burgundy">SMART ADD-ONS</p><h2 className={`mt-3 text-4xl font-black ${ar ? "" : "font-editorial font-semibold"}`}>{ar ? "لمسات تختارها أنت" : "Details you choose"}</h2><div className="mt-9 grid gap-4 lg:grid-cols-3">{addons.map((item) => { const selected = selectedIds.includes(item.id); const recommended = selectedPackageId && item.recommendedFor.includes(selectedPackageId); return <article key={item.id} className={`border p-6 transition ${selected ? "border-cut-burgundy bg-cut-warm-paper" : "border-cut-bronze/35 bg-cut-soft-ivory"}`}><div className="flex items-start justify-between gap-4"><div>{(recommended || item.tags[0]) && <p className="text-xs font-bold text-cut-burgundy">{recommended ? (ar ? `موصى به مع ${text(groomPackages.find((p) => p.id === selectedPackageId)!.name, language)}` : `Recommended with ${text(groomPackages.find((p) => p.id === selectedPackageId)!.name, language)}`) : text(item.tags[0], language)}</p>}<h3 className="mt-2 text-xl font-black">{text(item.name, language)}</h3></div><Sparkles className="h-5 w-5 text-cut-bronze" /></div><p className="mt-4 text-sm leading-7 text-cut-black/70">{text(item.benefit, language)}</p><p className="mt-3 text-sm font-bold text-cut-burgundy">{text(item.recommendation, language)}</p><div className="mt-5 flex items-end justify-between border-t border-cut-bronze/30 pt-4"><div className="text-xs text-cut-black/60"><span className="line-through">{money(item.standalonePrice, language)}</span><strong className="mt-1 block text-base text-cut-burgundy">{money(item.packagePrice, language)}</strong><span>{mins(item.duration, language)} · {ar ? "توفير" : "Save"} {money(item.standalonePrice - item.packagePrice, language)}</span></div><button type="button" onClick={() => onToggle(item.id)} aria-pressed={selected} className={`flex min-h-11 min-w-11 items-center justify-center gap-2 px-4 font-bold transition ${selected ? "bg-cut-burgundy text-cut-ivory" : "border border-cut-burgundy text-cut-burgundy"}`}>{selected ? <><Check className="h-4 w-4" />{ar ? "مضاف" : "Added"}</> : <><Plus className="h-4 w-4" />{ar ? "أضف" : "Add"}</>}</button></div></article>; })}</div></div></section>; }
+  const renderCard = (item: MergedAddon) => {
+    const selected = isSelected(item);
+    return (
+      <button
+        type="button"
+        key={`${item.kind}-${item.id}`}
+        onClick={() => toggle(item)}
+        aria-pressed={selected}
+        className={`flex items-center gap-3 rounded-lg border p-3 text-start transition ${selected ? "border-cut-bronze bg-cut-burgundy/25" : "border-cut-bronze/25 bg-cut-black/30 hover:border-cut-bronze/50"}`}
+      >
+        <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border ${selected ? "border-cut-bronze bg-cut-bronze text-cut-black" : "border-cut-ivory/30"}`}>
+          {selected && <Check className="h-3.5 w-3.5" />}
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="flex items-center gap-1 text-sm font-bold text-cut-ivory">
+            {item.kind === "visit" && <MapPin className="h-3.5 w-3.5 text-cut-bronze" />}
+            {text(item.name, language)}
+          </span>
+          <span className="block text-xs text-cut-ivory/55">{mins(item.duration, language)}</span>
+        </span>
+        <span className="shrink-0 text-sm font-black text-cut-warm-beige">+{money(item.price, language)}</span>
+      </button>
+    );
+  };
 
-function WeddingLocationUpgrade({ language, selectedId, onSelect }: { language: Language; selectedId: GroomSelection["selectedLocationVisit"]; onSelect: (id: GroomSelection["selectedLocationVisit"]) => void }) { const ar = language === "ar"; return <section className="bg-cut-wine-black py-20 text-cut-ivory"><div className="container grid gap-10 px-5 md:grid-cols-[0.8fr_1.2fr] md:px-8"><div><MapPin className="h-10 w-10 text-cut-bronze" /><p className="mt-6 font-display text-xs tracking-[0.25em] text-cut-bronze">ON-LOCATION UPGRADE</p><h2 className={`mt-3 text-4xl font-black ${ar ? "" : "font-editorial font-semibold"}`}>{ar ? "الفينيش الأخير، في موقعك" : "The final finish, at your location"}</h2><p className="mt-5 leading-8 text-cut-ivory/70">{ar ? "تصفيف، مراجعة الذقن ولمسات التصوير قبل وصولك أو قبل اللقطة الأولى." : "Styling, beard review, and photo-ready details before you arrive or before the first frame."}</p></div><div className="grid gap-3 sm:grid-cols-3">{locationVisits.map((item) => <button type="button" key={item.id} onClick={() => onSelect(selectedId === item.id ? null : item.id)} aria-pressed={selectedId === item.id} className={`min-h-36 border p-5 text-start transition ${selectedId === item.id ? "border-cut-bronze bg-cut-burgundy" : "border-cut-bronze/35 hover:border-cut-bronze"}`}><p className="font-bold">{text(item.name, language)}</p><p className="mt-5 text-xl font-black text-cut-warm-beige">{money(item.price, language)}</p><p className="mt-2 text-xs text-cut-ivory/65">{mins(item.duration, language)}</p></button>)}</div></div></section>; }
+  return (
+    <div className="pt-10">
+      <p className="text-sm font-bold text-cut-warm-beige">{ar ? "ضيف لطلبك (اختياري)" : "Add to your order (optional)"}</p>
+      <div className="mt-4 grid gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
+        {services.map(renderCard)}
+      </div>
+      <p className="mt-6 text-sm font-bold text-cut-warm-beige">{ar ? "الزيارة المنزلية (اختياري)" : "Home visit (optional)"}</p>
+      <div className="mt-4 grid gap-2.5 sm:grid-cols-3">
+        {visits.map(renderCard)}
+      </div>
+    </div>
+  );
+}
 
-function GroomCompletionIndicator({ language, selection }: { language: Language; selection: GroomSelection }) { const ar = language === "ar"; const current = groomPackages.find((item) => item.id === selection.selectedPackageId); const extra = groomAddons.filter((item) => selection.selectedAddonIds.includes(item.id)); const categories = ["hair", "beard", "skincare", "details"] as const; const titles = { hair: ar ? "الشعر" : "Hair", beard: ar ? "الذقن" : "Beard", skincare: ar ? "البشرة" : "Skincare", details: ar ? "تفاصيل التصوير" : "Photo details" }; return <section className="bg-cut-black py-12 text-cut-ivory"><div className="container px-5 md:px-8"><div className="flex flex-col justify-between gap-5 md:flex-row md:items-center"><div><p className="font-display text-xs tracking-[0.25em] text-cut-bronze">PREPARATION MAP</p><h2 className="mt-2 text-2xl font-black">{ar ? "خريطة تجهيزك" : "Your preparation map"}</h2></div><div className="grid grid-cols-2 gap-3 sm:grid-cols-4">{categories.map((category) => { const ready = [...(current?.services ?? []), ...extra].some((item) => item.category === category); return <div key={category} className={`min-w-28 border px-4 py-3 text-sm ${ready ? "border-cut-bronze bg-cut-burgundy/50" : "border-cut-ivory/15 text-cut-ivory/55"}`}><span className="flex items-center gap-2">{ready ? <Check className="h-4 w-4 text-cut-bronze" /> : <span className="h-2 w-2 rounded-full bg-cut-ivory/30" />}{titles[category]}</span></div>; })}</div></div></div></section>; }
+function GroomOrderBar({ language, selection, packages, onBook }: { language: Language; selection: Selection; packages: ApiPackage[]; onBook: () => void }) {
+  const ar = language === "ar";
+  const pack = packages.find((item) => item.packageId === selection.selectedPackageId);
+  const addons = groomAddons.filter((item) => selection.selectedAddonIds.includes(item.id));
+  const visit = locationVisits.find((item) => item.id === selection.selectedLocationVisit);
+  const [open, setOpen] = useState(false);
+  if (!pack) return null;
+  const totalPrice = pack.price + addons.reduce((sum, item) => sum + item.packagePrice, 0) + (visit?.price ?? 0);
+  const totalDuration = (pack.durationMinutes ?? 0) + addons.reduce((sum, item) => sum + item.duration, 0) + (visit?.duration ?? 0);
+  const itemCount = 1 + addons.length + (visit ? 1 : 0);
 
-function GroomSelectionSummary({ language, selection, onRemove, onBook, onClose }: { language: Language; selection: GroomSelection; onRemove: (id: string) => void; onBook: () => void; onClose: () => void }) { const ar = language === "ar"; const pack = groomPackages.find((item) => item.id === selection.selectedPackageId); const addons = groomAddons.filter((item) => selection.selectedAddonIds.includes(item.id)); const totals = getGroomTotals(selection); return <div role="dialog" aria-modal="true" aria-label={ar ? "مراجعة التجهيز" : "Review groom experience"} className="fixed inset-0 z-[70] flex items-end bg-cut-black/65 p-4 md:items-center md:justify-center" onMouseDown={onClose}><div className="max-h-[85vh] w-full max-w-xl overflow-y-auto bg-cut-ivory p-6 text-cut-black" onMouseDown={(event) => event.stopPropagation()}><div className="flex items-center justify-between"><h2 className="font-editorial text-3xl font-semibold">{ar ? "مراجعة اختيارك" : "Review your selection"}</h2><button type="button" onClick={onClose} aria-label={ar ? "إغلاق" : "Close"} className="min-h-11 min-w-11"><X /></button></div>{pack && <div className="mt-6 border-b border-cut-bronze/30 pb-5"><p className="font-bold">{text(pack.name, language)}</p>{pack.services.map((item) => <p key={item.id} className="mt-2 text-sm text-cut-black/65">{text(item.name, language)}</p>)}</div>}<div className="mt-5 space-y-3">{addons.map((item) => <div key={item.id} className="flex items-center justify-between gap-3"><span>{text(item.name, language)}</span><button type="button" onClick={() => onRemove(item.id)} className="min-h-11 px-3 text-sm font-bold text-cut-burgundy">{ar ? "إزالة" : "Remove"}</button></div>)}</div><div className="mt-6 border-t border-cut-bronze/35 pt-5"><p>{ar ? "الإجمالي" : "Total"} <strong className="text-xl text-cut-burgundy">{money(totals.totalPrice, language)}</strong></p><button type="button" onClick={onBook} className="mt-5 min-h-12 w-full bg-cut-burgundy font-bold text-cut-ivory">{ar ? "إكمال الحجز" : "Continue to booking"}</button></div></div></div>; }
+  return (
+    <div className="sticky bottom-0 z-[60] mt-8 border-t border-cut-bronze/40 bg-cut-black/95 backdrop-blur">
+      {open && (
+        <div className="border-b border-cut-bronze/25 px-5 py-4 text-sm md:px-8">
+          <ul className="mx-auto max-w-6xl space-y-1.5 text-cut-ivory/80">
+            <li className="flex items-center justify-between"><span>{packageName(pack, language)}</span><span>{money(pack.price, language)}</span></li>
+            {addons.map((item) => (
+              <li key={item.id} className="flex items-center justify-between text-cut-ivory/65"><span>{text(item.name, language)}</span><span>{money(item.packagePrice, language)}</span></li>
+            ))}
+            {visit && (
+              <li className="flex items-center justify-between text-cut-ivory/65"><span>{text(visit.name, language)}</span><span>{money(visit.price, language)}</span></li>
+            )}
+          </ul>
+        </div>
+      )}
+      <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-5 py-3 md:px-8">
+        <button type="button" onClick={() => setOpen((v) => !v)} className="flex items-center gap-2 text-sm font-bold text-cut-ivory/80">
+          <ShoppingBag className="h-4 w-4 text-cut-bronze" />
+          {itemCount} {ar ? "عناصر" : "items"}
+          <ChevronDown className={`h-4 w-4 transition-transform ${open ? "rotate-180" : ""}`} />
+        </button>
+        <div className="flex items-center gap-4">
+          <div className="text-end">
+            <p className="text-xs text-cut-ivory/55">{mins(totalDuration, language)}</p>
+            <p className="text-xl font-black text-cut-warm-beige">{money(totalPrice, language)}</p>
+          </div>
+          <button type="button" onClick={onBook} className="min-h-12 rounded-lg bg-cut-ivory px-6 font-bold text-cut-black transition hover:bg-cut-soft-ivory">
+            {ar ? "احجز الآن" : "Book now"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
-function GroomStickyBookingBar({ language, selection, onReview, onBook }: { language: Language; selection: GroomSelection; onReview: () => void; onBook: () => void }) { const ar = language === "ar"; const pack = groomPackages.find((item) => item.id === selection.selectedPackageId); if (!pack) return null; const totals = getGroomTotals(selection); return <div className="fixed inset-x-0 bottom-0 z-[60] border-t border-cut-bronze/40 bg-cut-black/95 p-3 text-cut-ivory shadow-2xl backdrop-blur"><div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3"><div><p className="text-sm font-bold">{text(pack.name, language)} · {selection.selectedAddonIds.length} {ar ? "إضافات" : "add-ons"}</p><p className="text-xs text-cut-ivory/65">{mins(totals.totalDuration, language)} · {ar ? "توفير" : "Saving"} {money(totals.saving, language)}</p></div><p className="text-xl font-black text-cut-warm-beige">{money(totals.totalPrice, language)}</p><div className="flex gap-2"><button type="button" onClick={onReview} className="min-h-11 border border-cut-bronze/55 px-4 text-sm font-bold">{ar ? "مراجعة" : "Review"}</button><button type="button" onClick={onBook} className="min-h-11 bg-cut-ivory px-4 text-sm font-bold text-cut-black">{ar ? "احجز" : "Book"}</button></div></div></div>; }
+export default function GroomExperienceBuilder({ language }: Props) {
+  const ar = language === "ar";
+  const { data: groomPackages = [], isPending, isError } = useQuery({
+    queryKey: ["packages", "groom"],
+    queryFn: () => getPackages("groom"),
+    staleTime: 60_000,
+  });
+  const [selection, setSelection] = useState<Selection>({ selectedPackageId: null, selectedAddonIds: [], selectedLocationVisit: null });
 
-export default function GroomExperienceBuilder({ language }: Props) { const [selection, setSelection] = useState<GroomSelection>({ selectedPackageId: null, selectedAddonIds: [], selectedLocationVisit: null }); const [reviewOpen, setReviewOpen] = useState(false); const selectPackage = (id: GroomPackage["id"]) => setSelection((current) => ({ ...current, selectedPackageId: id })); const toggleAddon = (id: string) => setSelection((current) => ({ ...current, selectedAddonIds: current.selectedAddonIds.includes(id) ? current.selectedAddonIds.filter((item) => item !== id) : [...current.selectedAddonIds, id] })); const book = () => { const pack = groomPackages.find((item) => item.id === selection.selectedPackageId); if (!pack) return; const addons = groomAddons.filter((item) => selection.selectedAddonIds.includes(item.id)); const visit = locationVisits.find((item) => item.id === selection.selectedLocationVisit); window.dispatchEvent(new CustomEvent("cut:book-groom", { detail: { serviceMatches: [...pack.services, ...addons].flatMap((item) => item.match), note: JSON.stringify({ source: "groom-experience", package: { id: pack.id, label: pack.name, price: pack.price, duration: pack.duration }, addons: addons.map((item) => ({ id: item.id, label: item.name, price: item.packagePrice, duration: item.duration })), locationVisit: visit ? { id: visit.id, label: visit.name, price: visit.price, duration: visit.duration } : null, totals: getGroomTotals(selection) }) } })); document.getElementById("barbers")?.scrollIntoView({ behavior: "smooth", block: "start" }); }; const scroll = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" }); return <div id="groom"><GroomHero language={language} onChoose={() => scroll("groom-packages")} onQuiz={() => scroll("groom-quiz")} /><GroomRecommendationQuiz language={language} onRecommendation={(id) => { selectPackage(id); scroll("groom-packages"); }} /><GroomPackageSelector language={language} selectedId={selection.selectedPackageId} onSelect={selectPackage} /><GroomCompletionIndicator language={language} selection={selection} /><GroomPackageExperience language={language} selectedId={selection.selectedPackageId} onSelect={selectPackage} /><GroomPackageComparison language={language} selectedId={selection.selectedPackageId} onSelect={selectPackage} /><GroomAddOnBuilder language={language} selectedPackageId={selection.selectedPackageId} selectedIds={selection.selectedAddonIds} onToggle={toggleAddon} /><WeddingLocationUpgrade language={language} selectedId={selection.selectedLocationVisit} onSelect={(id) => setSelection((current) => ({ ...current, selectedLocationVisit: id }))} />{reviewOpen && <GroomSelectionSummary language={language} selection={selection} onRemove={toggleAddon} onBook={book} onClose={() => setReviewOpen(false)} />}<GroomStickyBookingBar language={language} selection={selection} onReview={() => setReviewOpen(true)} onBook={book} /></div>; }
+  const selectPackage = (id: number) =>
+    setSelection((current) => ({ ...current, selectedPackageId: id }));
+
+  const toggleAddon = (id: string) =>
+    setSelection((current) => ({
+      ...current,
+      selectedAddonIds: current.selectedAddonIds.includes(id)
+        ? current.selectedAddonIds.filter((item) => item !== id)
+        : [...current.selectedAddonIds, id],
+    }));
+
+  const selectVisit = (id: Selection["selectedLocationVisit"]) =>
+    setSelection((current) => ({ ...current, selectedLocationVisit: id }));
+
+  const book = () => {
+    const pack = groomPackages.find((item) => item.packageId === selection.selectedPackageId);
+    if (!pack) return;
+    const addons = groomAddons.filter((item) => selection.selectedAddonIds.includes(item.id));
+    const visit = locationVisits.find((item) => item.id === selection.selectedLocationVisit);
+    const totalPrice = pack.price + addons.reduce((sum, item) => sum + item.packagePrice, 0) + (visit?.price ?? 0);
+    const totalDuration = (pack.durationMinutes ?? 0) + addons.reduce((sum, item) => sum + item.duration, 0) + (visit?.duration ?? 0);
+    window.dispatchEvent(new CustomEvent("cut:book-groom", {
+      detail: {
+        serviceIds: pack.includes.map((item) => item.serviceId),
+        serviceMatches: addons.flatMap((item) => item.match),
+        note: JSON.stringify({
+          source: "groom-experience",
+          package: { id: pack.packageId, label: { ar: pack.nameAr, en: pack.nameEn }, price: pack.price, duration: pack.durationMinutes },
+          addons: addons.map((item) => ({ id: item.id, label: item.name, price: item.packagePrice, duration: item.duration })),
+          locationVisit: visit ? { id: visit.id, label: visit.name, price: visit.price, duration: visit.duration } : null,
+          totals: { totalPrice, totalDuration },
+        }),
+      },
+    }));
+    document.getElementById("barbers")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  return (
+    <section id="groom" className="relative isolate scroll-mt-32 overflow-hidden bg-[radial-gradient(circle_at_18%_10%,rgba(74,0,15,0.48),transparent_34%),#170406] py-20 text-cut-ivory md:py-28">
+      <div className="absolute inset-x-0 top-0 h-px bg-cut-bronze/35" />
+      <p aria-hidden className="pointer-events-none absolute -top-6 left-1/2 -translate-x-1/2 whitespace-nowrap font-heading text-[clamp(5rem,18vw,14rem)] font-black text-cut-ivory/[0.03]">{ar ? "العريس" : "GROOM"}</p>
+      <div className="container relative z-10 px-5 md:px-8">
+        <GroomHeader language={language} />
+        {isPending && <p className="mt-10 text-sm text-cut-ivory/60">{ar ? "جارٍ تحميل الباكدجات..." : "Loading packages..."}</p>}
+        {isError && <p className="mt-10 text-sm text-cut-ivory/60">{ar ? "تعذّر تحميل الباكدجات حاليًا." : "Unable to load packages right now."}</p>}
+        {!isPending && !isError && groomPackages.length === 0 && (
+          <SoonNotice language={language} label={ar ? "باكدجات العريس هتتوفر قريبًا." : "Groom packages will be available soon."} />
+        )}
+        {!isPending && !isError && groomPackages.length > 0 && (
+          <div className="mt-10 grid gap-4 md:grid-cols-3">
+            {groomPackages.map((item) => (
+              <GroomPackageCard
+                key={item.packageId}
+                item={item}
+                language={language}
+                selected={selection.selectedPackageId === item.packageId}
+                onSelect={() => selectPackage(item.packageId)}
+              />
+            ))}
+          </div>
+        )}
+        {groomPackages.length > 0 && (
+          <GroomAddonsGrid
+            language={language}
+            selectedAddonIds={selection.selectedAddonIds}
+            selectedLocationVisit={selection.selectedLocationVisit}
+            onToggleAddon={toggleAddon}
+            onSelectVisit={selectVisit}
+          />
+        )}
+      </div>
+      <GroomOrderBar language={language} selection={selection} packages={groomPackages} onBook={book} />
+    </section>
+  );
+}
