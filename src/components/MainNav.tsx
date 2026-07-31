@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Calendar, Menu, X } from "lucide-react";
 import ClientProfileWidget from "./ClientProfileWidget";
-import BranchBadge from "./BranchBadge";
+// Temporarily hidden per request: import BranchBadge from "./BranchBadge";
 import { useLanguage } from "@/context/LanguageContext";
 import { navigationLabels } from "@/lib/i18n/navigation";
 
@@ -104,7 +104,7 @@ export default function MainNav() {
           </nav>
 
           <div className="flex items-center justify-self-end gap-2" aria-label={lang === "ar" ? "إجراءات الحساب والحجز" : "Booking and account actions"}>
-            <BranchBadge className="hidden h-11 min-w-0 lg:flex" />
+            {/* Temporarily hidden per request: <BranchBadge className="hidden h-11 min-w-0 lg:flex" /> */}
             <LanguageToggle className="hidden lg:inline-flex" />
             <button onClick={openBooking} aria-label={label("booking")} className="hidden h-11 items-center gap-2 rounded-xl bg-cut-ivory px-4 text-sm font-bold text-cut-black transition hover:bg-cut-warm-beige focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cut-warm-beige lg:inline-flex xl:px-5">
               <Calendar className="h-4 w-4" />
@@ -152,7 +152,7 @@ export default function MainNav() {
                 <button type="button" onClick={closeMobileMenu} aria-label={label("closeMenu")} className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-cut-bronze/20 text-cut-ivory transition hover:border-cut-bronze/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cut-warm-beige"><X className="h-5 w-5" /></button>
               </div>
 
-              <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 pt-5"><BranchBadge className="h-11 min-w-0 justify-center" /><LanguageToggle /></div>
+              <div className="flex items-center justify-center px-4 pt-5">{/* Temporarily hidden per request: <BranchBadge className="h-11 min-w-0 justify-center" /> */}<LanguageToggle /></div>
               <nav className="flex-1 overflow-y-auto px-4 py-5" aria-label={lang === "ar" ? "روابط الموقع" : "Site links"}>
                 <ul className="space-y-1">{NAV_LINKS.map((link, index) => <motion.li key={link.label} initial={{ opacity: 0, x: dir === "rtl" ? 16 : -16 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: index * 0.04 }}><a href={link.label === "barbers" ? barberHref : link.href} onClick={closeMobileMenu} className={`flex min-h-12 items-center rounded-xl px-4 text-sm font-semibold transition hover:bg-cut-espresso hover:text-cut-ivory focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cut-warm-beige ${link.isClub ? "border border-cut-bronze/30 bg-cut-burgundy/25 font-black tracking-wider text-cut-warm-beige" : "text-cut-ivory/70"}`}>{label(link.label)}</a></motion.li>)}</ul>
               </nav>

@@ -954,6 +954,7 @@ const BookingModal = ({
               <p className="text-cut-black/60 text-xs mb-4">{booking.message}</p>
             )}
             <div className="flex flex-col gap-2">
+              {/* Temporarily hidden per request:
               {booking?.bookingCode && (
                 <a
                   href={`/booking?code=${encodeURIComponent(booking.bookingCode)}`}
@@ -962,6 +963,7 @@ const BookingModal = ({
                   عرض تفاصيل الحجز
                 </a>
               )}
+              */}
               <button
                 type="button"
                 onClick={() => {

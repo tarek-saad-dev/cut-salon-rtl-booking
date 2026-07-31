@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Calendar, Zap, Shield, Gem, Clock } from "lucide-react";
-import CustomerUpcomingBookings from "./CustomerUpcomingBookings";
+// Temporarily hidden per request: import CustomerUpcomingBookings from "./CustomerUpcomingBookings";
 import BarberPhoto from "./BarberPhoto";
 import { listGlobalBarbers, resolveBarberPhotoUrl, resolveBarberDisplayName } from "@/lib/booking-api";
 
@@ -68,9 +68,11 @@ const HeroSection = () => {
           style={{ background: "radial-gradient(circle at 20% 40%, rgba(164,136,121,0.18) 0%, transparent 42%)" }} />
       </div>
 
+      {/* Temporarily hidden per request:
       <div className="relative z-20 px-5 md:px-12 lg:px-20 pt-20">
         <CustomerUpcomingBookings />
       </div>
+      */}
 
       <div className="relative z-10 flex flex-col justify-center min-h-[calc(100vh-140px)]">
         <div className="w-full flex-1 flex items-center">
