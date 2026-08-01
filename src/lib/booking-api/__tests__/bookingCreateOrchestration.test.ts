@@ -127,6 +127,85 @@ describe("Create Orchestration", () => {
     expect(result.booking.date).toBe("2026-07-28");
   });
 
+  it("normalizes BK-AP69KY production create payload (nearest/any_barber)", async () => {
+    savePlanSession(mockPlan, {
+      ...planSessionParams,
+      mode: "nearest",
+      empId: undefined,
+    });
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 201,
+      headers: new Headers(),
+      text: async () =>
+        JSON.stringify({
+          ok: true,
+          booking: {
+            code: "BK-AP69KY",
+            status: "confirmed",
+            branch: {
+              branchCode: "GLEEM",
+              branchName: "جليم – سابا باشا",
+              address: null,
+              phone: null,
+            },
+            barber: {
+              empId: 25,
+              nameAr: "عمر",
+              nameEn: "Omar",
+              imageUrl: null,
+            },
+            assignmentStrategy: "server_selected",
+            date: "2026-07-31",
+            calendarDate: "2026-07-31",
+            time: "21:15",
+            dayOffset: 0,
+            services: [
+              {
+                serviceId: 9,
+                nameAr: "حلاقة شعر",
+                nameEn: "Hair Cut",
+                price: 200,
+                durationMinutes: 30,
+              },
+            ],
+            totalDurationMinutes: 30,
+            subtotal: 200,
+            discount: 0,
+            total: 200,
+            currency: "EGP",
+            pricingScope: "global",
+          },
+          meta: {
+            idempotentReplay: false,
+            planTokenStatus: "valid",
+            createdAt: "2026-07-31T16:42:21.861Z",
+            assignmentStrategy: "server_selected",
+          },
+          message: "تم تأكيد الحجز بنجاح",
+        }),
+    } as unknown as Response);
+
+    const { submitBookingFromPlan } = await import("../booking");
+    const result = await submitBookingFromPlan({
+      ...createParams,
+      mode: "nearest",
+      empId: undefined,
+      plan: mockPlan,
+    });
+
+    expect(result.outcome).toBe("success");
+    if (result.outcome !== "success") return;
+    expect(result.booking.bookingCode).toBe("BK-AP69KY");
+    expect(result.booking.barberName).toBe("عمر");
+    expect(result.booking.branchName).toBe("جليم – سابا باشا");
+    expect(result.booking.date).toBe("2026-07-31");
+    expect(result.booking.time).toBe("21:15");
+    expect(result.booking.services).toEqual(["حلاقة شعر"]);
+    expect(result.booking.totalPrice).toBe(200);
+    expect(result.booking.message).toBe("تم تأكيد الحجز بنجاح");
+  });
+
   it("does not send numeric BookingID", async () => {
     savePlanSession(mockPlan, planSessionParams);
     mockFetch.mockResolvedValueOnce({

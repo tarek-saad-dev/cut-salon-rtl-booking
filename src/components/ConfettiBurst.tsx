@@ -15,14 +15,14 @@ interface Particle {
 }
 
 const GOLD_PALETTE = [
-  "#A48879",
-  "#A48879",
-  "#A48879",
-  "cut-gold/80",
+  "#D4AF37",
   "#F5D060",
-  "#9F7A18",
+  "#C4A030",
   "#FFD700",
+  "#E8C547",
   "#DAA520",
+  "#F0E68C",
+  "#B8860B",
 ];
 
 function randomBetween(a: number, b: number) {

@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import { Clock, Scissors, MapPin, Star, CalendarDays, Banknote, Zap } from "lucide-react";
 import BarberPhoto from "./BarberPhoto";
+import { getBranchAccent } from "@/lib/branchTheme";
 
 interface BarberInfo {
   name: string;
@@ -25,9 +26,20 @@ interface BookingInfoPanelProps {
   serviceDuration?: number;
   mode?: "specific" | "nearest";
   branchName?: string;
+  branchCode?: string;
 }
 
-const BookingInfoPanel = ({ barber, selectedDate, selectedTime, service, servicePrice, serviceDuration, mode = "specific", branchName }: BookingInfoPanelProps) => {
+const BookingInfoPanel = ({
+  barber,
+  selectedDate,
+  selectedTime,
+  service,
+  servicePrice,
+  serviceDuration,
+  mode = "specific",
+  branchName,
+  branchCode,
+}: BookingInfoPanelProps) => {
   const formatDate = (date?: Date) => {
     if (!date) return null;
     return new Intl.DateTimeFormat("ar-EG", {
@@ -40,17 +52,18 @@ const BookingInfoPanel = ({ barber, selectedDate, selectedTime, service, service
 
   const displayName = mode === "nearest" ? "أقرب حلاق متاح" : barber.name;
   const duration = serviceDuration ?? 30;
+  const branchAccent = getBranchAccent(branchCode, branchName);
 
   return (
     <div className="bg-cut-black text-cut-ivory p-6 h-full flex flex-col" dir="rtl">
       {/* Barber Profile */}
       <div className="flex items-start gap-4 mb-6">
         {mode === "nearest" ? (
-          <div className="w-16 h-16 rounded-full flex items-center justify-center border-2 border-cut-gold/30 bg-cut-gold/10 flex-shrink-0 shadow-[0_0_20px_rgba(164,136,121,0.1)]">
-            <Zap className="w-7 h-7 text-cut-gold" />
+          <div className="w-16 h-16 rounded-full flex items-center justify-center border-2 border-[#D4AF37]/30 bg-[#D4AF37]/10 flex-shrink-0 shadow-[0_0_20px_rgba(212,175,55,0.2)]">
+            <Zap className="w-7 h-7 text-[#D4AF37]" />
           </div>
         ) : (
-          <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-cut-gold/30 flex-shrink-0 shadow-[0_0_20px_rgba(164,136,121,0.1)]">
+          <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-[#D4AF37]/30 flex-shrink-0 shadow-[0_0_20px_rgba(212,175,55,0.2)]">
             <BarberPhoto
               src={barber.image}
               name={barber.name}
@@ -94,12 +107,19 @@ const BookingInfoPanel = ({ barber, selectedDate, selectedTime, service, service
           {/* Branch */}
           {branchName && (
             <div className="flex items-start gap-3">
-              <div className="w-8 h-8 rounded-lg bg-cut-gold/10 flex items-center justify-center flex-shrink-0">
-                <MapPin className="w-4 h-4 text-cut-gold" />
+              <div
+                className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${branchAccent.softBg}`}
+              >
+                <MapPin className={`w-4 h-4 ${branchAccent.icon}`} />
               </div>
-              <div>
+              <div className="min-w-0">
                 <p className="text-cut-ivory/40 text-xs mb-0.5">الفرع</p>
-                <p className="text-cut-ivory font-medium text-sm">{branchName}</p>
+                <p
+                  className={`inline-flex items-center gap-1.5 font-medium text-sm px-2 py-0.5 rounded-md border ${branchAccent.chip} ${branchAccent.chipText}`}
+                >
+                  <span className={`w-1.5 h-1.5 rounded-full ${branchAccent.dot}`} aria-hidden />
+                  {branchName}
+                </p>
               </div>
             </div>
           )}

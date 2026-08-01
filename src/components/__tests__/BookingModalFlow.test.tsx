@@ -89,8 +89,8 @@ describe("BookingModalBranchSelection", () => {
       useBookingFlow({ open: true, branchCode: "GLEEM" }),
     );
     await waitFor(() => expect(result.current.catalogLoading).toBe(false));
-    expect(fns.getServices).toHaveBeenCalledWith("GLEEM", expect.any(AbortSignal));
-    expect(fns.listBranchBarbers).toHaveBeenCalledWith("GLEEM", expect.any(AbortSignal));
+    expect(fns.getServices).toHaveBeenCalledWith("GLEEM");
+    expect(fns.listBranchBarbers).toHaveBeenCalledWith("GLEEM");
     expect(result.current.services.map((s) => s.id)).toEqual([10, 11]);
   });
 

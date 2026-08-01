@@ -9,6 +9,16 @@ import type {
   BookingApiResponse,
 } from "./types";
 
+/** Short TTL so back-navigation feels instant without serving very stale calendars. */
+const DAYS_CACHE_TTL_MS = 90_000;
+const SLOTS_CACHE_TTL_MS = 60_000;
+const daysResultCache = new Map<string, { at: number; value: BookingApiResponse<AvailableDay[]> }>();
+const slotsResultCache = new Map<string, { at: number; value: BookingApiResponse<AvailableSlot[]> }>();
+
+function cachingEnabled(): boolean {
+  return process.env.NODE_ENV !== "test" && process.env.VITEST !== "true";
+}
+
 interface AvailableDaysResponse {
   ok: boolean;
   days: AvailableDay[];
@@ -22,13 +32,43 @@ interface AvailableSlotsResponse {
   slots: AvailableSlot[];
 }
 
-function linkExternalAbort(external: AbortSignal | undefined, abort: () => void): void {
-  if (!external) return;
-  if (external.aborted) {
-    abort();
-    return;
-  }
-  external.addEventListener("abort", abort, { once: true });
+function normalizeServiceIdsKey(serviceIds: number[]): string {
+  return [...new Set(serviceIds)]
+    .map(Number)
+    .filter((n) => Number.isFinite(n) && n > 0)
+    .sort((a, b) => a - b)
+    .join(",");
+}
+
+function buildAvailableDaysKey(params: {
+  branchCode: string;
+  serviceIds: number[];
+  mode: "specific" | "nearest";
+  empId?: number;
+}): { query: Record<string, string | number>; key: string } {
+  const query = {
+    branchCode: params.branchCode,
+    serviceIds: normalizeServiceIdsKey(params.serviceIds),
+    mode: params.mode,
+    ...(params.mode === "specific" && params.empId != null
+      ? { empId: params.empId }
+      : {}),
+  };
+  return { query, key: buildRequestKey("/api/public/booking/available-days", query) };
+}
+
+/** Sync cache read — used to paint the calendar without a loading flash. */
+export function peekCachedAvailableDays(params: {
+  branchCode: string;
+  serviceIds: number[];
+  mode: "specific" | "nearest";
+  empId?: number;
+}): AvailableDay[] | null {
+  if (!cachingEnabled()) return null;
+  const { key } = buildAvailableDaysKey(params);
+  const hit = daysResultCache.get(key);
+  if (!hit || Date.now() - hit.at >= DAYS_CACHE_TTL_MS) return null;
+  return hit.value.data ?? [];
 }
 
 export async function getAvailableDays(
@@ -40,16 +80,15 @@ export async function getAvailableDays(
   },
   signal?: AbortSignal,
 ): Promise<BookingApiResponse<AvailableDay[]>> {
-  const query = {
-    branchCode: params.branchCode,
-    serviceIds: params.serviceIds.join(","),
-    mode: params.mode,
-    ...(params.mode === "specific" && params.empId != null
-      ? { empId: params.empId }
-      : {}),
-  };
-  const key = buildRequestKey("/api/public/booking/available-days", query);
-  const { promise, abort } = deduplicatedRequest(key, async (dedupSignal) => {
+  void signal; // shared GET — caller abort must not cancel other waiters / prefetch
+  const { query, key } = buildAvailableDaysKey(params);
+  if (cachingEnabled()) {
+    const hit = daysResultCache.get(key);
+    if (hit && Date.now() - hit.at < DAYS_CACHE_TTL_MS) {
+      return hit.value;
+    }
+  }
+  const { promise } = deduplicatedRequest(key, async (dedupSignal) => {
     const res = await bookingApiRequest<AvailableDaysResponse>({
       path: "/api/public/booking/available-days",
       query,
@@ -65,10 +104,61 @@ export async function getAvailableDays(
         reason: raw.reason ?? raw.status ?? null,
       } satisfies AvailableDay;
     });
-    return { ...res, data: days };
+    const normalized = { ...res, data: days };
+    if (cachingEnabled()) {
+      daysResultCache.set(key, { at: Date.now(), value: normalized });
+    }
+    return normalized;
   });
-  linkExternalAbort(signal, abort);
   return promise;
+}
+
+function buildAvailableSlotsKey(params: {
+  branchCode: string;
+  date: string;
+  serviceIds: number[];
+  mode: "specific" | "nearest";
+  empId?: number;
+}): { query: Record<string, string | number>; key: string } {
+  const query = {
+    branchCode: params.branchCode,
+    date: params.date,
+    serviceIds: normalizeServiceIdsKey(params.serviceIds),
+    mode: params.mode,
+    ...(params.mode === "specific" && params.empId != null
+      ? { empId: params.empId }
+      : {}),
+  };
+  return { query, key: buildRequestKey("/api/public/booking/available-slots", query) };
+}
+
+/** Sync cache read for slots — paint time step without a loading flash. */
+export function peekCachedAvailableSlots(params: {
+  branchCode: string;
+  date: string;
+  serviceIds: number[];
+  mode: "specific" | "nearest";
+  empId?: number;
+}): AvailableSlot[] | null {
+  if (!cachingEnabled()) return null;
+  const { key } = buildAvailableSlotsKey(params);
+  const hit = slotsResultCache.get(key);
+  if (!hit || Date.now() - hit.at >= SLOTS_CACHE_TTL_MS) return null;
+  return hit.value.data ?? [];
+}
+
+/** Prefetch slots into TTL cache (e.g. on day hover / select while still on calendar). */
+export function prefetchAvailableSlots(
+  params: {
+    branchCode: string;
+    date: string;
+    serviceIds: number[];
+    mode: "specific" | "nearest";
+    empId?: number;
+  },
+  signal?: AbortSignal,
+): void {
+  void getAvailableSlots(params, signal).catch(() => undefined);
 }
 
 export async function getAvailableSlots(
@@ -81,17 +171,15 @@ export async function getAvailableSlots(
   },
   signal?: AbortSignal,
 ): Promise<BookingApiResponse<AvailableSlot[]>> {
-  const query = {
-    branchCode: params.branchCode,
-    date: params.date,
-    serviceIds: params.serviceIds.join(","),
-    mode: params.mode,
-    ...(params.mode === "specific" && params.empId != null
-      ? { empId: params.empId }
-      : {}),
-  };
-  const key = buildRequestKey("/api/public/booking/available-slots", query);
-  const { promise, abort } = deduplicatedRequest(key, async (dedupSignal) => {
+  void signal; // shared GET — caller abort must not cancel other waiters / prefetch
+  const { query, key } = buildAvailableSlotsKey(params);
+  if (cachingEnabled()) {
+    const hit = slotsResultCache.get(key);
+    if (hit && Date.now() - hit.at < SLOTS_CACHE_TTL_MS) {
+      return hit.value;
+    }
+  }
+  const { promise } = deduplicatedRequest(key, async (dedupSignal) => {
     const res = await bookingApiRequest<AvailableSlotsResponse>({
       path: "/api/public/booking/available-slots",
       query,
@@ -99,16 +187,25 @@ export async function getAvailableSlots(
       timeoutMs: 15_000,
     });
     const slots = (res.data.slots ?? []).map((s) => {
-      const raw = s as AvailableSlot & { isAvailable?: boolean };
+      const raw = s as AvailableSlot & {
+        isAvailable?: boolean;
+        barbers?: Array<{ empId?: number; nameAr?: string; name?: string }>;
+      };
+      const firstBarber = Array.isArray(raw.barbers) ? raw.barbers[0] : undefined;
       return {
         ...raw,
-        // Compat: listed slots without an explicit flag are bookable.
         available: (raw.available ?? raw.isAvailable ?? true) === true,
+        empId: raw.empId ?? firstBarber?.empId ?? null,
+        barberName:
+          raw.barberName ?? firstBarber?.nameAr ?? firstBarber?.name ?? null,
       } satisfies AvailableSlot;
     });
-    return { ...res, data: slots };
+    const normalized = { ...res, data: slots };
+    if (cachingEnabled()) {
+      slotsResultCache.set(key, { at: Date.now(), value: normalized });
+    }
+    return normalized;
   });
-  linkExternalAbort(signal, abort);
   return promise;
 }
 

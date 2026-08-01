@@ -127,7 +127,7 @@ function ServiceBilingualTitle({
   const en = serviceNameEn(service);
   const showEn = Boolean(en && en !== ar);
   const tone = selected ? "text-gray-900" : "text-gray-800";
-  const enTone = selected ? "text-cut-bronze" : "text-cut-bronze/75";
+  const enTone = selected ? "text-[#D4AF37]" : "text-[#D4AF37]/75";
 
   return (
     <div className="min-w-0">
@@ -191,7 +191,7 @@ const PrimaryCard = ({
     <button type="button" onClick={onSelect} className={`
       w-full rounded-2xl border text-right transition-all duration-200 overflow-hidden group cursor-pointer
       ${isSelected
-        ? "border-cut-gold bg-cut-gold/[0.06] shadow-[0_0_24px_rgba(164,136,121,0.15)] ring-1 ring-cut-gold/20"
+        ? "border-cut-gold bg-cut-gold/[0.06] shadow-[0_0_24px_rgba(212,175,55,0.15)] ring-1 ring-cut-gold/20"
         : "border-gray-150 bg-white hover:border-cut-gold/40 hover:shadow-sm"
       }
     `}>
@@ -208,7 +208,7 @@ const PrimaryCard = ({
         <div className="flex items-start gap-3.5">
           <div className={`
             w-12 h-12 md:w-14 md:h-14 rounded-xl flex items-center justify-center flex-shrink-0 transition-all
-            ${isSelected ? "bg-cut-gold shadow-[0_4px_16px_rgba(164,136,121,0.3)]" : "bg-gray-50 group-hover:bg-cut-gold/10"}
+            ${isSelected ? "bg-cut-gold shadow-[0_4px_16px_rgba(212,175,55,0.3)]" : "bg-gray-50 group-hover:bg-cut-gold/10"}
           `}>
             <Icon className={`w-5 h-5 md:w-6 md:h-6 transition-colors ${isSelected ? "text-black" : "text-gray-400 group-hover:text-cut-gold"}`} />
           </div>

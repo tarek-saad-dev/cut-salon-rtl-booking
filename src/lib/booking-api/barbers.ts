@@ -1,6 +1,14 @@
 import { bookingApiRequest } from "./client";
 import { resolveBarberPhotoUrl } from "./barber-photo";
 import { TIMEOUT_MS } from "./timeout";
+import { buildRequestKey, deduplicatedRequest } from "./request-dedup";
+import {
+  buildCrossBranchCacheKey,
+  getCachedCrossBranch,
+  getCachedGlobalBarbers,
+  setCachedCrossBranch,
+  setCachedGlobalBarbers,
+} from "./session-cache";
 import type {
   PublicBarber,
   PublicBarberBranch,
@@ -12,7 +20,8 @@ import type {
 } from "./types";
 
 export const CROSS_BRANCH_AVAILABILITY_MAX_DAYS = 14;
-export const CROSS_BRANCH_AVAILABILITY_DEFAULT_DAYS = 7;
+/** Initial window — keep short so barber-first slots feel snappy; UI can request more later. */
+export const CROSS_BRANCH_AVAILABILITY_DEFAULT_DAYS = 4;
 
 interface BarbersResponse {
   ok: boolean;
@@ -123,6 +132,11 @@ export async function getCrossBranchAvailability(
     ? params.dateFrom
     : cairoTodayYmd();
 
+  const cacheKey = buildCrossBranchCacheKey(empId, serviceIds, dateFrom, days);
+  const cached =
+    getCachedCrossBranch<BookingApiResponse<CrossBranchAvailabilityResponse>>(cacheKey);
+  if (cached) return cached;
+
   const res = await bookingApiRequest<CrossBranchAvailabilityResponse>({
     path: `/api/public/booking/barbers/${empId}/cross-branch-availability`,
     method: "POST",
@@ -142,7 +156,7 @@ export async function getCrossBranchAvailability(
       branchName: b.branchName || b.branchCode,
     }));
 
-  return {
+  const normalized: BookingApiResponse<CrossBranchAvailabilityResponse> = {
     ...res,
     data: {
       ok: res.data.ok !== false,
@@ -153,6 +167,8 @@ export async function getCrossBranchAvailability(
       meta: res.data.meta,
     },
   };
+  setCachedCrossBranch(cacheKey, normalized);
+  return normalized;
 }
 
 export function crossBranchSlotKey(slot: CrossBranchSlot): string {
@@ -175,21 +191,55 @@ export async function listBranchBarbers(
 export async function listGlobalBarbers(
   signal?: AbortSignal,
 ): Promise<BookingApiResponse<PublicBarber[]>> {
-  const res = await bookingApiRequest<BarbersResponse>({
-    path: "/api/public/booking/barbers",
-    signal,
-    timeoutMs: 15_000,
+  const cached = getCachedGlobalBarbers<BookingApiResponse<PublicBarber[]>>();
+  if (cached) return cached;
+
+  const key = buildRequestKey("/api/public/booking/barbers");
+  const { promise } = deduplicatedRequest(key, async (dedupSignal) => {
+    const linked = new AbortController();
+    const onAbort = () => linked.abort();
+    signal?.addEventListener("abort", onAbort, { once: true });
+    dedupSignal.addEventListener("abort", onAbort, { once: true });
+    try {
+      const res = await bookingApiRequest<BarbersResponse>({
+        path: "/api/public/booking/barbers",
+        signal: linked.signal,
+        timeoutMs: 15_000,
+      });
+      return { ...res, data: (res.data.barbers ?? []).map(normalizeBarber) };
+    } finally {
+      signal?.removeEventListener("abort", onAbort);
+    }
   });
-  return { ...res, data: (res.data.barbers ?? []).map(normalizeBarber) };
+
+  const result = await promise;
+  setCachedGlobalBarbers(result);
+  return result;
 }
 
 /**
  * Resolve a public barber profile (branches + serviceIds) for barber-first entry.
+ * Prefers single-emp API; falls back to global list if profile route unavailable.
  */
 export async function getPublicBarberProfile(
   empId: number,
   signal?: AbortSignal,
 ): Promise<BookingApiResponse<PublicBarber | null>> {
+  try {
+    const res = await bookingApiRequest<{
+      ok: boolean;
+      barber?: BarbersResponse["barbers"][number];
+    }>({
+      path: `/api/public/booking/barbers/${empId}`,
+      signal,
+      timeoutMs: 12_000,
+    });
+    if (res.data?.barber) {
+      return { ...res, data: normalizeBarber(res.data.barber) };
+    }
+  } catch {
+    /* fall through to roster */
+  }
   const res = await listGlobalBarbers(signal);
   const found = (res.data ?? []).find((b) => b.id === empId) ?? null;
   return { ...res, data: found };
@@ -235,11 +285,7 @@ export async function getBarberLocation(
       date: res.data.date,
       isWorking: res.data.isWorking,
       status: res.data.status,
-      branch:
-        res.data.branch &&
-        res.data.branch.branchCode?.toUpperCase() !== "CAMP_CAESAR"
-          ? res.data.branch
-          : null,
+      branch: res.data.branch ?? null,
     },
   };
 }

@@ -40,8 +40,8 @@ export default {
           bronze: "#A48879",
           "warm-beige": "#D2B7A3",
           "green-muted": "#273C2C",
-          /* Legacy aliases */
-          gold: "#A48879",
+          /* Classic Cut yellow — booking CTA / modal accent */
+          gold: "#D4AF37",
           green: "#2F050C",
           surface: "#0F0C0B",
           "surface-elevated": "#170406",
@@ -80,7 +80,7 @@ export default {
           foreground: "hsl(var(--card-foreground))",
         },
         "surface-elevated": "hsl(var(--surface-elevated))",
-        "gold-glow": "hsl(var(--bronze-glow))",
+        "gold-glow": "hsl(var(--gold-glow))",
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
           foreground: "hsl(var(--sidebar-foreground))",
@@ -102,8 +102,8 @@ export default {
       },
       boxShadow: {
         "cut-card": "0 12px 40px rgba(0, 0, 0, 0.45)",
-        "cut-glow": "0 0 28px rgba(74, 0, 15, 0.25)",
-        "cut-glow-strong": "0 0 48px rgba(164, 136, 121, 0.18)",
+        "cut-glow": "0 0 28px rgba(212, 175, 55, 0.35)",
+        "cut-glow-strong": "0 0 48px rgba(212, 175, 55, 0.28)",
       },
       keyframes: {
         "accordion-down": {
@@ -122,13 +122,17 @@ export default {
           "0%, 100%": { boxShadow: "0 0 15px rgba(164, 136, 121, 0.15)" },
           "50%": { boxShadow: "0 0 30px rgba(164, 136, 121, 0.28)" },
         },
+        "gold-pulse": {
+          "0%, 100%": { boxShadow: "0 0 15px rgba(212, 175, 55, 0.25)" },
+          "50%": { boxShadow: "0 0 30px rgba(212, 175, 55, 0.45)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
         "fade-up": "fade-up 0.6s ease-out forwards",
         "bronze-pulse": "bronze-pulse 2s ease-in-out infinite",
-        "gold-pulse": "bronze-pulse 2s ease-in-out infinite",
+        "gold-pulse": "gold-pulse 2s ease-in-out infinite",
       },
     },
   },

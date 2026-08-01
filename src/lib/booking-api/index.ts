@@ -26,7 +26,7 @@ export {
   formatServiceLabelBilingual,
   formatServicesSummary,
 } from "./service-name";
-export { getAvailableDays, getAvailableSlots, checkSlot } from "./availability";
+export { getAvailableDays, getAvailableSlots, peekCachedAvailableDays, peekCachedAvailableSlots, prefetchAvailableSlots, checkSlot } from "./availability";
 export {
   createBookingPlan,
   submitBookingFromPlan,

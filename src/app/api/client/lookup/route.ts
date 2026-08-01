@@ -25,9 +25,9 @@ export async function GET(req: NextRequest) {
         Address: string | null;
         Email: string | null;
       }>(
-        `SELECT ClientID, Name, Mobile, Phone, Address, Email FROM dbo.TblClient
-         WHERE REPLACE(REPLACE(REPLACE(Mobile, ' ', ''), '-', ''), '+2', '')
-               LIKE '%' + @Mobile + '%'`,
+        `SELECT TOP 1 ClientID, Name, Mobile, Phone, Address, Email FROM dbo.TblClient
+         WHERE RIGHT(REPLACE(REPLACE(REPLACE(REPLACE(ISNULL(Mobile,''), ' ', ''), '-', ''), '+2', ''), '+', ''), 10)
+               = RIGHT(@Mobile, 10)`,
       );
 
     if (result.recordset.length === 0) {

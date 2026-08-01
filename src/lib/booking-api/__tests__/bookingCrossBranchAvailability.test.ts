@@ -122,6 +122,6 @@ describe("getCrossBranchAvailability", () => {
     await getCrossBranchAvailability(18, { serviceIds: [9] });
     const body = bookingApiRequest.mock.calls[0][0].body;
     expect(body.dateFrom).toBe(cairoTodayYmd());
-    expect(body.days).toBe(7);
+    expect(body.days).toBe(4);
   });
 });

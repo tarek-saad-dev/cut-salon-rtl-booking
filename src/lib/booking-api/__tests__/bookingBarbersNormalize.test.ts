@@ -140,7 +140,7 @@ describe("booking barbers normalize (8B3)", () => {
     expect(res.data?.branches?.[0].branchCode).toBe("GLEEM");
   });
 
-  it("getBarberLocation nulls CAMP_CAESAR branch", async () => {
+  it("getBarberLocation keeps CAMP_CAESAR branch for day location banner", async () => {
     bookingApiRequest.mockResolvedValue({
       data: {
         ok: true,
@@ -165,7 +165,7 @@ describe("booking barbers normalize (8B3)", () => {
     });
 
     const res = await getBarberLocation(5, { date: "2026-07-27" });
-    expect(res.data.branch).toBeNull();
+    expect(res.data.branch?.branchCode).toBe("CAMP_CAESAR");
     expect(res.data.isWorking).toBe(true);
   });
 });

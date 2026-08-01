@@ -3,6 +3,7 @@
 import { CalendarX, Loader2, MapPin, MoonStar, RefreshCw } from "lucide-react";
 import type { CrossBranchSlot, PublicBarberBranch } from "@/lib/booking-api";
 import { crossBranchSlotKey } from "@/lib/booking-api";
+import { getBranchAccent } from "@/lib/branchTheme";
 
 export const ALL_BRANCHES_TAB = "all" as const;
 export type CrossBranchTabId = typeof ALL_BRANCHES_TAB | string;
@@ -91,43 +92,59 @@ export default function CrossBranchSlotsPanel({
       </div>
 
       {showTabs && (
-        <div
-          className="flex gap-2 overflow-x-auto pb-3 mb-3 -mx-1 px-1"
-          role="tablist"
-          aria-label="تصفية المواعيد حسب الفرع"
-        >
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeTab === ALL_BRANCHES_TAB}
-            onClick={() => onTabChange(ALL_BRANCHES_TAB)}
-            className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-bold border transition-colors ${
-              activeTab === ALL_BRANCHES_TAB
-                ? "bg-cut-gold text-black border-cut-gold"
-                : "bg-white text-cut-black/70 border-cut-gold/20 hover:border-cut-gold/40"
-            }`}
+        <div className="mb-3 space-y-2">
+          <div
+            className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1"
+            role="tablist"
+            aria-label="تصفية المواعيد حسب الفرع"
           >
-            جميع المواعيد
-          </button>
-          {branches.map((b) => {
-            const selected = activeTab.toUpperCase() === b.branchCode.toUpperCase();
-            return (
-              <button
-                key={b.branchCode}
-                type="button"
-                role="tab"
-                aria-selected={selected}
-                onClick={() => onTabChange(b.branchCode)}
-                className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-bold border transition-colors ${
-                  selected
-                    ? "bg-cut-gold text-black border-cut-gold"
-                    : "bg-white text-cut-black/70 border-cut-gold/20 hover:border-cut-gold/40"
-                }`}
-              >
-                {b.branchName || b.branchCode}
-              </button>
-            );
-          })}
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === ALL_BRANCHES_TAB}
+              onClick={() => onTabChange(ALL_BRANCHES_TAB)}
+              className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-bold border transition-colors ${
+                activeTab === ALL_BRANCHES_TAB
+                ? "bg-[#D4AF37] text-black border-[#D4AF37]"
+                : "bg-white text-cut-black/70 border-[#D4AF37]/25 hover:border-[#D4AF37]/50"
+              }`}
+            >
+              جميع المواعيد
+            </button>
+            {branches.map((b) => {
+              const accent = getBranchAccent(b.branchCode, b.branchName);
+              const selected = activeTab.toUpperCase() === b.branchCode.toUpperCase();
+              return (
+                <button
+                  key={b.branchCode}
+                  type="button"
+                  role="tab"
+                  aria-selected={selected}
+                  onClick={() => onTabChange(b.branchCode)}
+                  className={`flex-shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border transition-colors ${
+                    selected ? accent.tabSelected : accent.tabIdle
+                  }`}
+                >
+                  <span
+                    className={`w-2 h-2 rounded-full flex-shrink-0 ${selected ? "bg-white/90" : accent.dot}`}
+                    aria-hidden
+                  />
+                  {b.branchName || b.branchCode}
+                </button>
+              );
+            })}
+          </div>
+          <div className="flex flex-wrap gap-3 px-1 text-[10px] text-cut-black/55" aria-hidden>
+            {branches.map((b) => {
+              const accent = getBranchAccent(b.branchCode, b.branchName);
+              return (
+                <span key={`legend-${b.branchCode}`} className="inline-flex items-center gap-1.5">
+                  <span className={`w-2.5 h-2.5 rounded-full ${accent.dot}`} />
+                  {b.branchName || accent.labelAr}
+                </span>
+              );
+            })}
+          </div>
         </div>
       )}
 
@@ -194,32 +211,37 @@ export default function CrossBranchSlotsPanel({
                 {daySlots.map((slot) => {
                   const key = crossBranchSlotKey(slot);
                   const selected = selectedKey === key;
+                  const accent = getBranchAccent(slot.branchCode, slot.branchName);
                   return (
                     <button
                       key={key}
                       type="button"
                       role="listitem"
                       onClick={() => onSelect(slot)}
-                      className={`text-right rounded-xl border p-3 transition-all ${
-                        selected
-                          ? "border-cut-gold bg-cut-gold/15 shadow-sm"
-                          : "border-cut-gold/15 bg-white hover:border-cut-gold/40"
+                      className={`relative text-right rounded-xl border p-3 transition-all overflow-hidden ${
+                        selected ? accent.slotSelected : accent.slotIdle
                       }`}
                     >
+                      <span
+                        className={`absolute inset-y-0 right-0 w-1 ${accent.dot}`}
+                        aria-hidden
+                      />
                       <div className="flex items-center justify-between gap-2 mb-1">
                         <span className="font-bold text-cut-black tabular-nums">
                           {formatTimeLabel(slot.time)}
                         </span>
                         {slot.dayOffset === 1 && (
-                          <span className="inline-flex items-center gap-1 text-[10px] font-bold text-indigo-700 bg-indigo-50 px-1.5 py-0.5 rounded-full">
+                          <span className="inline-flex items-center gap-1 text-[10px] font-bold text-slate-700 bg-slate-100 px-1.5 py-0.5 rounded-full">
                             <MoonStar className="w-3 h-3" />
                             ليلي
                           </span>
                         )}
                       </div>
-                      <div className="flex items-center gap-1.5 text-xs text-cut-black/65">
-                        <MapPin className="w-3.5 h-3.5 text-cut-gold flex-shrink-0" />
-                        <span className="font-medium truncate">
+                      <div
+                        className={`inline-flex items-center gap-1.5 text-xs font-bold px-2 py-0.5 rounded-md border ${accent.chip} ${accent.chipText}`}
+                      >
+                        <MapPin className={`w-3.5 h-3.5 flex-shrink-0 ${accent.icon}`} />
+                        <span className="truncate">
                           {slot.branchName || slot.branchCode}
                         </span>
                       </div>

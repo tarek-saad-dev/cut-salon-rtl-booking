@@ -25,8 +25,8 @@
     --font-en-display: "Playfair Display", serif;
     --font-en-ui: system-ui, sans-serif;
 
-    /* Legacy aliases → editorial tokens */
-    --cut-gold: var(--cut-bronze);
+    /* Classic Cut yellow (booking / CTAs) — keep bronze separate for editorial surfaces */
+    --cut-gold: #d4af37;
     --cut-green: var(--cut-burgundy-dark);
     --cut-surface: var(--cut-espresso);
     --cut-surface-elevated: var(--cut-wine-black);
@@ -36,7 +36,7 @@
     --bg-light: #fcf9ed;
     --text-light: #fcf9ed;
     --text-dark: #050505;
-    --accent-primary: #a48879;
+    --accent-primary: #d4af37;
     --accent-strong: #4a000f;
 
     /* shadcn tokens */
@@ -69,6 +69,7 @@
     --sidebar-border: 22 22% 30%;
     --sidebar-ring: 22 22% 56%;
     --bronze-glow: 22 22% 56%;
+    --gold-glow: 43 74% 52%;
     --surface-elevated: 350 75% 7%;
   }
 }
@@ -156,7 +157,7 @@
     @apply inline-flex items-center justify-center gap-2 rounded-xl border border-cut-bronze/30 bg-cut-burgundy px-6 py-3 font-heading font-bold text-cut-ivory transition-all duration-300 hover:bg-cut-burgundy-dark active:scale-[0.98];
   }
   .cut-input {
-    @apply w-full rounded-xl border border-cut-black/15 bg-cut-ivory px-4 py-2.5 text-sm text-cut-black placeholder:text-cut-black/45 focus:border-cut-bronze focus:outline-none focus:ring-2 focus:ring-cut-bronze/25 transition-colors;
+    @apply w-full rounded-xl border border-cut-black/15 bg-white px-4 py-2.5 text-sm text-cut-black placeholder:text-cut-black/45 focus:border-[#D4AF37] focus:outline-none focus:ring-2 focus:ring-[#D4AF37]/30 transition-colors;
   }
   .cut-badge {
     @apply inline-flex items-center rounded-lg border border-cut-bronze/30 bg-cut-espresso px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider text-cut-bronze;

@@ -12,6 +12,10 @@ import {
   Zap,
   UserCheck,
   Copy,
+  MapPin,
+  Scissors,
+  CalendarDays,
+  Clock,
 } from "lucide-react";
 import ConfettiBurst from "./ConfettiBurst";
 import BookingStepHeader from "./BookingStepHeader";
@@ -25,6 +29,9 @@ import BarberPhoto from "./BarberPhoto";
 import { useBranch } from "@/context/BranchContext";
 import { getCoreServiceIdSet } from "@/lib/bookingServiceGroups";
 import { useBookingFlow, type BookingUiStep } from "@/hooks/useBookingFlow";
+import { saveClient } from "@/lib/clientStorage";
+import { getBranchAccent } from "@/lib/branchTheme";
+import { formatBookingTimeAr } from "@/lib/booking-management/display";
 import {
   resolveBarberDisplayName,
   serviceNameAr,
@@ -34,6 +41,8 @@ import {
   type BookingEntryMode,
   type BookingService,
 } from "@/lib/booking-api";
+
+type ClientLookupStatus = "idle" | "loading" | "found" | "new";
 
 function SelectedServicesBilingual({
   services,
@@ -65,7 +74,7 @@ function SelectedServicesBilingual({
             {showEn ? (
               <p
                 className={`font-editorial leading-snug tracking-wide ${
-                  dark ? "text-cut-warm-beige/80" : "text-cut-bronze"
+                  dark ? "text-[#D4AF37]/80" : "text-[#D4AF37]"
                 } ${compact ? "text-[10px]" : "text-xs"}`}
                 lang="en"
                 dir="ltr"
@@ -157,16 +166,106 @@ const BookingModal = ({
 
   const [confettiTrigger, setConfettiTrigger] = useState(0);
   const [copied, setCopied] = useState(false);
+  const [lookupStatus, setLookupStatus] = useState<ClientLookupStatus>("idle");
+  const [lookedUpName, setLookedUpName] = useState<string | null>(null);
 
-  // Barber-first: never stay on branch step — jump to service once profile is ready.
+  // Debounced phone → client name lookup (returning customers).
+  useEffect(() => {
+    if (!open) return;
+    const digits = flow.customerPhone.replace(/\D/g, "");
+    if (digits.length < 8) {
+      setLookupStatus("idle");
+      setLookedUpName(null);
+      return;
+    }
+
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      setLookupStatus("loading");
+      const controller = new AbortController();
+      const kill = setTimeout(() => controller.abort(), 2500);
+      try {
+        const res = await fetch(
+          `/api/client/lookup?mobile=${encodeURIComponent(digits)}`,
+          { signal: controller.signal },
+        );
+        const data = (await res.json()) as {
+          ok?: boolean;
+          found?: boolean;
+          client?: { id?: number; name?: string; mobile?: string };
+        };
+        if (cancelled) return;
+        if (data.ok && data.found && data.client?.name) {
+          const name = String(data.client.name).trim();
+          setLookedUpName(name);
+          flow.setCustomerName(name);
+          setLookupStatus("found");
+          saveClient({
+            id: data.client.id,
+            name,
+            phone: String(data.client.mobile || digits).replace(/\D/g, "") || digits,
+          });
+        } else {
+          setLookedUpName(null);
+          setLookupStatus("new");
+        }
+      } catch {
+        if (!cancelled) {
+          setLookedUpName(null);
+          setLookupStatus("new");
+        }
+      } finally {
+        clearTimeout(kill);
+      }
+    }, 450);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, flow.customerPhone]);
+
+  // Celebrate once when create lands on success.
+  useEffect(() => {
+    if (!open || flow.step !== "success") return;
+    setConfettiTrigger((p) => p + 1);
+  }, [open, flow.step]);
+
+  const allowedBranches = isBarberFirst
+    ? branches.filter((b) =>
+        flow.barberBranches.some(
+          (bb) => bb.branchCode.toUpperCase() === b.branchCode.toUpperCase(),
+        ),
+      )
+    : branches;
+
+  // If saved branch is not valid for this barber, force branch step.
   useEffect(() => {
     if (!open || !isBarberFirst) return;
     if (flow.barberProfileLoading) return;
-    if (flow.step === "branch") {
+    if (
+      selectedBranch &&
+      flow.barberBranches.length > 0 &&
+      !flow.barberBranches.some(
+        (bb) => bb.branchCode.toUpperCase() === selectedBranch.branchCode.toUpperCase(),
+      )
+    ) {
+      flow.setStep("branch");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, isBarberFirst, selectedBranch?.branchCode, flow.barberBranches, flow.barberProfileLoading]);
+
+  // Auto-confirm single barber branch
+  useEffect(() => {
+    if (!open || !isBarberFirst) return;
+    if (flow.barberProfileLoading) return;
+    if (allowedBranches.length === 1 && !hasConfirmedBranch) {
+      selectBranch(allowedBranches[0]);
       flow.setStep("service");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, isBarberFirst, flow.barberProfileLoading, flow.step]);
+  }, [open, isBarberFirst, allowedBranches, hasConfirmedBranch, flow.barberProfileLoading]);
 
   // Optional groom service preselect: exact serviceId matches take priority, with
   // fuzzy name matching as a fallback for services without a known ID.
@@ -191,19 +290,25 @@ const BookingModal = ({
     const matched = [...new Set([...idMatched, ...nameMatched])];
     if (matched.length) {
       flow.selectServices(matched);
-      flow.setStep(isBarberFirst ? "slots" : "date");
+      flow.setStep("date");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, initialServiceIds, initialServiceMatches, flow.services, isBarberFirst]);
+  }, [open, initialServiceIds, initialServiceMatches, flow.services]);
 
-  // Enter after branch when opened with initialMode (branch-first only)
+  // Enter after branch when opened with initialMode / barber-first
   useEffect(() => {
-    if (!open || isBarberFirst) return;
+    if (!open) return;
     if (hasConfirmedBranch && branchCode && flow.step === "branch") {
-      flow.setStep(effectiveInitialMode ? "service" : "mode");
+      if (isBarberFirst && allowedBranches.length > 0) {
+        const ok = allowedBranches.some(
+          (b) => b.branchCode.toUpperCase() === branchCode.toUpperCase(),
+        );
+        if (!ok) return;
+      }
+      flow.setStep(effectiveInitialMode || isBarberFirst ? "service" : "mode");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, hasConfirmedBranch, branchCode, isBarberFirst, effectiveInitialMode]);
+  }, [open, hasConfirmedBranch, branchCode, isBarberFirst, allowedBranches.length, effectiveInitialMode]);
 
   const handleClose = () => {
     if (flow.mutationUi.kind === "creating" || flow.mutationUi.kind === "unknown") {
@@ -216,12 +321,14 @@ const BookingModal = ({
     setTimeout(() => {
       flow.resetAll();
       setCopied(false);
+      setLookupStatus("idle");
+      setLookedUpName(null);
     }, 300);
   };
 
   const handleBranchSelect = (branch: PublicBranch) => {
     selectBranch(branch);
-    flow.setStep(effectiveInitialMode ? "service" : "mode");
+    flow.setStep(effectiveInitialMode || isBarberFirst ? "service" : "mode");
   };
 
   const handleCoreServiceSelect = (id: number) => {
@@ -242,11 +349,11 @@ const BookingModal = ({
     flow.invalidatePlan();
     if (flow.step === "mode") flow.setStep("branch");
     else if (flow.step === "service") {
-      if (!isBarberFirst) flow.setStep(effectiveInitialMode ? "branch" : "mode");
+      flow.setStep(effectiveInitialMode || isBarberFirst ? "branch" : "mode");
     } else if (flow.step === "slots") flow.setStep("service");
     else if (flow.step === "date") flow.setStep("service");
     else if (flow.step === "time") flow.setStep("date");
-    else if (flow.step === "details") flow.setStep(isBarberFirst ? "slots" : "time");
+    else if (flow.step === "details") flow.setStep("time");
     else if (flow.step === "review") flow.setStep("details");
   };
 
@@ -256,6 +363,8 @@ const BookingModal = ({
     ? flow.selectedSlot?.barberName ?? "أقرب حلاق متاح"
     : flow.barber?.name ?? barber.name;
   const displayBranchName = flow.bookingBranchName ?? selectedBranch?.branchName;
+  const displayBranchCode = flow.bookingBranchCode ?? selectedBranch?.branchCode;
+  const branchAccent = getBranchAccent(displayBranchCode, displayBranchName);
 
   const allowSpecific = flow.config?.settings.allowSpecificBarber !== false;
   const allowNearest = flow.config?.settings.allowNearestBarber !== false;
@@ -270,6 +379,34 @@ const BookingModal = ({
       month: "long",
       day: "numeric",
     }).format(date);
+  };
+
+  const resolveConfirmationDate = (raw: string, fallback?: Date) => {
+    let dateObj: Date | undefined;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+      const parsed = new Date(`${raw}T12:00:00`);
+      if (!Number.isNaN(parsed.getTime())) dateObj = parsed;
+    } else if (fallback) {
+      dateObj = fallback;
+    }
+    if (!dateObj) {
+      return {
+        weekday: "",
+        dateLine: raw || formatDateAr(fallback) || "—",
+        full: raw || formatDateAr(fallback) || "—",
+      };
+    }
+    const weekday = new Intl.DateTimeFormat("ar-EG", { weekday: "long" }).format(dateObj);
+    const dateLine = new Intl.DateTimeFormat("ar-EG", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    }).format(dateObj);
+    return {
+      weekday,
+      dateLine,
+      full: `${weekday}، ${dateLine}`,
+    };
   };
 
   const canPlan =
@@ -373,55 +510,74 @@ const BookingModal = ({
     }
 
     if (flow.step === "branch") {
-      // Barber-first never uses the branch picker (redirect via effect above).
-      if (isBarberFirst) return null;
-
       return (
         <div className="p-5 md:p-6" dir="rtl">
           <div className="mb-5">
             <h3 className="text-lg font-heading font-bold text-cut-black mb-1">
-              في أي فرع تحب تحجز؟
+              {isBarberFirst ? `فرع ${barber.name}` : "في أي فرع تحب تحجز؟"}
             </h3>
-            <p className="text-cut-black/50 text-xs">اختار الفرع الأقرب ليك</p>
+            <p className="text-cut-black/50 text-xs">
+              {isBarberFirst
+                ? "اختار فرعاً يعمل به هذا الحلاق"
+                : "اختار الفرع الأقرب ليك"}
+            </p>
           </div>
-          {(branchesError) && (
+          {(flow.barberProfileError || branchesError) && (
             <div
               className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm text-center space-y-3"
               role="alert"
             >
-              <p>{branchesError}</p>
+              <p>{flow.barberProfileError || branchesError}</p>
               <button
                 type="button"
-                onClick={() => refetchBranches()}
+                onClick={() => {
+                  if (flow.barberProfileError) flow.retryBarberProfile();
+                  if (branchesError) refetchBranches();
+                }}
                 className="inline-flex items-center justify-center px-3 py-1.5 rounded-lg border border-red-200 bg-white text-red-700 text-xs font-bold hover:bg-red-50 transition-colors"
               >
                 إعادة المحاولة
               </button>
             </div>
           )}
-          <BranchPicker
-            branches={branches}
-            selectedBranchCode={selectedBranch?.branchCode}
-            isLoading={isLoadingBranches}
-            error={null}
-            variant="light"
-            onSelect={handleBranchSelect}
-          />
-          {hasConfirmedBranch && selectedBranch && (
-            <button
-              type="button"
-              onClick={() => handleBranchSelect(selectedBranch)}
-              className="w-full mt-4 py-3 rounded-xl bg-cut-gold text-black font-bold hover:bg-cut-gold/80 transition-colors flex items-center justify-center gap-2"
-            >
-              <Check className="w-4 h-4" />
-              تأكيد فرع {selectedBranch.shortName || selectedBranch.branchName} ومتابعة
-            </button>
+          {!flow.barberProfileLoading && (
+            <BranchPicker
+              branches={allowedBranches}
+              selectedBranchCode={selectedBranch?.branchCode}
+              isLoading={isLoadingBranches || (isBarberFirst && flow.barberProfileLoading)}
+              error={
+                !flow.barberProfileError &&
+                !branchesError &&
+                isBarberFirst &&
+                allowedBranches.length === 0
+                  ? "لا توجد فروع عامة متاحة لهذا الحلاق"
+                  : null
+              }
+              variant="light"
+              onSelect={handleBranchSelect}
+            />
           )}
+          {hasConfirmedBranch &&
+            selectedBranch &&
+            allowedBranches.some((b) => b.branchCode === selectedBranch.branchCode) && (
+              <button
+                type="button"
+                onClick={() => handleBranchSelect(selectedBranch)}
+                className={`w-full mt-4 py-3 rounded-xl font-bold transition-colors flex items-center justify-center gap-2 shadow-md shadow-[#D4AF37]/20 ${
+                  getBranchAccent(selectedBranch.branchCode, selectedBranch.branchName).key === "camp"
+                    ? "bg-[#E8A317] text-black hover:bg-[#D4920F]"
+                    : "bg-[#D4AF37] text-black hover:bg-[#C4A030]"
+                }`}
+              >
+                <Check className="w-4 h-4" />
+                تأكيد فرع {selectedBranch.shortName || selectedBranch.branchName} ومتابعة
+              </button>
+            )}
         </div>
       );
     }
 
-    if (flow.catalogLoading) {
+    if (flow.catalogLoading && flow.services.length === 0) {
       return (
         <div className="flex flex-col items-center justify-center h-64 gap-4" dir="rtl" aria-live="polite">
           <Loader2 className="w-8 h-8 animate-spin text-cut-gold" />
@@ -613,9 +769,9 @@ const BookingModal = ({
         return (
           <div dir="rtl">
             {renderMutationBanner()}
-            {flow.daysLoading && (
+            {flow.daysLoading && flow.days.length === 0 && (
               <p className="px-6 pt-4 text-sm text-cut-black/60" aria-live="polite">
-                جاري البحث عن الأيام المتاحة...
+                جاري البحث عن الأيام المتاحة... قد يستغرق ذلك عدة ثوانٍ
               </p>
             )}
             {flow.daysError && !flow.daysLoading && (
@@ -633,7 +789,7 @@ const BookingModal = ({
               selectedDate={flow.selectedDate}
               onDateSelect={flow.selectDate}
               availableDays={flow.days}
-              isLoading={flow.daysLoading}
+              isLoading={flow.daysLoading && flow.days.length === 0}
               maxDaysAhead={flow.config?.settings?.maxBookingDaysAhead ?? 60}
             />
             <div className="px-6 pb-6">
@@ -649,12 +805,86 @@ const BookingModal = ({
           </div>
         );
 
-      case "time":
+      case "time": {
+        const locBranch = flow.dayLocation?.branch;
+        const bannerCode = locBranch?.branchCode ?? displayBranchCode;
+        const bannerName = locBranch?.branchName ?? displayBranchName;
+        const bannerAccent = getBranchAccent(bannerCode, bannerName);
+        const dateLabel = formatDateAr(flow.selectedDate);
+        const showBranchBanner =
+          flow.mode === "specific" && Boolean(flow.barber?.id);
+        // Never block slots on location — show known branch immediately, refine in background.
+        const slotsBusy = flow.slotsLoading && flow.slots.length === 0;
+
         return (
-          <div dir="rtl">
+          <div dir="rtl" className="bg-[#0a0a0a] min-h-full">
             {renderMutationBanner()}
+            {showBranchBanner && (
+              <div
+                className="mx-5 md:mx-6 mt-4 mb-1 rounded-2xl border-2 border-[#D4AF37]/45 bg-black px-4 py-3.5 shadow-[inset_0_0_0_1px_rgba(212,175,55,0.12)]"
+                role="status"
+                aria-live="polite"
+              >
+                <div className="flex items-start gap-3">
+                  <div
+                    className="mt-0.5 w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 text-black font-black"
+                    style={{ backgroundColor: bannerAccent.swatch }}
+                  >
+                    <MapPin className="w-5 h-5" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[11px] font-bold tracking-wide text-white/55 mb-0.5">
+                      مكان الصنايعي في اليوم ده
+                      {dateLabel ? ` · ${dateLabel}` : ""}
+                    </p>
+                    {flow.dayLocation && !flow.dayLocation.isWorking ? (
+                      <p className="text-sm font-bold text-amber-300">
+                        {displayBarberName} مش شغال في اليوم ده
+                      </p>
+                    ) : bannerName ? (
+                      <>
+                        <p className="text-base md:text-lg font-heading font-black leading-snug text-white">
+                          {displayBarberName} موجود في فرع{" "}
+                          <span
+                            className="underline decoration-2 underline-offset-2"
+                            style={{ color: bannerAccent.swatch }}
+                          >
+                            {bannerAccent.labelAr}
+                          </span>
+                        </p>
+                        <p className="text-sm font-semibold text-[#D4AF37] mt-1 flex items-center gap-2 flex-wrap">
+                          <span>{bannerName}</span>
+                          {flow.dayLocationLoading && (
+                            <span className="inline-flex items-center gap-1 text-[11px] font-medium text-white/45">
+                              <Loader2 className="w-3 h-3 animate-spin text-[#D4AF37]" />
+                              جاري التأكيد…
+                            </span>
+                          )}
+                        </p>
+                        {locBranch?.address && (
+                          <p className="text-xs text-white/55 mt-0.5 leading-relaxed">
+                            {locBranch.address}
+                          </p>
+                        )}
+                      </>
+                    ) : flow.dayLocationError ? (
+                      <p className="text-sm font-medium text-white/70">
+                        تعذر تأكيد الفرع لهذا اليوم — كمّل اختيار الوقت على الفرع المحدد
+                      </p>
+                    ) : (
+                      <p className="text-sm font-bold text-white/70 flex items-center gap-2">
+                        {flow.dayLocationLoading && (
+                          <Loader2 className="w-4 h-4 animate-spin text-[#D4AF37]" />
+                        )}
+                        جاري التأكد من فرع {displayBarberName}...
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
             {flow.slotsError && (
-              <p className="px-6 pt-4 text-sm text-red-600" aria-live="assertive">
+              <p className="px-6 pt-4 text-sm text-red-400" aria-live="assertive">
                 {flow.slotsError}
               </p>
             )}
@@ -677,13 +907,13 @@ const BookingModal = ({
                   : undefined
               }
               slots={flow.slots}
-              isLoading={flow.slotsLoading}
+              isLoading={slotsBusy}
             />
             <div className="px-6 pb-6">
               <button
                 type="button"
                 onClick={handleBack}
-                className="w-full py-3 rounded-xl border border-cut-gold/15 text-cut-black/70 font-medium flex items-center justify-center gap-2 text-sm"
+                className="w-full py-3 rounded-xl border border-white/15 bg-black text-white/80 font-medium flex items-center justify-center gap-2 text-sm hover:bg-white/5 hover:text-white transition-colors"
               >
                 <ArrowLeft className="w-4 h-4" />
                 رجوع للتاريخ
@@ -691,6 +921,7 @@ const BookingModal = ({
             </div>
           </div>
         );
+      }
 
       case "details":
         return (
@@ -702,32 +933,67 @@ const BookingModal = ({
                 <label className="block text-xs font-medium text-cut-black/70 mb-1" htmlFor="bk-phone">
                   رقم الهاتف
                 </label>
-                <input
-                  id="bk-phone"
-                  type="tel"
-                  value={flow.customerPhone}
-                  onChange={(e) => flow.setCustomerPhone(e.target.value)}
-                  placeholder="01xxxxxxxxx"
-                  className="cut-input"
-                  dir="ltr"
-                  autoComplete="tel"
-                />
+                <div className="relative">
+                  <input
+                    id="bk-phone"
+                    type="tel"
+                    value={flow.customerPhone}
+                    onChange={(e) => flow.setCustomerPhone(e.target.value)}
+                    placeholder="01xxxxxxxxx"
+                    className="cut-input pl-10"
+                    dir="ltr"
+                    autoComplete="tel"
+                  />
+                  {lookupStatus === "loading" && (
+                    <Loader2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-cut-gold animate-spin" />
+                  )}
+                  {lookupStatus === "found" && (
+                    <UserCheck className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald-600" />
+                  )}
+                </div>
               </div>
-              <div>
-                <label className="block text-xs font-medium text-cut-black/70 mb-1" htmlFor="bk-name">
-                  الاسم
-                </label>
-                <input
-                  id="bk-name"
-                  type="text"
-                  value={flow.customerName}
-                  onChange={(e) => flow.setCustomerName(e.target.value)}
-                  placeholder="اكتب اسمك"
-                  className="cut-input"
-                  dir="rtl"
-                  autoComplete="name"
-                />
-              </div>
+
+              {lookupStatus === "found" && lookedUpName && (
+                <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-emerald-50 border border-emerald-200">
+                  <UserCheck className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                  <span className="text-emerald-800 text-sm font-medium">
+                    مرحباً، {lookedUpName}
+                  </span>
+                </div>
+              )}
+              {lookupStatus === "new" && (
+                <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-cut-gold/10 border border-cut-gold/25">
+                  <AlertCircle className="w-4 h-4 text-cut-gold flex-shrink-0" />
+                  <span className="text-cut-black/80 text-sm">عميل جديد — أول مرة؟ اكتب اسمك</span>
+                </div>
+              )}
+
+              {/* Name: auto-filled when found; editable otherwise once phone is long enough */}
+              {(lookupStatus === "found" ||
+                lookupStatus === "new" ||
+                flow.customerPhone.replace(/\D/g, "").length >= 8) && (
+                <div>
+                  <label className="block text-xs font-medium text-cut-black/70 mb-1" htmlFor="bk-name">
+                    الاسم
+                  </label>
+                  <input
+                    id="bk-name"
+                    type="text"
+                    value={flow.customerName}
+                    onChange={(e) => flow.setCustomerName(e.target.value)}
+                    placeholder="اكتب اسمك"
+                    readOnly={lookupStatus === "found"}
+                    className={
+                      lookupStatus === "found"
+                        ? "cut-input bg-emerald-50/60 border-emerald-200 cursor-default"
+                        : "cut-input"
+                    }
+                    dir="rtl"
+                    autoComplete="name"
+                  />
+                </div>
+              )}
+
               <div>
                 <label className="block text-xs font-medium text-cut-black/70 mb-1" htmlFor="bk-notes">
                   ملاحظات (اختياري)
@@ -744,8 +1010,13 @@ const BookingModal = ({
             </div>
             <div className="bg-cut-black/[0.04] rounded-xl p-4 mb-4 border border-cut-gold/15 space-y-2 text-sm">
               {displayBranchName && (
-                <div className="flex justify-between">
-                  <span>{displayBranchName}</span>
+                <div className="flex justify-between items-center gap-3">
+                  <span
+                    className={`inline-flex items-center gap-1.5 text-xs font-bold px-2 py-0.5 rounded-md border ${branchAccent.chip} ${branchAccent.chipText}`}
+                  >
+                    <span className={`w-1.5 h-1.5 rounded-full ${branchAccent.dot}`} aria-hidden />
+                    {displayBranchName}
+                  </span>
                   <span className="text-cut-black/50 text-xs">الفرع</span>
                 </div>
               )}
@@ -805,8 +1076,13 @@ const BookingModal = ({
             </p>
             {renderMutationBanner()}
             <div className="bg-cut-black/[0.04] rounded-xl p-5 mb-4 border border-cut-gold/15 space-y-2.5 text-sm">
-              <div className="flex justify-between">
-                <span className="font-medium">{p?.branchName ?? displayBranchName}</span>
+              <div className="flex justify-between items-center gap-3">
+                <span
+                  className={`inline-flex items-center gap-1.5 text-xs font-bold px-2 py-0.5 rounded-md border ${branchAccent.chip} ${branchAccent.chipText}`}
+                >
+                  <span className={`w-1.5 h-1.5 rounded-full ${branchAccent.dot}`} aria-hidden />
+                  {p?.branchName ?? displayBranchName}
+                </span>
                 <span className="text-cut-black/50 text-xs">الفرع</span>
               </div>
               <div className="flex justify-between">
@@ -893,86 +1169,195 @@ const BookingModal = ({
 
       case "success": {
         const booking = flow.created;
+        // Always prefer create response; fall back to in-flow selection so nearest
+        // mode never lands on an empty summary if wire normalize is partial.
+        const confirmedBranch =
+          (booking?.branchName || "").trim() || displayBranchName || "";
+        const confirmedBranchAccent = getBranchAccent(
+          displayBranchCode,
+          confirmedBranch,
+        );
+        const confirmedBarber =
+          (booking?.barberName || "").trim() ||
+          (flow.selectedSlot?.barberName || "").trim() ||
+          (isNearestMode ? "أقرب حلاق متاح" : displayBarberName) ||
+          "";
+        const confirmedDateRaw = (booking?.date || "").trim();
+        const confirmedDateParts = resolveConfirmationDate(
+          confirmedDateRaw,
+          flow.selectedDate,
+        );
+        const confirmedTimeRaw =
+          (booking?.time || "").trim() || flow.selectedSlot?.time || "";
+        const confirmedTime = confirmedTimeRaw
+          ? formatBookingTimeAr(confirmedTimeRaw)
+          : "—";
+        const confirmedServices = (
+          booking?.services?.map((s) => String(s || "").trim()).filter(Boolean) ??
+          []
+        ).length
+          ? booking!.services!.map((s) => String(s || "").trim()).filter(Boolean)
+          : selectedServices.map((s) => s.nameAr || s.nameEn || s.name).filter(Boolean);
+        const confirmedTotal =
+          booking?.totalPrice ??
+          flow.catalogPrice ??
+          (selectedServices.reduce((sum, s) => sum + (s.price || 0), 0) || null);
+
         return (
-          <div className="p-6 text-center" dir="rtl">
-            <div className="w-20 h-20 rounded-full bg-green-50 border-2 border-green-200 flex items-center justify-center mx-auto mb-5">
-              <Check className="w-10 h-10 text-green-500" />
+          <div className="p-5 md:p-6" dir="rtl">
+            {/* Success banner */}
+            <div className="rounded-2xl bg-[#0a0a0a] text-cut-ivory px-5 py-5 mb-4 text-center border border-[#D4AF37]/30 shadow-[0_0_24px_rgba(212,175,55,0.12)]">
+              <div className="w-14 h-14 rounded-full bg-[#D4AF37] flex items-center justify-center mx-auto mb-3 shadow-[0_0_24px_rgba(212,175,55,0.45)]">
+                <Check className="w-7 h-7 text-black" strokeWidth={3} />
+              </div>
+              <h3 className="text-xl md:text-2xl font-heading font-black text-[#D4AF37] mb-1">
+                تم تأكيد حجزك بنجاح
+              </h3>
+              <p className="text-white/65 text-xs md:text-sm">
+                احتفظ بالتفاصيل التالية لموعدك
+              </p>
+              {booking?.bookingCode && (
+                <div className="mt-4 inline-flex flex-col sm:flex-row items-center gap-2 rounded-xl bg-[#D4AF37]/10 border border-[#D4AF37]/25 px-3 py-2">
+                  <span className="text-white/55 text-[11px]">كود الحجز</span>
+                  <span className="font-mono font-bold text-[#D4AF37] tracking-wide text-sm">
+                    {booking.bookingCode}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => void copyCode(booking.bookingCode)}
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#D4AF37] text-black text-[11px] font-bold hover:bg-[#C4A030]"
+                  >
+                    <Copy className="w-3 h-3" />
+                    {copied ? "تم النسخ" : "نسخ"}
+                  </button>
+                </div>
+              )}
             </div>
-            <h3 className="text-2xl font-heading font-bold text-cut-black mb-2">تم تأكيد الحجز!</h3>
-            {booking?.bookingCode && (
-              <div className="mb-4 flex flex-col items-center gap-2">
-                <p className="text-cut-gold font-bold text-sm">كود الحجز: {booking.bookingCode}</p>
-                <button
-                  type="button"
-                  onClick={() => void copyCode(booking.bookingCode)}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-cut-gold/20 text-xs font-bold text-cut-black/70"
-                >
-                  <Copy className="w-3.5 h-3.5" />
-                  {copied ? "تم النسخ" : "نسخ كود الحجز"}
-                </button>
+
+            {/* Key confirmation details — classic black + yellow */}
+            <div
+              className="rounded-2xl bg-[#0a0a0a] border border-[#D4AF37]/20 overflow-hidden mb-4"
+              role="status"
+              aria-live="polite"
+              aria-label="تفاصيل تأكيد الحجز"
+            >
+              <div className="px-4 py-2.5 border-b border-[#D4AF37]/15 bg-[#D4AF37]/[0.06]">
+                <p className="text-[11px] font-bold tracking-widest text-[#D4AF37] uppercase text-center">
+                  ملخص الموعد
+                </p>
+              </div>
+
+              <div className="divide-y divide-[#D4AF37]/15">
+                {/* Branch */}
+                <div className="flex items-start gap-3 px-4 py-4">
+                  <div
+                    className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${confirmedBranchAccent.softBg}`}
+                  >
+                    <MapPin className={`w-5 h-5 ${confirmedBranchAccent.icon}`} />
+                  </div>
+                  <div className="min-w-0 flex-1 text-right">
+                    <p className="text-white/45 text-[11px] mb-1">الفرع</p>
+                    <p
+                      className={`inline-flex items-center gap-1.5 text-base font-bold px-2.5 py-1 rounded-lg border ${confirmedBranchAccent.chip} ${confirmedBranchAccent.chipText}`}
+                    >
+                      <span
+                        className={`w-2 h-2 rounded-full ${confirmedBranchAccent.dot}`}
+                        aria-hidden
+                      />
+                      {confirmedBranch || "—"}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Barber */}
+                <div className="flex items-start gap-3 px-4 py-4">
+                  <div className="w-10 h-10 rounded-xl bg-[#D4AF37]/15 flex items-center justify-center flex-shrink-0">
+                    <Scissors className="w-5 h-5 text-[#D4AF37]" />
+                  </div>
+                  <div className="min-w-0 flex-1 text-right">
+                    <p className="text-white/45 text-[11px] mb-1">الصنايعي</p>
+                    <p className="text-white text-lg font-heading font-bold leading-snug">
+                      {confirmedBarber || "—"}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Day + Date + Time grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x sm:divide-x-reverse divide-[#D4AF37]/15">
+                  <div className="flex items-start gap-3 px-4 py-4">
+                    <div className="w-10 h-10 rounded-xl bg-[#D4AF37]/15 flex items-center justify-center flex-shrink-0">
+                      <CalendarDays className="w-5 h-5 text-[#D4AF37]" />
+                    </div>
+                    <div className="min-w-0 flex-1 text-right">
+                      <p className="text-white/45 text-[11px] mb-1">اليوم والتاريخ</p>
+                      {confirmedDateParts.weekday ? (
+                        <>
+                          <p className="text-white text-lg font-heading font-bold leading-snug">
+                            {confirmedDateParts.weekday}
+                          </p>
+                          <p className="text-white/80 text-sm mt-0.5 font-medium">
+                            {confirmedDateParts.dateLine}
+                          </p>
+                        </>
+                      ) : (
+                        <p className="text-white text-base font-bold">
+                          {confirmedDateParts.full}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3 px-4 py-4">
+                    <div className="w-10 h-10 rounded-xl bg-[#D4AF37]/15 flex items-center justify-center flex-shrink-0">
+                      <Clock className="w-5 h-5 text-[#D4AF37]" />
+                    </div>
+                    <div className="min-w-0 flex-1 text-right">
+                      <p className="text-white/45 text-[11px] mb-1">الساعة</p>
+                      <p className="text-[#D4AF37] text-2xl font-heading font-black tabular-nums leading-none tracking-tight">
+                        {confirmedTime}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Secondary details */}
+            {(confirmedServices.length > 0 || confirmedTotal != null) && (
+              <div className="rounded-xl border border-cut-gold/20 bg-white px-4 py-3 mb-4 space-y-2 text-sm">
+                {confirmedServices.length > 0 && (
+                  <div className="flex justify-between gap-3 items-start">
+                    <span className="font-semibold text-cut-black text-right">
+                      {confirmedServices.join(" + ")}
+                    </span>
+                    <span className="text-cut-black/45 text-xs shrink-0">الخدمات</span>
+                  </div>
+                )}
+                {confirmedTotal != null && (
+                  <div className="flex justify-between gap-3 items-center border-t border-cut-black/5 pt-2">
+                    <span className="text-cut-gold font-black text-base">
+                      {confirmedTotal} جنيه
+                    </span>
+                    <span className="text-cut-black/45 text-xs shrink-0">الإجمالي</span>
+                  </div>
+                )}
               </div>
             )}
-            <div className="bg-cut-black/[0.04] rounded-xl p-4 mb-5 text-right border border-cut-gold/10 space-y-2 text-sm">
-              {(booking?.branchName || displayBranchName) && (
-                <div className="flex justify-between">
-                  <span>{booking?.branchName ?? displayBranchName}</span>
-                  <span className="text-cut-black/50 text-xs">الفرع</span>
-                </div>
-              )}
-              {booking?.barberName && (
-                <div className="flex justify-between">
-                  <span>{booking.barberName}</span>
-                  <span className="text-cut-black/50 text-xs">الحلاق</span>
-                </div>
-              )}
-              {booking?.date && (
-                <div className="flex justify-between">
-                  <span>{booking.date}</span>
-                  <span className="text-cut-black/50 text-xs">التاريخ</span>
-                </div>
-              )}
-              {booking?.time && (
-                <div className="flex justify-between">
-                  <span>{booking.time}</span>
-                  <span className="text-cut-black/50 text-xs">الوقت</span>
-                </div>
-              )}
-              {booking?.services?.length ? (
-                <div className="flex justify-between">
-                  <span>{booking.services.join(" + ")}</span>
-                  <span className="text-cut-black/50 text-xs">الخدمات</span>
-                </div>
-              ) : null}
-              {booking?.totalPrice != null && (
-                <div className="flex justify-between">
-                  <span className="text-cut-gold font-bold">{booking.totalPrice} جنيه</span>
-                  <span className="text-cut-black/50 text-xs">الإجمالي</span>
-                </div>
-              )}
-            </div>
+
             {booking?.message && (
-              <p className="text-cut-black/60 text-xs mb-4">{booking.message}</p>
+              <p className="text-cut-black/60 text-xs mb-4 text-center">{booking.message}</p>
             )}
+
             <div className="flex flex-col gap-2">
-              {/* Temporarily hidden per request:
-              {booking?.bookingCode && (
-                <a
-                  href={`/booking?code=${encodeURIComponent(booking.bookingCode)}`}
-                  className="w-full py-3 rounded-xl border border-cut-gold/30 text-cut-black font-bold text-center"
-                >
-                  عرض تفاصيل الحجز
-                </a>
-              )}
-              */}
               <button
                 type="button"
                 onClick={() => {
                   setConfettiTrigger((p) => p + 1);
                   setTimeout(handleClose, 400);
                 }}
-                className="w-full py-3 rounded-xl bg-cut-gold text-black font-bold"
+                className="w-full py-3.5 rounded-xl bg-[#D4AF37] text-black font-bold text-base hover:bg-[#C4A030] shadow-md shadow-[#D4AF37]/25"
               >
-                إغلاق
+                تم، شكراً
               </button>
             </div>
           </div>
@@ -982,14 +1367,8 @@ const BookingModal = ({
   };
 
   const activeStepId = stepForHeader(flow.step);
-  const headerSteps = isBarberFirst
-    ? [
-        { id: "service", label: "الخدمة", number: 1 },
-        { id: "slots", label: "الموعد", number: 2 },
-        { id: "details", label: "بياناتك", number: 3 },
-        { id: "review", label: "مراجعة", number: 4 },
-      ]
-    : effectiveInitialMode
+  const headerSteps =
+    effectiveInitialMode || isBarberFirst
       ? steps.filter((s) => s.id !== "mode")
       : steps;
 
@@ -998,7 +1377,7 @@ const BookingModal = ({
       <ConfettiBurst trigger={confettiTrigger} particleCount={55} />
       <Dialog open={open} onOpenChange={handleClose}>
         <DialogContent
-          className="max-w-4xl w-[95vw] max-h-[92vh] p-0 bg-cut-ivory border border-cut-gold/20 overflow-hidden gap-0 rounded-2xl shadow-2xl"
+          className="max-w-4xl w-[95vw] max-h-[92vh] p-0 bg-white border border-[#D4AF37]/25 overflow-hidden gap-0 rounded-2xl shadow-2xl"
           dir="rtl"
         >
           <VisuallyHidden>
@@ -1041,6 +1420,7 @@ const BookingModal = ({
                 }
                 mode={flow.mode}
                 branchName={displayBranchName}
+                branchCode={displayBranchCode}
               />
             </div>
 

@@ -189,14 +189,16 @@ function normalizeCreateResponse(raw: CreateApiResponse): BookingCreateResponse 
 
   const servicesRaw = (src as { services?: unknown }).services;
   const services: string[] = Array.isArray(servicesRaw)
-    ? servicesRaw.map((s) => {
-        if (typeof s === "string") return s;
-        if (s && typeof s === "object") {
-          const item = s as { nameAr?: string; nameEn?: string; name?: string };
-          return String(item.nameAr || item.nameEn || item.name || "");
-        }
-        return "";
-      })
+    ? servicesRaw
+        .map((s) => {
+          if (typeof s === "string") return s.trim();
+          if (s && typeof s === "object") {
+            const item = s as { nameAr?: string; nameEn?: string; name?: string };
+            return String(item.nameAr || item.nameEn || item.name || "").trim();
+          }
+          return "";
+        })
+        .filter(Boolean)
     : [];
 
   const nestedRec = nested as Record<string, unknown> | null;
@@ -204,18 +206,23 @@ function normalizeCreateResponse(raw: CreateApiResponse): BookingCreateResponse 
   const barber = srcRec.barber as { nameAr?: string; nameEn?: string; name?: string } | undefined;
   const branch = srcRec.branch as { branchCode?: string; branchName?: string } | undefined;
 
+  // Prefer calendarDate for customer-facing display when workDate differs (overnight).
+  const date = String(
+    srcRec.calendarDate ?? srcRec.date ?? srcRec.workDate ?? "",
+  ).trim();
+
   return {
     bookingCode: String(
       srcRec.bookingCode ?? srcRec.code ?? raw.bookingCode ?? raw.code ?? "",
-    ),
+    ).trim(),
     bookingAccessToken: String(
       srcRec.bookingAccessToken ?? raw.bookingAccessToken ?? nestedRec?.bookingAccessToken ?? "",
-    ) || undefined,
-    date: String(srcRec.date ?? srcRec.calendarDate ?? srcRec.workDate ?? ""),
-    time: String(srcRec.time ?? ""),
+    ).trim() || undefined,
+    date,
+    time: String(srcRec.time ?? "").trim(),
     barberName: String(
       srcRec.barberName ?? barber?.nameAr ?? barber?.name ?? barber?.nameEn ?? "",
-    ),
+    ).trim(),
     services,
     totalPrice:
       (srcRec.totalPrice as number | undefined) ??
@@ -225,14 +232,18 @@ function normalizeCreateResponse(raw: CreateApiResponse): BookingCreateResponse 
       (srcRec.totalDurationMinutes as number | undefined) ??
       (nestedRec?.totalDurationMinutes as number | undefined),
     message: raw.message ?? (nestedRec?.message as string | undefined),
-    branchCode:
+    branchCode: (
       (srcRec.branchCode as string | undefined) ??
       branch?.branchCode ??
-      (nestedRec?.branch as { branchCode?: string } | undefined)?.branchCode,
-    branchName:
+      (nestedRec?.branch as { branchCode?: string } | undefined)?.branchCode ??
+      ""
+    ).trim() || undefined,
+    branchName: (
       (srcRec.branchName as string | undefined) ??
       branch?.branchName ??
-      (nestedRec?.branch as { branchName?: string } | undefined)?.branchName,
+      (nestedRec?.branch as { branchName?: string } | undefined)?.branchName ??
+      ""
+    ).trim() || undefined,
   };
 }
 

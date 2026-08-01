@@ -72,46 +72,17 @@ const barberProfile = {
   ],
 };
 
-const crossPayload = {
-  ok: true,
-  barber: { empId: 5, nameAr: "أحمد" },
-  branches: [
-    { branchCode: "CAMP_CAESAR", branchName: "كامب شيزار" },
-    { branchCode: "GLEEM", branchName: "جليم" },
-  ],
-  days: ["2026-07-28"],
-  slots: [
-    {
-      branchCode: "GLEEM",
-      branchName: "جليم",
-      date: "2026-07-28",
-      time: "13:00",
-      dayOffset: 0 as const,
-    },
-    {
-      branchCode: "CAMP_CAESAR",
-      branchName: "كامب شيزار",
-      date: "2026-07-28",
-      time: "13:00",
-      dayOffset: 0 as const,
-    },
-    {
-      branchCode: "GLEEM",
-      branchName: "جليم",
-      date: "2026-07-28",
-      time: "01:15",
-      dayOffset: 1 as const,
-    },
-  ],
-  meta: { slotCount: 3, branchCount: 2, dayCount: 1 },
-};
-
-describe("BookingModalBarberFirst cross-branch (10D)", () => {
+describe("BookingModalBarberFirst calendar flow", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     installDefaultCatalogMocks(fns);
     fns.getPublicBarberProfile.mockResolvedValue(apiOk(barberProfile));
-    fns.getCrossBranchAvailability.mockResolvedValue(apiOk(crossPayload));
+    fns.getAvailableDays.mockResolvedValue(
+      apiOk([{ date: "2026-07-28", available: true }]),
+    );
+    fns.getAvailableSlots.mockResolvedValue(
+      apiOk([{ time: "13:00", available: true, dayOffset: 0 as const }]),
+    );
     fns.createBookingPlan.mockResolvedValue(apiOk(mockPlan));
     localStorage.clear();
   });
@@ -133,27 +104,27 @@ describe("BookingModalBarberFirst cross-branch (10D)", () => {
     expect(fns.getPublicBarberProfile).not.toHaveBeenCalled();
   });
 
-  it("starts on service step without branch requirement", async () => {
+  it("starts on branch step then loads filtered services for a branch", async () => {
     const { result } = renderHook(() =>
       useBookingFlow({
         open: true,
-        branchCode: undefined,
+        branchCode: "GLEEM",
         entryMode: "barber_first",
         initialBarber: { id: 5, name: "أحمد" },
         skipModeStep: true,
       }),
     );
-    expect(result.current.step).toBe("service");
+    expect(result.current.step).toBe("branch");
     await waitFor(() => expect(result.current.catalogLoading).toBe(false));
     expect(result.current.services.map((s) => s.id)).toEqual([10]);
     expect(fns.listBranchBarbers).not.toHaveBeenCalled();
   });
 
-  it("loads cross-branch once on slots step; tab change does not refetch", async () => {
+  it("continue after services opens classic calendar (date), not cross-branch slots", async () => {
     const { result } = renderHook(() =>
       useBookingFlow({
         open: true,
-        branchCode: undefined,
+        branchCode: "GLEEM",
         entryMode: "barber_first",
         initialBarber: { id: 5, name: "أحمد" },
         skipModeStep: true,
@@ -162,59 +133,23 @@ describe("BookingModalBarberFirst cross-branch (10D)", () => {
     await waitFor(() => expect(result.current.catalogLoading).toBe(false));
     act(() => {
       result.current.selectServices([10]);
+      result.current.setStep("service");
     });
     act(() => {
       result.current.goToSlotsStep();
     });
-    await waitFor(() => expect(fns.getCrossBranchAvailability).toHaveBeenCalled());
-    await waitFor(() => expect(result.current.crossSlotsLoading).toBe(false));
-    expect(fns.getCrossBranchAvailability).toHaveBeenCalledTimes(1);
-    expect(result.current.crossBranches.map((b) => b.branchCode)).toEqual([
-      "CAMP_CAESAR",
-      "GLEEM",
-    ]);
-    expect(result.current.crossSlots).toHaveLength(3);
-
-    act(() => {
-      result.current.setCrossBranchTab("GLEEM");
-    });
-    expect(fns.getCrossBranchAvailability).toHaveBeenCalledTimes(1);
-    expect(result.current.crossTab).toBe("GLEEM");
+    expect(result.current.step).toBe("date");
+    await waitFor(() => expect(result.current.daysLoading).toBe(false));
+    expect(fns.getAvailableDays).toHaveBeenCalled();
+    expect(fns.getCrossBranchAvailability).not.toHaveBeenCalled();
+    expect(result.current.days.some((d) => d.date === "2026-07-28")).toBe(true);
   });
 
-  it("Ahmed-like single branch keeps slots without requiring All tab data loss", async () => {
-    fns.getCrossBranchAvailability.mockResolvedValue(
-      apiOk({
-        ...crossPayload,
-        branches: [{ branchCode: "CAMP_CAESAR", branchName: "كامب شيزار" }],
-        slots: [crossPayload.slots[1]],
-        meta: { slotCount: 1, branchCount: 1, dayCount: 1 },
-      }),
-    );
+  it("selecting a calendar day then time stores plan inputs from branch context", async () => {
     const { result } = renderHook(() =>
       useBookingFlow({
         open: true,
-        entryMode: "barber_first",
-        initialBarber: { id: 18, name: "احمد" },
-        skipModeStep: true,
-      }),
-    );
-    await waitFor(() => expect(result.current.catalogLoading).toBe(false));
-    act(() => {
-      result.current.selectServices([10]);
-    });
-    act(() => {
-      result.current.goToSlotsStep();
-    });
-    await waitFor(() => expect(result.current.crossSlots.length).toBe(1));
-    expect(result.current.crossBranches).toHaveLength(1);
-    expect(result.current.crossSlots[0].branchCode).toBe("CAMP_CAESAR");
-  });
-
-  it("selecting a slot stores branchCode/date/time/dayOffset for plan", async () => {
-    const { result } = renderHook(() =>
-      useBookingFlow({
-        open: true,
+        branchCode: "GLEEM",
         entryMode: "barber_first",
         initialBarber: { id: 5, name: "أحمد" },
         skipModeStep: true,
@@ -223,21 +158,21 @@ describe("BookingModalBarberFirst cross-branch (10D)", () => {
     await waitFor(() => expect(result.current.catalogLoading).toBe(false));
     act(() => {
       result.current.selectServices([10]);
-    });
-    act(() => {
       result.current.goToSlotsStep();
     });
-    await waitFor(() => expect(result.current.crossSlotsLoading).toBe(false));
+    await waitFor(() => expect(result.current.daysLoading).toBe(false));
 
-    const overnight = crossPayload.slots[2];
     act(() => {
-      result.current.selectCrossBranchSlot(overnight);
-      result.current.setCustomerName("Smoke 10D");
+      result.current.selectDate(new Date(2026, 6, 28));
+    });
+    expect(result.current.step).toBe("time");
+    await waitFor(() => expect(result.current.slotsLoading).toBe(false));
+
+    act(() => {
+      result.current.selectSlot({ time: "13:00", available: true, dayOffset: 0 });
+      result.current.setCustomerName("Smoke calendar");
       result.current.setCustomerPhone("01099887766");
     });
-    expect(result.current.bookingBranchCode).toBe("GLEEM");
-    expect(result.current.selectedSlot?.dayOffset).toBe(1);
-    expect(result.current.selectedSlot?.time).toBe("01:15");
     expect(result.current.step).toBe("details");
 
     await act(async () => {
@@ -247,8 +182,7 @@ describe("BookingModalBarberFirst cross-branch (10D)", () => {
       expect.objectContaining({
         branchCode: "GLEEM",
         date: "2026-07-28",
-        time: "01:15",
-        dayOffset: 1,
+        time: "13:00",
         mode: "specific",
         empId: 5,
         serviceIds: [10],
@@ -258,10 +192,29 @@ describe("BookingModalBarberFirst cross-branch (10D)", () => {
     expect(result.current.plan?.planToken).toBe(mockPlan.planToken);
   });
 
-  it("same-time slots in different branches remain separate selections", async () => {
+  it("legacy slots step still loads cross-branch when forced", async () => {
+    fns.getCrossBranchAvailability.mockResolvedValue(
+      apiOk({
+        ok: true,
+        barber: { empId: 5, nameAr: "أحمد" },
+        branches: barberProfile.branches,
+        days: ["2026-07-28"],
+        slots: [
+          {
+            branchCode: "GLEEM",
+            branchName: "جليم",
+            date: "2026-07-28",
+            time: "13:00",
+            dayOffset: 0 as const,
+          },
+        ],
+        meta: { slotCount: 1, branchCount: 2, dayCount: 1 },
+      }),
+    );
     const { result } = renderHook(() =>
       useBookingFlow({
         open: true,
+        branchCode: "GLEEM",
         entryMode: "barber_first",
         initialBarber: { id: 5, name: "أحمد" },
         skipModeStep: true,
@@ -270,46 +223,11 @@ describe("BookingModalBarberFirst cross-branch (10D)", () => {
     await waitFor(() => expect(result.current.catalogLoading).toBe(false));
     act(() => {
       result.current.selectServices([10]);
-    });
-    act(() => {
-      result.current.goToSlotsStep();
+      result.current.setStep("slots");
     });
     await waitFor(() => expect(result.current.crossSlotsLoading).toBe(false));
-
-    act(() => {
-      result.current.selectCrossBranchSlot(crossPayload.slots[0]);
-    });
-    const keyGleem = result.current.selectedCrossSlotKey;
-    act(() => {
-      result.current.selectCrossBranchSlot(crossPayload.slots[1]);
-    });
-    const keyCamp = result.current.selectedCrossSlotKey;
-    expect(keyGleem).not.toBe(keyCamp);
-    expect(result.current.bookingBranchCode).toBe("CAMP_CAESAR");
-  });
-
-  it("changing services aborts and does not keep stale slots", async () => {
-    const { result } = renderHook(() =>
-      useBookingFlow({
-        open: true,
-        entryMode: "barber_first",
-        initialBarber: { id: 5, name: "أحمد" },
-        skipModeStep: true,
-      }),
-    );
-    await waitFor(() => expect(result.current.catalogLoading).toBe(false));
-    act(() => {
-      result.current.selectServices([10]);
-    });
-    act(() => {
-      result.current.goToSlotsStep();
-    });
-    await waitFor(() => expect(result.current.crossSlots.length).toBe(3));
-    act(() => {
-      result.current.selectServices([10]);
-    });
-    expect(result.current.crossSlots).toEqual([]);
-    expect(result.current.bookingBranchCode).toBeUndefined();
+    expect(fns.getCrossBranchAvailability).toHaveBeenCalledTimes(1);
+    expect(result.current.crossSlots).toHaveLength(1);
   });
 
   it("branch-first still uses per-branch days/slots APIs", async () => {
