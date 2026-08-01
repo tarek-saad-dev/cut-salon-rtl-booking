@@ -14,7 +14,7 @@ type Benefit = [string, string, string, LucideIcon];
 type BookingStep = [string, string, string];
 
 const copy: { hero: { eyebrow: string; title: React.ReactNode; body: string }; benefits: Benefit[]; steps: BookingStep[] } = {
-  hero: { eyebrow: "THE CUT ISSUE — PREMIUM GROOMING", title: <>Precision Starts Here.<br />Your Look, Your Call.</>, body: "Experience refined grooming at CUT Salon — from precision haircuts and beard detailing to complete preparation for your biggest occasions." },
+  hero: { eyebrow: "THE CUT ISSUE — PREMIUM GROOMING", title: <>Define the CUT</>, body: "Experience refined grooming at CUT Salon — from precision haircuts and beard detailing to complete preparation for your biggest occasions." },
   benefits: [
     ["01", "Precision in Every Detail", "Cuts and grooming tailored to your features, hair and personal style.", Scissors],
     ["02", "Skilled Professionals", "Choose your preferred barber or let us match you with the right specialist.", UserCheck],
