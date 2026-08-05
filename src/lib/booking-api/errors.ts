@@ -84,6 +84,56 @@ export function getArabicErrorMessage(code: PublicBookingErrorCode): string {
   return ARABIC_ERROR_MESSAGES[code] ?? ARABIC_ERROR_MESSAGES.UNKNOWN_ERROR!;
 }
 
+const ENGLISH_ERROR_MESSAGES: Partial<Record<PublicBookingErrorCode, string>> = {
+  BRANCH_REQUIRED: "Please select a branch first",
+  INVALID_BRANCH: "The selected branch is invalid",
+  BOOKING_DISABLED: "Booking is currently disabled",
+  SERVICE_NOT_FOUND: "The selected service is unavailable",
+  SERVICE_NOT_BOOKABLE: "This service isn’t available for online booking",
+  BARBER_NOT_FOUND: "The selected barber is unavailable",
+  BARBER_NOT_AVAILABLE: "This barber isn’t available at that time",
+  SLOT_NOT_AVAILABLE: "That slot is no longer available — please pick another time",
+  SLOT_CONFLICT: "That slot is already booked — please pick another time",
+  PLAN_TOKEN_EXPIRED: "Your booking plan expired — please review and confirm again",
+  PLAN_TOKEN_REQUEST_MISMATCH: "Booking details changed — please review and confirm again",
+  PLAN_TOKEN_REQUIRED: "Please review booking details before confirming",
+  PLAN_TOKEN_INVALID: "Booking plan is invalid — please prepare the booking again",
+  PLAN_CREATE_MISMATCH: "Couldn’t match the booking plan — please reselect",
+  SLOT_UNAVAILABLE: "That slot is no longer available — please pick another time",
+  NO_ELIGIBLE_BARBER: "No barber is available for these choices right now",
+  EMPLOYEE_INTERVAL_BUSY_GLOBAL: "That slot is booked — please pick another time",
+  BARBER_FULLY_BOOKED: "This barber is fully booked at that time",
+  BOOKING_NOT_FOUND: "Couldn’t find the booking or verify ownership",
+  BOOKING_NOT_FOUND_OR_UNAUTHORIZED: "Couldn’t find the booking or verify ownership",
+  BOOKING_ALREADY_CANCELLED: "This booking was already cancelled",
+  BOOKING_ALREADY_IN_SERVICE: "Online cancellation isn’t available after service has started",
+  BOOKING_ALREADY_COMPLETED: "This booking is completed and can’t be cancelled",
+  BOOKING_HAS_PAYMENT: "A payment is linked to this booking — please contact the branch",
+  BOOKING_CANCELLATION_REQUIRES_STAFF: "Cancelling this booking requires staff at the branch",
+  BOOKING_CANCELLATION_WINDOW_CLOSED: "The online cancellation window has closed",
+  BOOKING_NOT_CANCELLABLE: "This booking can’t be cancelled online",
+  CANCEL_NOT_ALLOWED: "This booking can’t be cancelled",
+  CANCEL_TOO_LATE: "The online cancellation window has closed",
+  CUSTOMER_PHONE_REQUIRED: "Please enter a phone number",
+  CUSTOMER_NAME_REQUIRED: "Please enter your name",
+  RATE_LIMIT_EXCEEDED: "Too many requests — please wait a moment",
+  VALIDATION_ERROR: "Invalid data — please review",
+  IDEMPOTENT_REQUEST_CONFLICT: "Your request is being processed — please wait",
+  INTERNAL_ERROR: "Something went wrong — please try again later",
+  UNKNOWN_ERROR: "An unexpected error occurred — please try again",
+};
+
+/** Locale-aware public booking API error message (UI display). */
+export function getLocalizedBookingErrorMessage(
+  code: PublicBookingErrorCode,
+  lang: "ar" | "en" = "ar",
+): string {
+  if (lang === "en") {
+    return ENGLISH_ERROR_MESSAGES[code] ?? ENGLISH_ERROR_MESSAGES.UNKNOWN_ERROR!;
+  }
+  return getArabicErrorMessage(code);
+}
+
 // ─── Backend Error Parsing ───────────────────────────────────────────────────
 
 interface BackendErrorShape {

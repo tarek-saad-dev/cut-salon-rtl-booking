@@ -57,8 +57,8 @@ interface LocationApiResponse {
 
 function normalizeBarber(raw: BarbersResponse["barbers"][number]): PublicBarber {
   const id = Number(raw.id ?? raw.empId);
-  // Keep CAMP_CAESAR here — Phase 10D barber-first slots include Camp when eligible.
-  // Branch-first pickers still filter Camp via BranchContext.
+  // Keep CAMP_CAESAR here — public booking includes Camp when API returns it.
+  // BranchContext no longer excludes Camp from the public picker.
   const branches = (raw.branches ?? [])
     .filter((b) => b?.branchCode)
     .map(

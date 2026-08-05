@@ -126,13 +126,17 @@ export function resolveCoreServices(services: BookingService[]): {
   secondary: BookingService[];
 } {
   const primary: BookingService[] = [];
+  const used = new Set<number>();
   for (const slot of PRIMARY_SLOTS) {
     const s = findServiceByNames(services, slot.names);
-    if (s) primary.push(s);
+    if (s && !used.has(s.id)) {
+      primary.push(s);
+      used.add(s.id);
+    }
   }
   const secondary = SECONDARY_NAMES
-    .map(n => findServiceByNames(services, [n]))
-    .filter((s): s is BookingService => s != null);
+    .map((n) => findServiceByNames(services, [n]))
+    .filter((s): s is BookingService => s != null && !used.has(s.id));
   return { primary, secondary };
 }
 
@@ -263,22 +267,22 @@ export function groupRecommendedAddons(
   const map: Record<OtherServiceCatKey, BookingService[]> = {
     skincare: [], masks: [], hair: [], beard_face: [], comfort: [], other: [],
   };
-  const recIds = new Set(recommended.map(s => s.id));
+  const placed = new Set<number>();
 
   for (const cat of OTHER_SERVICE_CATEGORIES) {
     for (const s of recommended) {
-      if (flexMatch(s.name, cat.serviceNames)) map[cat.key].push(s);
+      if (placed.has(s.id)) continue;
+      if (flexMatch(s.name, cat.serviceNames)) {
+        map[cat.key].push(s);
+        placed.add(s.id);
+      }
     }
   }
 
   for (const s of recommended) {
-    const alreadyPlaced = Object.values(map).some(list => list.some(x => x.id === s.id));
-    if (!alreadyPlaced) map[guessOtherCategoryKey(s.name)].push(s);
-  }
-
-  // Preserve only services in recommended set (guard against double placement)
-  for (const key of Object.keys(map) as OtherServiceCatKey[]) {
-    map[key] = map[key].filter(s => recIds.has(s.id));
+    if (placed.has(s.id)) continue;
+    map[guessOtherCategoryKey(s.name)].push(s);
+    placed.add(s.id);
   }
 
   return map;

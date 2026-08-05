@@ -16,6 +16,7 @@ import {
   OTHER_SERVICE_CATEGORIES,
   type OtherServiceCatKey,
 } from "@/lib/bookingServiceGroups";
+import { useBookingTranslations } from "@/hooks/useBookingTranslations";
 
 interface BookingServiceSelectProps {
   services: BookingService[];
@@ -36,6 +37,26 @@ interface ServicePres {
   icon: LucideIcon;
   badge?: string;
 }
+
+const BADGE_I18N: Record<string, string> = {
+  "الأكثر طلبًا": "service.badgeMostRequested",
+  "باكدج مميز": "service.badgeFeaturedPackage",
+  "ينصح بها": "service.badgeRecommended",
+  "تكمل الخدمة": "service.badgeCompletesService",
+  "تجربة مميزة": "service.badgePremiumExperience",
+  "عناية قوية": "service.badgeStrongCare",
+  "لمسة سريعة": "service.badgeQuickTouch",
+  "لمسة راحة": "service.badgeComfortTouch",
+};
+
+const CAT_I18N: Record<OtherServiceCatKey, string> = {
+  skincare: "service.catSkincare",
+  masks: "service.catMasks",
+  hair: "service.catHair",
+  beard_face: "service.catBeardFace",
+  comfort: "service.catComfort",
+  other: "service.otherServices",
+};
 
 const PRES: Record<string, ServicePres> = {
   "Hair Cut": { arabicTitle: "Hair Cut", description: "تدريج وقص الشعر من الأعلى بشكل مرتب ومناسب لستايلك.", salesText: "مناسبة لمعظم العملاء اللي عاوزين نتيجة مرتبة وواضحة.", icon: Scissors, badge: "الأكثر طلبًا" },
@@ -113,7 +134,7 @@ function getPresForService(service: BookingService): ServicePres | null {
   );
 }
 
-/** Arabic (heading) + English (editorial) — brand fonts. */
+/** Locale-aware primary + secondary language lines — brand fonts. */
 function ServiceBilingualTitle({
   service,
   selected,
@@ -123,11 +144,17 @@ function ServiceBilingualTitle({
   selected?: boolean;
   compact?: boolean;
 }) {
+  const { lang } = useBookingTranslations();
   const ar = serviceNameAr(service);
   const en = serviceNameEn(service);
-  const showEn = Boolean(en && en !== ar);
+  const primary = lang === "en" ? en || ar : ar;
+  const secondary = lang === "en" ? (ar && ar !== primary ? ar : null) : en && en !== ar ? en : null;
+  const primaryLang = lang === "en" && en ? "en" : "ar";
+  const secondaryLang = primaryLang === "en" ? "ar" : "en";
   const tone = selected ? "text-gray-900" : "text-gray-800";
-  const enTone = selected ? "text-[#D4AF37]" : "text-[#D4AF37]/75";
+  const enTone = selected
+    ? "text-[var(--booking-text-secondary)]"
+    : "text-[var(--booking-text-secondary)]";
 
   return (
     <div className="min-w-0">
@@ -135,24 +162,30 @@ function ServiceBilingualTitle({
         className={`font-heading font-bold leading-tight ${tone} ${
           compact ? "text-sm" : "text-base md:text-[17px]"
         }`}
-        lang="ar"
-        dir="rtl"
+        lang={primaryLang}
+        dir={primaryLang === "ar" ? "rtl" : "ltr"}
       >
-        {ar}
+        {primary}
       </p>
-      {showEn ? (
+      {secondary ? (
         <p
           className={`font-editorial font-medium leading-snug tracking-wide ${enTone} ${
             compact ? "mt-0.5 text-[11px]" : "mt-1 text-xs md:text-[13px]"
           }`}
-          lang="en"
-          dir="ltr"
+          lang={secondaryLang}
+          dir={secondaryLang === "ar" ? "rtl" : "ltr"}
         >
-          {en}
+          {secondary}
         </p>
       ) : null}
     </div>
   );
+}
+
+function localizeBadge(badge: string | undefined, t: (key: string) => string): string | null {
+  if (!badge) return null;
+  const key = BADGE_I18N[badge];
+  return key ? t(key) : badge;
 }
 
 const TAB_ICONS: Record<OtherServiceCatKey, LucideIcon> = {
@@ -181,15 +214,16 @@ const SkeletonCard = () => (
 const PrimaryCard = ({
   service, isSelected, onSelect,
 }: { service: BookingService; isSelected: boolean; onSelect: () => void }) => {
+  const { t, format } = useBookingTranslations();
   const p = getPresForService(service);
   const Icon = p?.icon ?? Scissors;
   const desc = p?.description ?? "";
   const sales = p?.salesText ?? "";
-  const badge = p?.badge;
+  const badge = localizeBadge(p?.badge, t);
 
   return (
     <button type="button" onClick={onSelect} className={`
-      w-full rounded-2xl border text-right transition-all duration-200 overflow-hidden group cursor-pointer
+      w-full rounded-2xl border text-start transition-all duration-200 overflow-hidden group cursor-pointer
       ${isSelected
         ? "border-cut-gold bg-cut-gold/[0.06] shadow-[0_0_24px_rgba(212,175,55,0.15)] ring-1 ring-cut-gold/20"
         : "border-gray-150 bg-white hover:border-cut-gold/40 hover:shadow-sm"
@@ -227,11 +261,11 @@ const PrimaryCard = ({
             )}
             <div className="flex items-center gap-3 mt-3">
               <span className="inline-flex items-center gap-1 text-cut-gold font-bold text-sm">
-                <Banknote className="w-3.5 h-3.5" />{service.price} جنيه
+                <Banknote className="w-3.5 h-3.5" />{format.price(service.price)}
               </span>
               <span className="text-gray-300">·</span>
               <span className="inline-flex items-center gap-1 text-gray-400 text-xs">
-                <Clock className="w-3.5 h-3.5" />{service.durationMinutes} دقيقة
+                <Clock className="w-3.5 h-3.5" />{format.duration(service.durationMinutes)}
               </span>
             </div>
           </div>
@@ -244,13 +278,14 @@ const PrimaryCard = ({
 const SecondaryCard = ({
   service, isSelected, onSelect,
 }: { service: BookingService; isSelected: boolean; onSelect: () => void }) => {
+  const { format } = useBookingTranslations();
   const p = getPresForService(service);
   const Icon = p?.icon ?? Scissors;
   const desc = p?.description ?? "";
 
   return (
     <button type="button" onClick={onSelect} className={`
-      w-full rounded-xl border p-3.5 text-right transition-all duration-150 group cursor-pointer
+      w-full rounded-xl border p-3.5 text-start transition-all duration-150 group cursor-pointer
       ${isSelected
         ? "border-cut-gold bg-cut-gold/[0.06] shadow-sm shadow-cut-gold/10 ring-1 ring-cut-gold/20"
         : "border-gray-150 bg-white hover:border-cut-gold/40"
@@ -264,9 +299,9 @@ const SecondaryCard = ({
           <ServiceBilingualTitle service={service} selected={isSelected} compact />
           {desc && <p className="text-gray-400 text-[11px] mt-1 leading-snug">{desc}</p>}
           <p className="text-gray-400 text-xs mt-1.5 flex items-center gap-2">
-            <span className="flex items-center gap-0.5 text-cut-gold font-bold"><Banknote className="w-3 h-3" />{service.price} جنيه</span>
+            <span className="flex items-center gap-0.5 text-cut-gold font-bold"><Banknote className="w-3 h-3" />{format.price(service.price)}</span>
             <span className="text-gray-300">·</span>
-            <span className="flex items-center gap-0.5"><Clock className="w-3 h-3" />{service.durationMinutes} د</span>
+            <span className="flex items-center gap-0.5"><Clock className="w-3 h-3" />{format.duration(service.durationMinutes)}</span>
           </p>
         </div>
         <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all ${isSelected ? "border-cut-gold bg-cut-gold" : "border-gray-200"}`}>
@@ -280,14 +315,15 @@ const SecondaryCard = ({
 const OtherServiceCard = ({
   service, isSelected, onToggle,
 }: { service: BookingService; isSelected: boolean; onToggle: () => void }) => {
+  const { t, format } = useBookingTranslations();
   const p = getPresForService(service);
   const Icon = p?.icon ?? Plus;
   const desc = p?.description ?? "";
-  const badge = p?.badge;
+  const badge = localizeBadge(p?.badge, t);
 
   return (
     <button type="button" onClick={onToggle} className={`
-      w-full rounded-xl border p-3.5 text-right transition-all duration-150 group cursor-pointer
+      w-full rounded-xl border p-3.5 text-start transition-all duration-150 group cursor-pointer
       ${isSelected
         ? "border-cut-gold bg-cut-gold/[0.06] shadow-sm shadow-cut-gold/10 ring-1 ring-cut-gold/20"
         : "border-gray-150 bg-white hover:border-cut-gold/40"
@@ -308,9 +344,9 @@ const OtherServiceCard = ({
           </div>
           {desc && <p className="text-gray-400 text-[11px] mt-1 leading-snug">{desc}</p>}
           <p className="text-gray-400 text-xs mt-1.5 flex items-center gap-2">
-            <span className="flex items-center gap-0.5 text-cut-gold font-bold"><Banknote className="w-3 h-3" />{service.price} جنيه</span>
+            <span className="flex items-center gap-0.5 text-cut-gold font-bold"><Banknote className="w-3 h-3" />{format.price(service.price)}</span>
             <span className="text-gray-300">·</span>
-            <span className="flex items-center gap-0.5"><Clock className="w-3 h-3" />{service.durationMinutes} د</span>
+            <span className="flex items-center gap-0.5"><Clock className="w-3 h-3" />{format.duration(service.durationMinutes)}</span>
           </p>
         </div>
         <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all ${isSelected ? "border-cut-gold bg-cut-gold" : "border-gray-200"}`}>
@@ -324,14 +360,15 @@ const OtherServiceCard = ({
 const UpsellCard = ({
   service, isSelected, onToggle,
 }: { service: BookingService; isSelected: boolean; onToggle: () => void }) => {
+  const { t, format } = useBookingTranslations();
   const p = getPresForService(service);
   const Icon = p?.icon ?? Plus;
   const desc = p?.description ?? "";
-  const badge = p?.badge;
+  const badge = localizeBadge(p?.badge, t);
 
   return (
     <button type="button" onClick={onToggle} className={`
-      w-full rounded-xl border p-3.5 text-right transition-all duration-150 group cursor-pointer
+      w-full rounded-xl border p-3.5 text-start transition-all duration-150 group cursor-pointer
       ${isSelected
         ? "border-cut-gold bg-cut-gold/[0.04] shadow-sm shadow-cut-gold/10"
         : "border-gray-100 bg-gray-50/50 hover:border-cut-gold/30 hover:bg-white"
@@ -355,9 +392,9 @@ const UpsellCard = ({
           </div>
           {desc && <p className="text-gray-400 text-[11px] mt-1 leading-snug">{desc}</p>}
         </div>
-        <div className="text-left flex-shrink-0">
-          <p className="text-cut-gold font-bold text-xs">+{service.price} ج</p>
-          <p className="text-gray-400 text-[10px]">{service.durationMinutes} د</p>
+        <div className="text-end flex-shrink-0">
+          <p className="text-cut-gold font-bold text-xs">+{format.price(service.price)}</p>
+          <p className="text-gray-400 text-[10px]">{format.duration(service.durationMinutes)}</p>
         </div>
       </div>
     </button>
@@ -375,6 +412,7 @@ const BookingServiceSelect = ({
   selectedCount = 0,
   onContinue,
 }: BookingServiceSelectProps) => {
+  const { t, dir, format } = useBookingTranslations();
   const [activeOtherTab, setActiveOtherTab] = useState<OtherServiceCatKey>("skincare");
   const [activeAddonTab, setActiveAddonTab] = useState<OtherServiceCatKey>("skincare");
 
@@ -386,9 +424,17 @@ const BookingServiceSelect = ({
   const otherGrouped = useMemo(() => groupOtherServices(services), [services]);
 
   const otherTabs = useMemo(() => {
-    const tabs = OTHER_SERVICE_CATEGORIES.filter(c => otherGrouped[c.key].length > 0);
+    const tabs = OTHER_SERVICE_CATEGORIES.filter(c => otherGrouped[c.key].length > 0).map((c) => ({
+      ...c,
+      labelKey: CAT_I18N[c.key],
+    }));
     if (otherGrouped.other.length > 0) {
-      tabs.push({ key: "other", label: "خدمات أخرى", serviceNames: [] });
+      tabs.push({
+        key: "other",
+        label: "خدمات أخرى",
+        labelKey: "service.otherServices",
+        serviceNames: [],
+      });
     }
     return tabs;
   }, [otherGrouped]);
@@ -404,18 +450,26 @@ const BookingServiceSelect = ({
   );
 
   const addonTabs = useMemo(() => {
-    const tabs = OTHER_SERVICE_CATEGORIES.filter(c => addonGrouped[c.key].length > 0);
+    const tabs = OTHER_SERVICE_CATEGORIES.filter(c => addonGrouped[c.key].length > 0).map((c) => ({
+      ...c,
+      labelKey: CAT_I18N[c.key],
+    }));
     if (addonGrouped.other.length > 0) {
-      tabs.push({ key: "other", label: "إضافات أخرى", serviceNames: [] });
+      tabs.push({
+        key: "other",
+        label: "إضافات أخرى",
+        labelKey: "service.otherAddons",
+        serviceNames: [],
+      });
     }
     return tabs;
   }, [addonGrouped]);
 
-  const effectiveOtherTab = otherTabs.find(t => t.key === activeOtherTab)
+  const effectiveOtherTab = otherTabs.find(tab => tab.key === activeOtherTab)
     ? activeOtherTab
     : (otherTabs[0]?.key ?? "skincare");
 
-  const effectiveAddonTab = addonTabs.find(t => t.key === activeAddonTab)
+  const effectiveAddonTab = addonTabs.find(tab => tab.key === activeAddonTab)
     ? activeAddonTab
     : (addonTabs[0]?.key ?? "skincare");
 
@@ -426,8 +480,8 @@ const BookingServiceSelect = ({
 
   if (isLoading) {
     return (
-      <div className="p-5 md:p-6" dir="rtl">
-        <h3 className="text-lg font-heading font-bold text-gray-900 mb-5">اختر الخدمة الأساسية</h3>
+      <div className="p-5 md:p-6" dir={dir}>
+        <h3 className="text-lg font-heading font-bold text-gray-900 mb-5">{t("service.title")}</h3>
         <div className="space-y-4">{[1, 2, 3].map(i => <SkeletonCard key={i} />)}</div>
       </div>
     );
@@ -435,29 +489,29 @@ const BookingServiceSelect = ({
 
   if (services.length === 0) {
     return (
-      <div className="p-6 text-center" dir="rtl">
+      <div className="p-6 text-center" dir={dir}>
         <div className="w-16 h-16 rounded-full bg-gray-50 flex items-center justify-center mx-auto mb-4">
           <Scissors className="w-8 h-8 text-gray-300" />
         </div>
-        <p className="text-gray-500 text-sm">لا توجد خدمات متاحة للحجز الآن</p>
+        <p className="text-gray-500 text-sm">{t("service.empty")}</p>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col min-h-0 flex-1" dir="rtl">
+    <div className="flex flex-col min-h-0 flex-1" dir={dir}>
       <div className="flex-1 overflow-y-auto p-5 md:p-6 pb-4">
         {/* Core services */}
         <div className="mb-2">
-          <h3 className="text-lg font-heading font-bold text-gray-900 mb-0.5">اختر الخدمة الأساسية</h3>
-          <p className="text-gray-400 text-xs">ابدأ بالخدمة الرئيسية المناسبة لك</p>
+          <h3 className="text-lg font-heading font-bold text-gray-900 mb-0.5">{t("service.title")}</h3>
+          <p className="text-gray-400 text-xs">{t("service.subtitle")}</p>
         </div>
 
         {showFallbackList && (
           <div className="space-y-3 mt-4">
             {visibleServices.map(s => (
               <PrimaryCard
-                key={s.id}
+                key={`fallback-${s.id}`}
                 service={s}
                 isSelected={selectedIds.includes(s.id)}
                 onSelect={() => onToggleService(s.id)}
@@ -470,7 +524,7 @@ const BookingServiceSelect = ({
           <div className="space-y-3 mt-4">
             {mainPrimary.map(s => (
               <PrimaryCard
-                key={s.id}
+                key={`primary-${s.id}`}
                 service={s}
                 isSelected={selectedIds.includes(s.id)}
                 onSelect={() => onCoreSelect(s.id)}
@@ -483,13 +537,13 @@ const BookingServiceSelect = ({
           <div className="mt-4">
             <div className="flex items-center gap-2 mb-2.5">
               <div className="h-px flex-1 bg-gray-100" />
-              <span className="text-gray-400 text-[10px] font-bold whitespace-nowrap">اختيارات أخرى</span>
+              <span className="text-gray-400 text-[10px] font-bold whitespace-nowrap">{t("service.otherChoices")}</span>
               <div className="h-px flex-1 bg-gray-100" />
             </div>
             <div className="space-y-2.5">
               {mainSecondary.map(s => (
                 <SecondaryCard
-                  key={s.id}
+                  key={`secondary-${s.id}`}
                   service={s}
                   isSelected={selectedIds.includes(s.id)}
                   onSelect={() => onCoreSelect(s.id)}
@@ -503,9 +557,9 @@ const BookingServiceSelect = ({
         {otherTabs.length > 0 && (
           <div className="mt-7 pt-6 border-t border-gray-100">
             <div className="mb-1">
-              <h4 className="font-heading font-bold text-sm text-gray-800">خدمات أخرى</h4>
+              <h4 className="font-heading font-bold text-sm text-gray-800">{t("service.otherServices")}</h4>
               <p className="text-gray-400 text-[11px] mt-0.5">
-                اختار أي خدمة لوحدها أو ضيفها مع خدمتك الأساسية
+                {t("service.otherServicesHint")}
               </p>
             </div>
 
@@ -528,7 +582,7 @@ const BookingServiceSelect = ({
                     `}
                   >
                     <TabIcon className="w-3 h-3" />
-                    {tab.label}
+                    {t(tab.labelKey)}
                     {!isActive && count > 0 && (
                       <span className="w-4 h-4 rounded-full bg-gray-200 text-gray-500 text-[9px] leading-4 text-center inline-block">{count}</span>
                     )}
@@ -540,7 +594,7 @@ const BookingServiceSelect = ({
             <div className="space-y-2">
               {(otherGrouped[effectiveOtherTab] ?? []).map(s => (
                 <OtherServiceCard
-                  key={s.id}
+                  key={`other-${s.id}`}
                   service={s}
                   isSelected={selectedIds.includes(s.id)}
                   onToggle={() => onToggleService(s.id)}
@@ -557,9 +611,9 @@ const BookingServiceSelect = ({
               <div className="w-6 h-6 rounded-md bg-cut-gold/10 flex items-center justify-center">
                 <Plus className="w-3 h-3 text-cut-gold" />
               </div>
-              <h4 className="font-heading font-bold text-sm text-gray-800">إضافات ممكن تعجبك</h4>
+              <h4 className="font-heading font-bold text-sm text-gray-800">{t("service.addonsTitle")}</h4>
             </div>
-            <p className="text-gray-400 text-[11px] mb-4 mr-8">اختيارات إضافية لتحسين التجربة</p>
+            <p className="text-gray-400 text-[11px] mb-4 ms-8">{t("service.addonsHint")}</p>
 
             <div className="flex gap-1.5 mb-4 overflow-x-auto pb-1 scrollbar-hide -mx-1 px-1">
               {addonTabs.map(tab => {
@@ -580,7 +634,7 @@ const BookingServiceSelect = ({
                     `}
                   >
                     <TabIcon className="w-3 h-3" />
-                    {tab.label}
+                    {t(tab.labelKey)}
                     {!isActive && count > 0 && (
                       <span className="w-4 h-4 rounded-full bg-gray-200 text-gray-500 text-[9px] leading-4 text-center inline-block">{count}</span>
                     )}
@@ -592,7 +646,7 @@ const BookingServiceSelect = ({
             <div className="space-y-2">
               {(addonGrouped[effectiveAddonTab] ?? []).map(s => (
                 <UpsellCard
-                  key={s.id}
+                  key={`addon-${s.id}`}
                   service={s}
                   isSelected={selectedIds.includes(s.id)}
                   onToggle={() => onToggleService(s.id)}
@@ -609,9 +663,12 @@ const BookingServiceSelect = ({
           {selectedCount > 0 && (
             <div className="flex items-center justify-between mb-3 px-1">
               <span className="text-gray-500 text-xs">
-                {selectedCount} {selectedCount === 1 ? "خدمة" : "خدمات"} · {totalDuration} دقيقة
+                {selectedCount}{" "}
+                {selectedCount === 1 ? t("service.countOne") : t("service.countMany")}
+                {" · "}
+                {format.duration(totalDuration)}
               </span>
-              <span className="text-cut-gold font-bold text-sm">{totalPrice} جنيه</span>
+              <span className="text-cut-gold font-bold text-sm">{format.price(totalPrice)}</span>
             </div>
           )}
           <button
@@ -620,7 +677,7 @@ const BookingServiceSelect = ({
             disabled={selectedCount === 0}
             className="w-full py-3.5 rounded-xl bg-cut-gold text-black font-bold hover:bg-[#C4A030] transition-colors shadow-md shadow-cut-gold/20 disabled:opacity-40 disabled:cursor-not-allowed min-h-[48px]"
           >
-            متابعة
+            {t("actions.continue")}
           </button>
         </div>
       )}

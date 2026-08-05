@@ -4,6 +4,7 @@ import { CalendarX, Loader2, MapPin, MoonStar, RefreshCw } from "lucide-react";
 import type { CrossBranchSlot, PublicBarberBranch } from "@/lib/booking-api";
 import { crossBranchSlotKey } from "@/lib/booking-api";
 import { getBranchAccent } from "@/lib/branchTheme";
+import { useBookingTranslations } from "@/hooks/useBookingTranslations";
 
 export const ALL_BRANCHES_TAB = "all" as const;
 export type CrossBranchTabId = typeof ALL_BRANCHES_TAB | string;
@@ -18,25 +19,6 @@ interface CrossBranchSlotsPanelProps {
   isLoading?: boolean;
   error?: string | null;
   onRetry?: () => void;
-}
-
-function formatDateLabel(ymd: string): string {
-  const d = new Date(`${ymd}T12:00:00`);
-  if (Number.isNaN(d.getTime())) return ymd;
-  return new Intl.DateTimeFormat("ar-EG", {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-  }).format(d);
-}
-
-function formatTimeLabel(time: string): string {
-  const [hStr, mStr] = time.split(":");
-  const h = parseInt(hStr, 10);
-  if (!Number.isFinite(h)) return time;
-  const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
-  const ampm = h >= 12 ? "م" : "ص";
-  return `${h12}:${mStr ?? "00"} ${ampm}`;
 }
 
 function SlotSkeleton() {
@@ -66,6 +48,8 @@ export default function CrossBranchSlotsPanel({
   error,
   onRetry,
 }: CrossBranchSlotsPanelProps) {
+  const { t, dir, format } = useBookingTranslations();
+
   const showTabs = branches.length > 1;
   const visibleSlots =
     activeTab === ALL_BRANCHES_TAB
@@ -80,15 +64,19 @@ export default function CrossBranchSlotsPanel({
   }
   const dateGroups = [...byDate.entries()].sort(([a], [b]) => a.localeCompare(b));
 
+  const dateLabel = (ymd: string) => {
+    const d = new Date(`${ymd}T12:00:00`);
+    if (Number.isNaN(d.getTime())) return ymd;
+    return format.shortDate(d);
+  };
+
   return (
-    <div className="p-5 md:p-6" dir="rtl">
+    <div className="p-5 md:p-6" dir={dir}>
       <div className="mb-4">
-        <h3 className="text-lg font-heading font-bold text-cut-black mb-1">
-          مواعيد الحلاق
+        <h3 className="text-lg font-heading font-bold text-[var(--booking-text)] mb-1">
+          {t("time.crossTitle")}
         </h3>
-        <p className="text-cut-black/50 text-xs">
-          كل المواعيد المتاحة عبر الفروع — اختار الموعد والفرع معاً
-        </p>
+        <p className="text-[var(--booking-text-secondary)] text-[13px]">{t("time.crossSubtitle")}</p>
       </div>
 
       {showTabs && (
@@ -96,20 +84,20 @@ export default function CrossBranchSlotsPanel({
           <div
             className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1"
             role="tablist"
-            aria-label="تصفية المواعيد حسب الفرع"
+            aria-label={t("time.crossFilterAria")}
           >
             <button
               type="button"
               role="tab"
               aria-selected={activeTab === ALL_BRANCHES_TAB}
               onClick={() => onTabChange(ALL_BRANCHES_TAB)}
-              className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-bold border transition-colors ${
+              className={`flex-shrink-0 px-3 py-1.5 rounded-full text-[13px] font-bold border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--booking-accent)] ${
                 activeTab === ALL_BRANCHES_TAB
-                ? "bg-[#D4AF37] text-black border-[#D4AF37]"
-                : "bg-white text-cut-black/70 border-[#D4AF37]/25 hover:border-[#D4AF37]/50"
+                  ? "bg-[#D4AF37] text-black border-[#D4AF37]"
+                  : "bg-white text-cut-black/70 border-[#D4AF37]/25 hover:border-[#D4AF37]/50"
               }`}
             >
-              جميع المواعيد
+              {t("time.crossAllSlots")}
             </button>
             {branches.map((b) => {
               const accent = getBranchAccent(b.branchCode, b.branchName);
@@ -121,12 +109,14 @@ export default function CrossBranchSlotsPanel({
                   role="tab"
                   aria-selected={selected}
                   onClick={() => onTabChange(b.branchCode)}
-                  className={`flex-shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border transition-colors ${
+                  className={`flex-shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[13px] font-bold border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--booking-accent)] ${
                     selected ? accent.tabSelected : accent.tabIdle
                   }`}
                 >
                   <span
-                    className={`w-2 h-2 rounded-full flex-shrink-0 ${selected ? "bg-white/90" : accent.dot}`}
+                    className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                      selected ? "bg-white/90" : accent.dot
+                    }`}
                     aria-hidden
                   />
                   {b.branchName || b.branchCode}
@@ -134,7 +124,10 @@ export default function CrossBranchSlotsPanel({
               );
             })}
           </div>
-          <div className="flex flex-wrap gap-3 px-1 text-[10px] text-cut-black/55" aria-hidden>
+          <div
+            className="flex flex-wrap gap-3 px-1 text-[13px] text-[var(--booking-text-secondary)]"
+            aria-hidden
+          >
             {branches.map((b) => {
               const accent = getBranchAccent(b.branchCode, b.branchName);
               return (
@@ -150,9 +143,9 @@ export default function CrossBranchSlotsPanel({
 
       {isLoading && (
         <div aria-live="polite" aria-busy="true">
-          <div className="flex items-center gap-2 text-cut-black/50 text-sm mb-4">
+          <div className="flex items-center gap-2 text-[var(--booking-text-secondary)] text-sm mb-4">
             <Loader2 className="w-4 h-4 animate-spin" />
-            جاري تحميل المواعيد عبر الفروع...
+            {t("loading.crossBranchSlots")}
           </div>
           <SlotSkeleton />
         </div>
@@ -160,7 +153,7 @@ export default function CrossBranchSlotsPanel({
 
       {!isLoading && error && (
         <div
-          className="p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm text-center space-y-3"
+          className="p-4 rounded-xl bg-red-50 border border-red-200 text-[var(--booking-error)] text-sm text-center space-y-3"
           role="alert"
         >
           <p>{error}</p>
@@ -168,10 +161,10 @@ export default function CrossBranchSlotsPanel({
             <button
               type="button"
               onClick={onRetry}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-red-200 bg-white text-red-700 text-xs font-bold hover:bg-red-50"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-red-200 bg-white text-[var(--booking-error)] text-[13px] font-bold hover:bg-red-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--booking-accent)]"
             >
               <RefreshCw className="w-3.5 h-3.5" />
-              إعادة المحاولة
+              {t("actions.retry")}
             </button>
           )}
         </div>
@@ -185,16 +178,18 @@ export default function CrossBranchSlotsPanel({
           <div className="w-14 h-14 rounded-full bg-cut-black/[0.04] flex items-center justify-center">
             <CalendarX className="w-7 h-7 text-cut-black/35" />
           </div>
-          <p className="text-cut-black/85 font-medium">لا توجد مواعيد متاحة حالياً</p>
-          <p className="text-cut-black/50 text-xs">جرب تغيير الخدمة أو العودة لاحقاً</p>
+          <p className="text-[var(--booking-text)] font-medium">{t("empty.crossSlots")}</p>
+          <p className="text-[var(--booking-text-secondary)] text-[13px]">
+            {t("empty.crossSlotsHint")}
+          </p>
           {onRetry && (
             <button
               type="button"
               onClick={onRetry}
-              className="mt-1 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-cut-gold/20 text-xs font-bold text-cut-black/70 hover:bg-cut-black/[0.03]"
+              className="mt-1 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-cut-gold/20 text-[13px] font-bold text-cut-black/70 hover:bg-cut-black/[0.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--booking-accent)]"
             >
               <RefreshCw className="w-3.5 h-3.5" />
-              تحديث المواعيد
+              {t("actions.refreshSlots")}
             </button>
           )}
         </div>
@@ -203,9 +198,9 @@ export default function CrossBranchSlotsPanel({
       {!isLoading && !error && dateGroups.length > 0 && (
         <div className="space-y-5" role="list">
           {dateGroups.map(([date, daySlots]) => (
-            <section key={date} aria-label={formatDateLabel(date)}>
-              <h4 className="text-sm font-bold text-cut-black mb-2">
-                {formatDateLabel(date)}
+            <section key={date} aria-label={dateLabel(date)}>
+              <h4 className="text-sm font-bold text-[var(--booking-text)] mb-2">
+                {dateLabel(date)}
               </h4>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {daySlots.map((slot) => {
@@ -218,32 +213,30 @@ export default function CrossBranchSlotsPanel({
                       type="button"
                       role="listitem"
                       onClick={() => onSelect(slot)}
-                      className={`relative text-right rounded-xl border p-3 transition-all overflow-hidden ${
+                      className={`relative text-start rounded-xl border p-3 transition-all overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--booking-accent)] ${
                         selected ? accent.slotSelected : accent.slotIdle
                       }`}
                     >
                       <span
-                        className={`absolute inset-y-0 right-0 w-1 ${accent.dot}`}
+                        className={`absolute inset-y-0 end-0 w-1 ${accent.dot}`}
                         aria-hidden
                       />
                       <div className="flex items-center justify-between gap-2 mb-1">
-                        <span className="font-bold text-cut-black tabular-nums">
-                          {formatTimeLabel(slot.time)}
+                        <span className="font-bold text-[var(--booking-text)] tabular-nums">
+                          {format.time(slot.time)}
                         </span>
                         {slot.dayOffset === 1 && (
-                          <span className="inline-flex items-center gap-1 text-[10px] font-bold text-slate-700 bg-slate-100 px-1.5 py-0.5 rounded-full">
+                          <span className="inline-flex items-center gap-1 text-[13px] font-bold text-slate-700 bg-slate-100 px-1.5 py-0.5 rounded-full">
                             <MoonStar className="w-3 h-3" />
-                            ليلي
+                            {t("time.overnightBadge")}
                           </span>
                         )}
                       </div>
                       <div
-                        className={`inline-flex items-center gap-1.5 text-xs font-bold px-2 py-0.5 rounded-md border ${accent.chip} ${accent.chipText}`}
+                        className={`inline-flex items-center gap-1.5 text-[13px] font-bold px-2 py-0.5 rounded-md border ${accent.chip} ${accent.chipText}`}
                       >
                         <MapPin className={`w-3.5 h-3.5 flex-shrink-0 ${accent.icon}`} />
-                        <span className="truncate">
-                          {slot.branchName || slot.branchCode}
-                        </span>
+                        <span className="truncate">{slot.branchName || slot.branchCode}</span>
                       </div>
                     </button>
                   );

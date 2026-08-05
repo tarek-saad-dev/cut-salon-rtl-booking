@@ -29,3 +29,6 @@ dist-ssr
 *.sw?
 
 .env
+
+# Booking redesign evidence screenshots
+docs/booking-redesign/**/screenshots/

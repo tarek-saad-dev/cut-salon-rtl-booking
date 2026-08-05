@@ -71,6 +71,38 @@
     --bronze-glow: 22 22% 56%;
     --gold-glow: 43 74% 52%;
     --surface-elevated: 350 75% 7%;
+
+    /* Phase 1A — temporary accessible booking modal tokens (AA-minded) */
+    --booking-bg: #ffffff;
+    --booking-surface: #f8f6f1;
+    --booking-text: #111111;
+    --booking-text-secondary: #5f5a53;
+    --booking-border: #d8d3ca;
+    --booking-accent: #9a7414;
+    --booking-error: #b42318;
+    --booking-success: #157347;
+    --booking-sidebar-bg: #111111;
+    --booking-sidebar-text: #f5f2ea;
+    --booking-sidebar-muted: #c9c2b6;
+  }
+}
+
+@layer components {
+  .booking-modal-shell {
+    --bm-bg: var(--booking-bg);
+    --bm-surface: var(--booking-surface);
+    --bm-text: var(--booking-text);
+    --bm-text-secondary: var(--booking-text-secondary);
+    --bm-border: var(--booking-border);
+    --bm-accent: var(--booking-accent);
+    --bm-error: var(--booking-error);
+    color: var(--bm-text);
+  }
+  .booking-modal-shell .booking-text-secondary {
+    color: var(--bm-text-secondary);
+  }
+  .booking-modal-shell .booking-accent-text {
+    color: var(--bm-accent);
   }
 }
 

@@ -99,7 +99,7 @@ describe("BookingModalBarberFirst calendar flow", () => {
     );
 
     await waitFor(() =>
-      expect(result.current.barberProfileError).toMatch(/معرف الحلاق/),
+      expect(result.current.barberProfileError).toBe("barberIdMissing"),
     );
     expect(fns.getPublicBarberProfile).not.toHaveBeenCalled();
   });

@@ -1,6 +1,7 @@
 "use client";
 
 import { useLanguage } from "@/context/LanguageContext";
+import { BookingControllerProvider } from "@/context/BookingController";
 import HeroSection from "@/components/HeroSection";
 import NearestAvailability from "@/components/NearestAvailability";
 import BarbersSection from "@/components/BarbersSection";
@@ -28,5 +29,9 @@ function ArabicHome() {
 
 export default function HomePageClient() {
   const { lang } = useLanguage();
-  return lang === "en" ? <EnglishHome /> : <ArabicHome />;
+  return (
+    <BookingControllerProvider>
+      {lang === "en" ? <EnglishHome /> : <ArabicHome />}
+    </BookingControllerProvider>
+  );
 }

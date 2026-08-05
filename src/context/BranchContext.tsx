@@ -10,6 +10,7 @@ import {
   type ReactNode,
 } from "react";
 import { listPublicBranches, type PublicBranch } from "@/lib/booking-api";
+import { normalizeBranchCode } from "@/lib/booking-api/branch-code";
 import { getSavedBranch, saveBranch, clearBranch as clearBranchStorage } from "@/lib/branchStorage";
 
 interface BranchContextValue {
@@ -25,6 +26,27 @@ interface BranchContextValue {
 }
 
 const BranchContext = createContext<BranchContextValue | null>(null);
+
+/** Public branches come from the API list as returned — no hardcoded code exclusions. */
+function normalizePublicBranches(raw: PublicBranch[] | null | undefined): PublicBranch[] {
+  const seen = new Set<string>();
+  const out: PublicBranch[] = [];
+  for (const branch of raw ?? []) {
+    const code = normalizeBranchCode(branch.branchCode);
+    if (!code || seen.has(code)) continue;
+    seen.add(code);
+    out.push({
+      ...branch,
+      branchCode: code,
+      branchName: branch.branchName || code,
+      shortName: branch.shortName ?? null,
+      address: branch.address ?? null,
+      phone: branch.phone ?? null,
+      timeZone: branch.timeZone || "Africa/Cairo",
+    });
+  }
+  return out;
+}
 
 export function BranchProvider({ children }: { children: ReactNode }) {
   const [branches, setBranches] = useState<PublicBranch[]>([]);
@@ -44,15 +66,14 @@ export function BranchProvider({ children }: { children: ReactNode }) {
       try {
         const res = await listPublicBranches(controller.signal);
         if (cancelled) return;
-        // Public API must never include Camp Caesar; still filter defensively.
-        const list = (res.data ?? []).filter(
-          (b) => b.branchCode && b.branchCode.toUpperCase() !== "CAMP_CAESAR",
-        );
+        const list = normalizePublicBranches(res.data ?? []);
         setBranches(list);
 
         const saved = getSavedBranch();
         if (saved) {
-          const match = list.find((b) => b.branchCode === saved.branchCode);
+          const match = list.find(
+            (b) => normalizeBranchCode(b.branchCode) === normalizeBranchCode(saved.branchCode),
+          );
           if (match) {
             setSelectedBranch(match);
             setHasConfirmedBranch(true);
@@ -73,7 +94,7 @@ export function BranchProvider({ children }: { children: ReactNode }) {
           if (process.env.NODE_ENV === "development") {
             console.warn("[BranchContext] failed to load branches");
           }
-          setBranchesError("تعذر تحميل قائمة الفروع");
+          setBranchesError("branchesLoadFailed");
         }
       } finally {
         if (!cancelled) setIsLoadingBranches(false);
@@ -87,10 +108,16 @@ export function BranchProvider({ children }: { children: ReactNode }) {
   }, [reloadToken]);
 
   const selectBranch = useCallback((branch: PublicBranch) => {
-    if (branch.branchCode?.toUpperCase() === "CAMP_CAESAR") return;
-    setSelectedBranch(branch);
+    const code = normalizeBranchCode(branch.branchCode);
+    if (!code) return;
+    const normalized: PublicBranch = {
+      ...branch,
+      branchCode: code,
+      branchName: branch.branchName || code,
+    };
+    setSelectedBranch(normalized);
     setHasConfirmedBranch(true);
-    saveBranch(branch);
+    saveBranch(normalized);
   }, []);
 
   const clearBranch = useCallback(() => {

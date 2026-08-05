@@ -4,7 +4,7 @@
  */
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { format } from "date-fns";
 import {
   getBookingConfig,
@@ -15,6 +15,10 @@ import {
   getAvailableSlots,
   peekCachedAvailableSlots,
   prefetchAvailableSlots,
+  getBarberAvailableDays,
+  getBarberAvailableSlots,
+  peekCachedBarberAvailableDays,
+  peekCachedBarberAvailableSlots,
   getCrossBranchAvailability,
   getBarberLocation,
   peekCachedAvailableDays,
@@ -30,6 +34,7 @@ import {
   isStaleResponse,
   BookingApiError,
   getArabicErrorMessage,
+  resolveBookableBranchesForBarber,
   type BookingConfig,
   type BookingService,
   type PublicBarber,
@@ -43,10 +48,17 @@ import {
   type BookingMode,
   type BookingEntryMode,
   type BookingCustomer,
+  type BarberAvailabilityScope,
+  type BarberAvailableDay,
+  type BarberAvailableSlot,
+  type BarberAvailabilityMeta,
+  type PublicBranch,
 } from "@/lib/booking-api";
 import { getCachedCatalog, setCachedCatalog } from "@/lib/booking-api/session-cache";
+import { normalizeBranchCode } from "@/lib/booking-api/branch-code";
 
 export type BookingUiStep =
+  | "appointment_scope"
   | "branch"
   | "mode"
   | "service"
@@ -59,6 +71,7 @@ export type BookingUiStep =
 
 const MAX_SERVICES = 12;
 const ALL_CROSS_TAB = "all";
+const EMPTY_PUBLIC_BRANCHES: PublicBranch[] = [];
 
 function pickCatalogBranchCode(branches: PublicBarberBranch[]): string | undefined {
   if (!branches.length) return undefined;
@@ -101,6 +114,12 @@ export function useBookingFlow(opts: {
   bookingNote?: string;
   skipModeStep?: boolean;
   entryMode?: BookingEntryMode;
+  /** Explicit branch from a branch-specific CTA (not browsing persistence). */
+  explicitEntryBranchCode?: string | null;
+  /** Preselect scope when entry CTA is branch-specific. */
+  initialAvailabilityScope?: BarberAvailabilityScope | null;
+  /** Public branches intersecting the barber (from modal resolver). */
+  allowedPublicBranches?: PublicBranch[];
 }) {
   const {
     open,
@@ -110,6 +129,9 @@ export function useBookingFlow(opts: {
     bookingNote,
     skipModeStep,
     entryMode = "branch_first",
+    explicitEntryBranchCode = null,
+    initialAvailabilityScope = null,
+    allowedPublicBranches = EMPTY_PUBLIC_BRANCHES,
   } = opts;
 
   const isBarberFirst = entryMode === "barber_first";
@@ -158,6 +180,22 @@ export function useBookingFlow(opts: {
   /** Barber-first booking branch (may be CAMP_CAESAR; not BranchContext). */
   const [bookingBranchCode, setBookingBranchCode] = useState<string | undefined>();
   const [bookingBranchName, setBookingBranchName] = useState<string | undefined>();
+
+  /** Multi-branch appointment search scope (barber-first only). */
+  const [availabilityScope, setAvailabilityScopeState] = useState<BarberAvailabilityScope | null>(
+    initialAvailabilityScope,
+  );
+  const [selectedSpecificBranchCode, setSelectedSpecificBranchCode] = useState<string | null>(
+    normalizeBranchCode(explicitEntryBranchCode),
+  );
+  const [selectedBranchFilter, setSelectedBranchFilter] = useState<string>("all");
+  const [multiBranchDays, setMultiBranchDays] = useState<BarberAvailableDay[]>([]);
+  const [multiBranchSlots, setMultiBranchSlots] = useState<BarberAvailableSlot[]>([]);
+  const [multiBranchDaysMeta, setMultiBranchDaysMeta] = useState<BarberAvailabilityMeta | null>(null);
+  const [multiBranchSlotsMeta, setMultiBranchSlotsMeta] = useState<BarberAvailabilityMeta | null>(null);
+  const [explicitEntryBranch, setExplicitEntryBranch] = useState<string | null>(
+    normalizeBranchCode(explicitEntryBranchCode),
+  );
 
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
@@ -223,6 +261,129 @@ export function useBookingFlow(opts: {
     setSlotsError(null);
   }, [bumpSelection, isBarberFirst, initialBarber]);
 
+  const clearDateSlotPlan = useCallback(() => {
+    bumpSelection();
+    daysAbortRef.current?.abort();
+    slotsAbortRef.current?.abort();
+    locationAbortRef.current?.abort();
+    planAbortRef.current?.abort();
+    setSelectedDate(undefined);
+    setSelectedSlot(undefined);
+    setDays([]);
+    setSlots([]);
+    setMultiBranchDays([]);
+    setMultiBranchSlots([]);
+    setMultiBranchDaysMeta(null);
+    setMultiBranchSlotsMeta(null);
+    setDayLocation(null);
+    setPlan(null);
+    clearPlanSession();
+    setMutationUi({ kind: "idle" });
+    setDaysError(null);
+    setSlotsError(null);
+  }, [bumpSelection]);
+
+  const allowedBarberBranches = useMemo(() => {
+    if (!isBarberFirst) return allowedPublicBranches;
+    if (!barberBranches.length || !allowedPublicBranches.length) return [];
+    return resolveBookableBranchesForBarber({
+      barberProfileBranches: barberBranches,
+      publicBranches: allowedPublicBranches,
+      preferredBranchCode: null,
+    }).allowedBranches;
+  }, [isBarberFirst, barberBranches, allowedPublicBranches]);
+
+  const allowedBranchesKey = allowedBarberBranches
+    .map((b) => b.branchCode)
+    .join("|");
+
+  const usesBarberAvailabilityApi =
+    isBarberFirst &&
+    Boolean(availabilityScope) &&
+    (availabilityScope === "all_branches" ||
+      (availabilityScope === "specific_branch" &&
+        Boolean(normalizeBranchCode(selectedSpecificBranchCode))));
+
+  const setAvailabilityScope = useCallback(
+    (scope: BarberAvailabilityScope) => {
+      bumpSelection();
+      clearPlanSession();
+      setAvailabilityScopeState(scope);
+      setSelectedDate(undefined);
+      setSelectedSlot(undefined);
+      setDays([]);
+      setSlots([]);
+      setMultiBranchDays([]);
+      setMultiBranchSlots([]);
+      setMultiBranchDaysMeta(null);
+      setMultiBranchSlotsMeta(null);
+      setPlan(null);
+      setMutationUi({ kind: "idle" });
+      setDaysError(null);
+      setSlotsError(null);
+      // Clear slot-committed branch; keep specific selection only for that scope.
+      setBookingBranchCode(undefined);
+      setBookingBranchName(undefined);
+      if (scope === "all_branches") {
+        setSelectedSpecificBranchCode(null);
+        setSelectedBranchFilter("all");
+        setStep("service");
+      } else {
+        const explicit = normalizeBranchCode(explicitEntryBranch);
+        if (explicit) {
+          setSelectedSpecificBranchCode(explicit);
+          const match = allowedPublicBranches.find(
+            (b) => normalizeBranchCode(b.branchCode) === explicit,
+          );
+          if (match) {
+            setBookingBranchCode(match.branchCode);
+            setBookingBranchName(match.branchName);
+          }
+          setStep("service");
+        } else {
+          setSelectedSpecificBranchCode(null);
+          setStep("branch");
+        }
+      }
+    },
+    [bumpSelection, explicitEntryBranch, allowedPublicBranches],
+  );
+
+  const selectSpecificBranch = useCallback(
+    (branch: PublicBranch) => {
+      const code = normalizeBranchCode(branch.branchCode);
+      if (!code) return;
+      bumpSelection();
+      clearPlanSession();
+      setSelectedSpecificBranchCode(code);
+      setBookingBranchCode(branch.branchCode);
+      setBookingBranchName(branch.branchName);
+      setSelectedDate(undefined);
+      setSelectedSlot(undefined);
+      setDays([]);
+      setSlots([]);
+      setMultiBranchDays([]);
+      setMultiBranchSlots([]);
+      setPlan(null);
+      setMutationUi({ kind: "idle" });
+      setStep("service");
+    },
+    [bumpSelection],
+  );
+
+  // Sync explicit entry props when modal session opens with a branch CTA.
+  useEffect(() => {
+    if (!open) return;
+    const code = normalizeBranchCode(explicitEntryBranchCode);
+    setExplicitEntryBranch(code);
+    if (initialAvailabilityScope) {
+      setAvailabilityScopeState(initialAvailabilityScope);
+    }
+    if (code && initialAvailabilityScope === "specific_branch") {
+      setSelectedSpecificBranchCode(code);
+    }
+  }, [open, explicitEntryBranchCode, initialAvailabilityScope]);
+
   // Barber-first: load public branches + serviceIds for the selected barber
   const [barberProfileReload, setBarberProfileReload] = useState(0);
   const retryBarberProfile = useCallback(() => {
@@ -242,7 +403,7 @@ export function useBookingFlow(opts: {
       setBarberBranches([]);
       setBarberServiceIds(null);
       setBarberProfileLoading(false);
-      setBarberProfileError("تعذر بدء الحجز: معرف الحلاق غير متاح");
+      setBarberProfileError("barberIdMissing");
       setBarber(null);
       return;
     }
@@ -260,7 +421,7 @@ export function useBookingFlow(opts: {
         if (cancelled) return;
         const profile = res.data;
         if (!profile) {
-          setBarberProfileError("هذا الحلاق غير متاح للحجز الإلكتروني حالياً");
+          setBarberProfileError("barberNotBookableOnline");
           setBarberBranches([]);
           setBarberServiceIds(null);
           return;
@@ -275,7 +436,7 @@ export function useBookingFlow(opts: {
         if (err instanceof BookingApiError) {
           setBarberProfileError(err.message);
         } else {
-          setBarberProfileError("تعذر تحميل فروع الحلاق، حاول مرة أخرى");
+          setBarberProfileError("barberBranchesLoadFailed");
         }
         setBarberBranches([]);
         setBarberServiceIds(null);
@@ -401,7 +562,7 @@ export function useBookingFlow(opts: {
         if (err instanceof BookingApiError) {
           setCatalogError(err.message);
         } else {
-          setCatalogError("تعذر تحميل بيانات الحجز، حاول مرة أخرى");
+          setCatalogError("catalogLoadFailed");
         }
       } finally {
         if (!cancelled) setCatalogLoading(false);
@@ -442,10 +603,22 @@ export function useBookingFlow(opts: {
   // IMPORTANT: do not abort this request on cleanup — aborting would kill the
   // shared deduped in-flight call used by the date step.
   useEffect(() => {
-    if (!open || !branchCode || serviceIds.length === 0) return;
+    if (!open || serviceIds.length === 0) return;
     if (step !== "service" && step !== "mode") return;
     if (mode === "specific" && barber?.id == null) return;
 
+    if (usesBarberAvailabilityApi && barber?.id != null && availabilityScope) {
+      void getBarberAvailableDays({
+        empId: barber.id,
+        serviceIds,
+        scope: availabilityScope,
+        branchCode: selectedSpecificBranchCode ?? undefined,
+        allowedBranches: allowedBarberBranches,
+      }).catch(() => undefined);
+      return;
+    }
+
+    if (!branchCode) return;
     void getAvailableDays({
       branchCode,
       serviceIds,
@@ -454,12 +627,72 @@ export function useBookingFlow(opts: {
     }).catch(() => {
       /* warm-cache only */
     });
-  }, [open, branchCode, serviceIds, mode, barber?.id, step]);
+  }, [
+    open,
+    branchCode,
+    serviceIds,
+    mode,
+    barber?.id,
+    step,
+    usesBarberAvailabilityApi,
+    availabilityScope,
+    selectedSpecificBranchCode,
+    allowedBranchesKey,
+  ]);
 
   // Available days (calendar date step)
   useEffect(() => {
-    if (step !== "date" || !branchCode || serviceIds.length === 0) return;
+    if (step !== "date" || serviceIds.length === 0) return;
     if (mode === "specific" && barber?.id == null) return;
+
+    if (usesBarberAvailabilityApi && barber?.id != null && availabilityScope) {
+      if (allowedBarberBranches.length === 0) return;
+      const daysParams = {
+        empId: barber.id,
+        serviceIds,
+        scope: availabilityScope,
+        branchCode: selectedSpecificBranchCode ?? undefined,
+        allowedBranches: allowedBarberBranches,
+      };
+      const cached = peekCachedBarberAvailableDays(daysParams);
+      if (cached) {
+        setMultiBranchDays(cached.days);
+        setDays(cached.days);
+        setMultiBranchDaysMeta(cached.meta ?? null);
+        setDaysLoading(false);
+        setDaysError(null);
+        return;
+      }
+      let cancelled = false;
+      const version = selectionVersionRef.current;
+      setDaysLoading(true);
+      setDaysError(null);
+      getBarberAvailableDays(daysParams)
+        .then((res) => {
+          if (cancelled || isStaleResponse(version)) return;
+          setMultiBranchDays(res.data.days);
+          setDays(res.data.days);
+          setMultiBranchDaysMeta(res.data.meta ?? null);
+          setDaysLoading(false);
+        })
+        .catch((err) => {
+          if (cancelled || isStaleResponse(version)) return;
+          if (err instanceof DOMException && err.name === "AbortError") return;
+          setDaysLoading(false);
+          setMultiBranchDays([]);
+          setDays([]);
+          if (err instanceof BookingApiError) {
+            setDaysError(err.message);
+          } else {
+            setDaysError("daysLoadFailed");
+          }
+        });
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    if (!branchCode) return;
 
     const daysParams = {
       branchCode,
@@ -514,14 +747,75 @@ export function useBookingFlow(opts: {
     return () => {
       cancelled = true;
     };
-  }, [step, branchCode, serviceIds, mode, barber?.id]);
+  }, [
+    step,
+    branchCode,
+    serviceIds,
+    mode,
+    barber?.id,
+    usesBarberAvailabilityApi,
+    availabilityScope,
+    selectedSpecificBranchCode,
+    allowedBranchesKey,
+  ]);
 
   // Available slots (time step after calendar day)
   useEffect(() => {
-    if (step !== "time" || !branchCode || !selectedDate || serviceIds.length === 0) return;
+    if (step !== "time" || !selectedDate || serviceIds.length === 0) return;
     if (mode === "specific" && barber?.id == null) return;
 
     const dateStr = format(selectedDate, "yyyy-MM-dd");
+
+    if (usesBarberAvailabilityApi && barber?.id != null && availabilityScope) {
+      if (allowedBarberBranches.length === 0) return;
+      const slotsParams = {
+        empId: barber.id,
+        serviceIds,
+        scope: availabilityScope,
+        branchCode: selectedSpecificBranchCode ?? undefined,
+        date: dateStr,
+        allowedBranches: allowedBarberBranches,
+      };
+      const cached = peekCachedBarberAvailableSlots(slotsParams);
+      if (cached) {
+        setMultiBranchSlots(cached.slots);
+        setSlots(cached.slots);
+        setMultiBranchSlotsMeta(cached.meta ?? null);
+        setSlotsLoading(false);
+        setSlotsError(null);
+        return;
+      }
+      let cancelled = false;
+      const version = selectionVersionRef.current;
+      setSlotsLoading(true);
+      setSlotsError(null);
+      getBarberAvailableSlots(slotsParams)
+        .then((res) => {
+          if (cancelled || isStaleResponse(version)) return;
+          setMultiBranchSlots(res.data.slots);
+          setSlots(res.data.slots);
+          setMultiBranchSlotsMeta(res.data.meta ?? null);
+          setSlotsLoading(false);
+        })
+        .catch((err) => {
+          if (cancelled || isStaleResponse(version)) return;
+          if (err instanceof DOMException && err.name === "AbortError") return;
+          setSlotsLoading(false);
+          setMultiBranchSlots([]);
+          setSlots([]);
+          if (err instanceof BookingApiError) {
+            setSlotsError(err.message);
+          } else {
+            setSlotsError("slotsLoadFailed");
+          }
+        });
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    if (!branchCode) return;
+
     const slotsParams = {
       branchCode,
       date: dateStr,
@@ -574,7 +868,18 @@ export function useBookingFlow(opts: {
     return () => {
       cancelled = true;
     };
-  }, [step, branchCode, selectedDate, serviceIds, mode, barber?.id]);
+  }, [
+    step,
+    branchCode,
+    selectedDate,
+    serviceIds,
+    mode,
+    barber?.id,
+    usesBarberAvailabilityApi,
+    availabilityScope,
+    selectedSpecificBranchCode,
+    allowedBranchesKey,
+  ]);
 
   // Legacy cross-branch slots panel (kept for tests; main UI uses calendar again)
   useEffect(() => {
@@ -704,17 +1009,22 @@ export function useBookingFlow(opts: {
     setServiceIds(unique);
     setSelectedDate(undefined);
     setSelectedSlot(undefined);
-    setBookingBranchCode(undefined);
-    setBookingBranchName(undefined);
+    // Keep specific-branch draft; clear slot-committed branch for all_branches.
+    if (availabilityScope !== "specific_branch") {
+      setBookingBranchCode(undefined);
+      setBookingBranchName(undefined);
+    }
     setDays([]);
     setSlots([]);
+    setMultiBranchDays([]);
+    setMultiBranchSlots([]);
     setCrossSlots([]);
     setCrossBranches([]);
     setCrossTab(ALL_CROSS_TAB);
     setCrossSlotsError(null);
     setPlan(null);
     setMutationUi({ kind: "idle" });
-  }, [bumpSelection]);
+  }, [bumpSelection, availabilityScope]);
 
   const selectMode = useCallback((next: BookingMode) => {
     if (isBarberFirst) return;
@@ -739,8 +1049,12 @@ export function useBookingFlow(opts: {
     setSelectedSlot(undefined);
     setBookingBranchCode(undefined);
     setBookingBranchName(undefined);
+    setAvailabilityScopeState(null);
+    setSelectedSpecificBranchCode(null);
     setDays([]);
     setSlots([]);
+    setMultiBranchDays([]);
+    setMultiBranchSlots([]);
     setCrossSlots([]);
     setCrossBranches([]);
     setCrossTab(ALL_CROSS_TAB);
@@ -759,9 +1073,34 @@ export function useBookingFlow(opts: {
     // Keep prior dayLocation visible until the new location resolves (no blank banner).
     setDayLocationLoading(true);
     setPlan(null);
-    // Prefetch slots while transitioning to time step.
-    if (branchCode && serviceIds.length > 0) {
-      const dateStr = format(date, "yyyy-MM-dd");
+    const dateStr = format(date, "yyyy-MM-dd");
+    if (usesBarberAvailabilityApi && barber?.id != null && availabilityScope) {
+      const cached = peekCachedBarberAvailableSlots({
+        empId: barber.id,
+        serviceIds,
+        scope: availabilityScope,
+        branchCode: selectedSpecificBranchCode ?? undefined,
+        date: dateStr,
+        allowedBranches: allowedBarberBranches,
+      });
+      if (cached) {
+        setMultiBranchSlots(cached.slots);
+        setSlots(cached.slots);
+        setSlotsLoading(false);
+      } else {
+        setMultiBranchSlots([]);
+        setSlots([]);
+        setSlotsLoading(true);
+      }
+      void getBarberAvailableSlots({
+        empId: barber.id,
+        serviceIds,
+        scope: availabilityScope,
+        branchCode: selectedSpecificBranchCode ?? undefined,
+        date: dateStr,
+        allowedBranches: allowedBarberBranches,
+      }).catch(() => undefined);
+    } else if (branchCode && serviceIds.length > 0) {
       const cached = peekCachedAvailableSlots({
         branchCode,
         date: dateStr,
@@ -787,13 +1126,29 @@ export function useBookingFlow(opts: {
       setSlots([]);
     }
     setStep("time");
-  }, [bumpSelection, branchCode, serviceIds, mode, barber?.id]);
+  }, [
+    bumpSelection,
+    branchCode,
+    serviceIds,
+    mode,
+    barber?.id,
+    usesBarberAvailabilityApi,
+    availabilityScope,
+    selectedSpecificBranchCode,
+    allowedBranchesKey,
+  ]);
 
   const selectSlot = useCallback((slot: AvailableSlot) => {
     clearPlanSession();
     setSelectedSlot(slot);
     setPlan(null);
     setMutationUi({ kind: "idle" });
+    // Commit slot branch into the booking draft (all_branches or cross-branch).
+    const code = normalizeBranchCode(slot.branchCode);
+    if (code) {
+      setBookingBranchCode(code);
+      setBookingBranchName(slot.branchName || code);
+    }
     setStep("details");
   }, []);
 
@@ -814,6 +1169,20 @@ export function useBookingFlow(opts: {
     setMutationUi({ kind: "idle" });
     setStep("details");
   }, []);
+
+  /** Explicit booking-draft branch commit (auto-resolve, picker, day location). */
+  const commitDraftBranch = useCallback(
+    (branch: { branchCode: string; branchName?: string | null } | null) => {
+      if (!branch?.branchCode) {
+        setBookingBranchCode(undefined);
+        setBookingBranchName(undefined);
+        return;
+      }
+      setBookingBranchCode(branch.branchCode);
+      setBookingBranchName(branch.branchName || branch.branchCode);
+    },
+    [],
+  );
 
   const setCrossBranchTab = useCallback((tab: string) => {
     // Local filter only — never re-fetch
@@ -843,7 +1212,7 @@ export function useBookingFlow(opts: {
     const phone = normalizeEgyptianPhone(customerPhone);
     const name = customerName.trim();
     if (!phone || name.length < 2) {
-      setMutationUi({ kind: "error", message: "يرجى إدخال الاسم ورقم الهاتف بشكل صحيح" });
+      setMutationUi({ kind: "error", message: "invalidNamePhone", code: "invalidNamePhone" });
       return;
     }
 
@@ -885,8 +1254,8 @@ export function useBookingFlow(opts: {
         clearPlanSession();
         setMutationUi({
           kind: "error",
-          message: "تعذر تجهيز خطة الحجز. يرجى المحاولة مرة أخرى.",
-          code: "PLAN_TOKEN_REQUIRED",
+          message: "planPrepareFailed",
+          code: "planPrepareFailed",
         });
         return;
       }
@@ -973,8 +1342,7 @@ export function useBookingFlow(opts: {
       if (result.outcome === "mutation_outcome_unknown") {
         setMutationUi({
           kind: "unknown",
-          message:
-            "تعذر التأكد من نتيجة الطلب. قد يكون الحجز تم بالفعل.",
+          message: "outcomeUnknown",
           retryAfterSeconds: result.error?.retryAfterSeconds,
         });
         return;
@@ -1084,6 +1452,14 @@ export function useBookingFlow(opts: {
     setSelectedSlot(undefined);
     setBookingBranchCode(undefined);
     setBookingBranchName(undefined);
+    setAvailabilityScopeState(initialAvailabilityScope);
+    setSelectedSpecificBranchCode(normalizeBranchCode(explicitEntryBranchCode));
+    setExplicitEntryBranch(normalizeBranchCode(explicitEntryBranchCode));
+    setSelectedBranchFilter("all");
+    setMultiBranchDays([]);
+    setMultiBranchSlots([]);
+    setMultiBranchDaysMeta(null);
+    setMultiBranchSlotsMeta(null);
     setDays([]);
     setSlots([]);
     setCrossSlots([]);
@@ -1114,6 +1490,8 @@ export function useBookingFlow(opts: {
     initialBarber,
     bookingNote,
     isBarberFirst,
+    initialAvailabilityScope,
+    explicitEntryBranchCode,
   ]);
 
   const rateLimitRemainingSeconds =
@@ -1166,6 +1544,21 @@ export function useBookingFlow(opts: {
     bookingBranchCode,
     bookingBranchName,
     effectiveBranchCode,
+    commitDraftBranch,
+    availabilityScope,
+    setAvailabilityScope,
+    allowedBranchesKey,
+    selectedSpecificBranchCode,
+    selectSpecificBranch,
+    selectedBranchFilter,
+    setSelectedBranchFilter,
+    multiBranchDays,
+    multiBranchSlots,
+    multiBranchDaysMeta,
+    multiBranchSlotsMeta,
+    explicitEntryBranch,
+    usesBarberAvailabilityApi,
+    clearDateSlotPlan,
     selectDate,
     selectSlot,
     selectCrossBranchSlot,

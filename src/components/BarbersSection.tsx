@@ -3,11 +3,18 @@
 import { useState, useCallback, useEffect } from "react";
 import useEmblaCarousel from "embla-carousel-react";
 import { ChevronLeft, ChevronRight, Scissors, Clock, Loader2, Zap } from "lucide-react";
-import BookingModal, { type BarberBookingInfo, type BookingMode } from "./BookingModal";
+import { type BarberBookingInfo } from "./BookingModal";
 import BarberPhoto from "./BarberPhoto";
 import { getBookingStatus } from "@/lib/publicBookingApi";
-import { listGlobalBarbers, resolveBarberPhotoUrl, resolveBarberDisplayName, type PublicBarber } from "@/lib/booking-api";
+import {
+  listGlobalBarbers,
+  resolveBarberPhotoUrl,
+  resolveBarberDisplayName,
+  filterBarbersForPublicDiscovery,
+  type PublicBarber,
+} from "@/lib/booking-api";
 import { useBranch } from "@/context/BranchContext";
+import { useBookingController } from "@/context/BookingController";
 
 type DisplayBarber = BarberBookingInfo & { buttonText: string };
 
@@ -116,28 +123,34 @@ const NEAREST_PLACEHOLDER_BARBER: DisplayBarber = {
 };
 
 const BarbersSection = () => {
-  const [selectedBarber, setSelectedBarber] = useState<DisplayBarber | null>(null);
-  const [bookingMode, setBookingMode] = useState<BookingMode | undefined>(undefined);
-  const [entryMode, setEntryMode] = useState<"branch_first" | "barber_first">("branch_first");
-  const { isLoadingBranches, selectedBranch } = useBranch();
   const [bookingGate, setBookingGate] = useState<BookingGate>({ status: "loading" });
   const [groomBooking, setGroomBooking] = useState<GroomBookingDetail | null>(null);
   const [barbers, setBarbers] = useState<DisplayBarber[]>([]);
   const [isLoadingBarbers, setIsLoadingBarbers] = useState(true);
   const [barbersError, setBarbersError] = useState<string | null>(null);
   const [barbersReload, setBarbersReload] = useState(0);
+  const { openBooking } = useBookingController();
+  const { isLoadingBranches, selectedBranch, branches } = useBranch();
 
   const openBarberFirst = (barber: DisplayBarber) => {
     if (!hasEmpId(barber)) return;
-    setEntryMode("barber_first");
-    setBookingMode("specific");
-    setSelectedBarber(barber);
+    openBooking({
+      barber,
+      entryMode: "barber_first",
+      initialMode: "specific",
+    });
   };
 
-  const openNearestBooking = () => {
-    setEntryMode("branch_first");
-    setBookingMode("nearest");
-    setSelectedBarber(NEAREST_PLACEHOLDER_BARBER);
+  const openNearestBooking = (groom?: GroomBookingDetail | null) => {
+    const detail = groom ?? groomBooking;
+    openBooking({
+      barber: NEAREST_PLACEHOLDER_BARBER,
+      entryMode: "branch_first",
+      initialMode: "nearest",
+      initialServiceMatches: detail?.serviceMatches,
+      initialServiceIds: detail?.serviceIds,
+      bookingNote: detail?.note,
+    });
   };
 
   useEffect(() => {
@@ -179,7 +192,7 @@ const BarbersSection = () => {
       const detail = (e as CustomEvent<GroomBookingDetail>).detail;
       if (!detail?.serviceMatches?.length && !detail?.serviceIds?.length) return;
       setGroomBooking(detail);
-      openNearestBooking();
+      openNearestBooking(detail);
     };
     const handleBookBarber = (e: Event) => {
       const detail = (e as CustomEvent<{ name: string; image: string }>).detail;
@@ -211,8 +224,9 @@ const BarbersSection = () => {
     listGlobalBarbers()
       .then((res) => {
         if (cancelled) return;
-        const bookable = (res.data ?? []).filter(
-          (b) => b.isBookableOnline && hasEmpId(b),
+        const bookable = filterBarbersForPublicDiscovery(
+          (res.data ?? []).filter((b) => hasEmpId(b)),
+          branches,
         );
         setBarbers(bookable.map(apiToDisplay));
         if (bookable.length === 0) {
@@ -230,7 +244,7 @@ const BarbersSection = () => {
     return () => {
       cancelled = true;
     };
-  }, [barbersReload]);
+  }, [barbersReload, branches]);
 
   const [emblaRef, emblaApi] = useEmblaCarousel({
     direction: "rtl",
@@ -448,27 +462,6 @@ const BarbersSection = () => {
               ))}
         </div>
       </div>
-
-      {selectedBarber &&
-        (entryMode === "branch_first" || hasEmpId(selectedBarber)) && (
-          <BookingModal
-            open={!!selectedBarber}
-            onOpenChange={(open) => {
-              if (!open) {
-                setSelectedBarber(null);
-                setBookingMode(undefined);
-                setEntryMode("branch_first");
-                setGroomBooking(null);
-              }
-            }}
-            barber={selectedBarber}
-            initialMode={bookingMode}
-            entryMode={entryMode}
-            initialServiceMatches={groomBooking?.serviceMatches}
-            initialServiceIds={groomBooking?.serviceIds}
-            bookingNote={groomBooking?.note}
-          />
-        )}
     </section>
   );
 };

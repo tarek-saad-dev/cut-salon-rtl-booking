@@ -361,8 +361,8 @@ describe("BookingModalCreate / Idempotency / Unknown / RateLimit", () => {
       await result.current.confirmCreate();
     });
     expect(result.current.mutationUi.kind).toBe("unknown");
-    expect(result.current.mutationUi.kind === "unknown" && result.current.mutationUi.message).toMatch(
-      /تعذر التأكد|قد يكون الحجز/,
+    expect(result.current.mutationUi.kind === "unknown" && result.current.mutationUi.message).toBe(
+      "outcomeUnknown",
     );
     expect(result.current.step).toBe("review");
 

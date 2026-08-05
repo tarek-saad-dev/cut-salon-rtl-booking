@@ -1,10 +1,46 @@
 // Central booking API client
 export { bookingApiRequest } from "./client";
 export { getBookingApiBaseUrl } from "./env";
-export { BookingApiError, getArabicErrorMessage } from "./errors";
+export { BookingApiError, getArabicErrorMessage, getLocalizedBookingErrorMessage } from "./errors";
 
 // API modules
 export { listPublicBranches } from "./branches";
+export { normalizeBranchCode, branchCodesEqual } from "./branch-code";
+export {
+  resolveBookableBranchesForBarber,
+  type BarberBranchResolution,
+  type ResolveBookableBranchesResult,
+} from "./resolve-bookable-branches";
+export {
+  getBookingSteps,
+  recoverStepInSequence,
+  findBranchByCode,
+  type BookingStepId,
+} from "./booking-steps";
+export {
+  getEffectiveBookingBranch,
+  getBookingBranchDisplay,
+  isPreferredBranchValidForBooking,
+  localizeBranchName,
+} from "./booking-branch";
+export {
+  getBarberAvailableDays,
+  getBarberAvailableSlots,
+  peekCachedBarberAvailableDays,
+  peekCachedBarberAvailableSlots,
+  barberSlotKey,
+  type BarberAvailabilityScope,
+  type BarberAvailableDay,
+  type BarberAvailableSlot,
+  type BarberDayBranchSummary,
+  type BarberAvailabilityMeta,
+} from "./barber-availability";
+export {
+  isBarberEligibleForPublicDiscovery,
+  filterBarbersForPublicDiscovery,
+  isBarberAssignedToBranch,
+  filterBarbersForBranchRoster,
+} from "./barber-eligibility";
 export { getBookingConfig, getBookingStatus, getServices } from "./services";
 export {
   listBranchBarbers,

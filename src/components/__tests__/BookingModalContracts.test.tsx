@@ -19,7 +19,10 @@ describe("BookingModalBranchSelection (source contract)", () => {
   it("uses BranchContext + booking-api PublicBranch, not hardcoded GLEEM authority", () => {
     expect(modalSrc).toMatch(/useBranch/);
     expect(modalSrc).toMatch(/@\/lib\/booking-api/);
+    expect(modalSrc).toMatch(/resolveBookableBranchesForBarber/);
+    expect(modalSrc).toMatch(/getEffectiveBookingBranch/);
     expect(modalSrc).not.toMatch(/publicBookingApi/);
+    expect(modalSrc).not.toMatch(/CAMP_CAESAR.*filter|filter.*CAMP_CAESAR/);
   });
 });
 
@@ -44,15 +47,15 @@ describe("BookingModalPlan (source contract)", () => {
   it("creates plan then moves to review step", () => {
     expect(hookSrc).toMatch(/createBookingPlan/);
     expect(hookSrc).toMatch(/setStep\("review"\)/);
-    expect(modalSrc).toMatch(/راجع حجزك/);
+    expect(modalSrc).toMatch(/review\.title/);
   });
 });
 
 describe("BookingModalCreate (source contract)", () => {
   it("confirms via submitBookingFromPlan", () => {
     expect(hookSrc).toMatch(/submitBookingFromPlan/);
-    expect(modalSrc).toMatch(/تأكيد الحجز/);
-    expect(modalSrc).toMatch(/جاري تأكيد حجزك/);
+    expect(modalSrc).toMatch(/actions\.confirmBooking/);
+    expect(modalSrc).toMatch(/loading\.creating/);
   });
 });
 
@@ -67,7 +70,7 @@ describe("BookingModalUnknownOutcome (source contract)", () => {
   it("surfaces mutation_outcome_unknown UX", () => {
     expect(hookSrc).toMatch(/mutation_outcome_unknown/);
     expect(hookSrc).toMatch(/safeRetryCreate/);
-    expect(modalSrc).toMatch(/إعادة التحقق|إعادة المحاولة|تعذر التأكد/);
+    expect(modalSrc).toMatch(/errors\.outcomeUnknown|actions\.safeRetry/);
   });
 });
 
@@ -79,9 +82,10 @@ describe("BookingModalRateLimit (source contract)", () => {
 });
 
 describe("BookingModalOvernight (source contract)", () => {
-  it("preserves dayOffset on plan/create", () => {
+  it("preserves dayOffset on plan/create and uses customer-safe overnight copy", () => {
     expect(hookSrc).toMatch(/dayOffset/);
-    expect(modalSrc).toMatch(/تابع لليوم التشغيلي المختار/);
+    expect(modalSrc).toMatch(/overnight\.afterMidnight/);
+    expect(modalSrc).not.toMatch(/تابع لليوم التشغيلي/);
   });
 });
 
