@@ -8,6 +8,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { useState } from "react";
 import { BranchProvider } from "@/context/BranchContext";
 import { LanguageProvider } from "@/context/LanguageContext";
+import { BookingControllerProvider } from "@/context/BookingController";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(() => new QueryClient());
@@ -20,7 +21,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
           <Sonner />
           {/* Global language state is ready; pages opt into bilingual direction as they are migrated. */}
           <LanguageProvider>
-            <BranchProvider>{children}</BranchProvider>
+            <BranchProvider>
+              <BookingControllerProvider>{children}</BookingControllerProvider>
+            </BranchProvider>
           </LanguageProvider>
         </TooltipProvider>
       </ThemeProvider>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Calendar, Menu, Minus, Phone, Plus, User, X } from "lucide-react";
 import ClientProfileWidget from "./ClientProfileWidget";
@@ -55,10 +56,16 @@ export default function MainNav() {
   const [openAccordion, setOpenAccordion] = useState<AccordionId>("book");
   const menuTriggerRef = useRef<HTMLButtonElement>(null);
   const wasMobileOpenRef = useRef(false);
+  const pathname = usePathname();
+  const router = useRouter();
   const { lang, dir, setLang } = useLanguage();
   const label = (key: keyof typeof navigationLabels) => navigationLabels[key][lang];
   const barberHref = lang === "en" ? "/#english-barbers" : "/#barbers";
   const closeMobileMenu = () => setMobileOpen(false);
+  const goToBook = () => {
+    closeMobileMenu();
+    router.push("/book");
+  };
 
   useEffect(() => {
     const onResize = () => {
@@ -86,10 +93,8 @@ export default function MainNav() {
     return () => window.removeEventListener("keydown", onEscape);
   }, []);
 
-  const openBooking = () =>
-    document
-      .getElementById(lang === "en" ? "english-barbers" : "barbers")
-      ?.scrollIntoView({ behavior: "smooth", block: "start" });
+  // Dedicated booking entry has its own header chrome.
+  if (pathname?.startsWith("/book")) return null;
 
   const toggleAccordion = (id: AccordionId) => {
     setOpenAccordion((current) => (current === id ? null : id));
@@ -166,7 +171,7 @@ export default function MainNav() {
           >
             <LanguageToggle />
             <button
-              onClick={openBooking}
+              onClick={goToBook}
               aria-label={label("booking")}
               className="inline-flex h-11 items-center gap-2 rounded-xl bg-cut-ivory px-4 text-sm font-bold text-cut-black transition hover:bg-cut-warm-beige focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cut-warm-beige xl:px-5"
             >
@@ -184,7 +189,7 @@ export default function MainNav() {
             <div className="flex items-center justify-center gap-3">
               <button
                 type="button"
-                onClick={openBooking}
+                onClick={goToBook}
                 aria-label={label("booking")}
                 className="font-ui inline-flex min-h-10 items-center justify-center bg-cut-ivory px-5 text-[11px] font-bold uppercase tracking-[0.22em] text-cut-black transition hover:bg-cut-warm-beige focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cut-warm-beige"
               >
@@ -290,10 +295,7 @@ export default function MainNav() {
                           <li className="pb-3">
                             <button
                               type="button"
-                              onClick={() => {
-                                closeMobileMenu();
-                                setTimeout(openBooking, 220);
-                              }}
+                              onClick={goToBook}
                               className={`${subItemClass} w-full text-start`}
                             >
                               {label("booking")}

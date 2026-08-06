@@ -60,7 +60,10 @@ const HeroSection = () => {
 
         <div className="absolute inset-0 hidden md:block"
           style={{ background: "linear-gradient(270deg, rgba(5,5,5,0.98) 0%, rgba(23,4,6,0.88) 35%, rgba(5,5,5,0.55) 65%, rgba(5,5,5,0.25) 100%)" }} />
-        <div className="absolute inset-0 md:hidden bg-[linear-gradient(180deg,rgba(5,5,5,0.5)_0%,rgba(5,5,5,0.28)_38%,rgba(5,5,5,0.88)_100%)]" />
+        <div className="absolute inset-0 md:hidden bg-[linear-gradient(180deg,rgba(5,5,5,0.55)_0%,rgba(5,5,5,0.35)_40%,rgba(5,5,5,0.82)_100%)]" />
+        {/* Burgundy glow — match English hero atmosphere */}
+        <div className="absolute inset-0 md:hidden bg-[radial-gradient(circle_at_70%_25%,rgba(74,0,15,0.45),transparent_45%)]" />
+        <div className="absolute inset-0 hidden md:block bg-[radial-gradient(circle_at_78%_28%,rgba(74,0,15,0.55),transparent_42%)]" />
         <div className="absolute inset-x-0 bottom-0 h-40 md:h-56 bg-gradient-to-t from-cut-black via-cut-black/80 to-transparent" />
         <div className="absolute inset-x-0 top-0 h-24 md:h-32 bg-gradient-to-b from-cut-black/70 to-transparent" />
         <div className="absolute inset-0 cut-vignette pointer-events-none opacity-60 md:opacity-100" />
