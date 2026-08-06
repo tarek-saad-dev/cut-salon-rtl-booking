@@ -15,6 +15,16 @@ import { TIMEOUT_MS } from "./timeout";
 import { getAvailableDays, getAvailableSlots } from "./availability";
 import { cairoTodayYmd } from "./barbers";
 import { normalizeBranchCode } from "./branch-code";
+import {
+  getAggregateDaysCapability,
+  getAggregateSlotsCapability,
+  markAggregateDaysSupported,
+  markAggregateDaysUnsupported,
+  markAggregateSlotsSupported,
+  markAggregateSlotsUnsupported,
+  toWireAvailabilityScope,
+} from "./aggregate-capability";
+import { bookingPerfMark } from "./booking-perf";
 import type {
   AvailableDay,
   AvailableSlot,
@@ -214,6 +224,9 @@ async function tryPrimaryDays(
   params: GetBarberAvailableDaysParams,
   signal?: AbortSignal,
 ): Promise<BookingApiResponse<BarberAvailableDaysResult> | null> {
+  const capability = getAggregateDaysCapability();
+  if (capability === "unsupported") return null;
+
   try {
     const res = await bookingApiRequest<{
       ok?: boolean;
@@ -227,7 +240,7 @@ async function tryPrimaryDays(
       method: "POST",
       body: {
         serviceIds: params.serviceIds,
-        scope: params.scope,
+        scope: toWireAvailabilityScope(params.scope),
         ...(params.scope === "specific_branch"
           ? { branchCode: normalizeBranchCode(params.branchCode) }
           : {}),
@@ -238,10 +251,10 @@ async function tryPrimaryDays(
       timeoutMs: TIMEOUT_MS.availableDays,
     });
 
-    // bookingApiRequest may throw on HTML; if somehow we got empty with unverified, treat as miss
     const days = (res.data.days ?? [])
       .map(normalizeBarberDay)
       .filter(Boolean) as BarberAvailableDay[];
+    markAggregateDaysSupported();
     return {
       ...res,
       data: {
@@ -256,7 +269,23 @@ async function tryPrimaryDays(
     };
   } catch (err) {
     if (err instanceof DOMException && err.name === "AbortError") throw err;
-    // Dedicated multi-branch routes are not always deployed yet — fall back to compat.
+    // Validation on a live route should surface; missing route / HTML → unsupported.
+    if (err instanceof BookingApiError) {
+      if (
+        err.httpStatus === 400 ||
+        err.httpStatus === 422 ||
+        err.code === "INVALID_AVAILABILITY_SCOPE" ||
+        err.code === "BRANCH_REQUIRED"
+      ) {
+        // Endpoint exists; do not mark unsupported — let caller decide.
+        throw err;
+      }
+      if (err.httpStatus === 404 || err.code === "INTERNAL_ERROR" || err.httpStatus === 405) {
+        markAggregateDaysUnsupported();
+        return null;
+      }
+    }
+    markAggregateDaysUnsupported();
     return null;
   }
 }
@@ -265,6 +294,9 @@ async function tryPrimarySlots(
   params: GetBarberAvailableSlotsParams,
   signal?: AbortSignal,
 ): Promise<BookingApiResponse<BarberAvailableSlotsResult> | null> {
+  const capability = getAggregateSlotsCapability();
+  if (capability === "unsupported") return null;
+
   try {
     const res = await bookingApiRequest<{
       ok?: boolean;
@@ -278,7 +310,7 @@ async function tryPrimarySlots(
       method: "POST",
       body: {
         serviceIds: params.serviceIds,
-        scope: params.scope,
+        scope: toWireAvailabilityScope(params.scope),
         date: params.date,
         ...(params.scope === "specific_branch"
           ? { branchCode: normalizeBranchCode(params.branchCode) }
@@ -291,6 +323,7 @@ async function tryPrimarySlots(
       .map((s) => normalizeBarberSlot(s, params.date, params.empId))
       .filter(Boolean) as BarberAvailableSlot[];
     slots.sort(compareSlotTime);
+    markAggregateSlotsSupported();
     return {
       ...res,
       data: {
@@ -305,7 +338,21 @@ async function tryPrimarySlots(
     };
   } catch (err) {
     if (err instanceof DOMException && err.name === "AbortError") throw err;
-    // Dedicated multi-branch routes are not always deployed yet — fall back to compat.
+    if (err instanceof BookingApiError) {
+      if (
+        err.httpStatus === 400 ||
+        err.httpStatus === 422 ||
+        err.code === "INVALID_AVAILABILITY_SCOPE" ||
+        err.code === "BRANCH_REQUIRED"
+      ) {
+        throw err;
+      }
+      if (err.httpStatus === 404 || err.code === "INTERNAL_ERROR" || err.httpStatus === 405) {
+        markAggregateSlotsUnsupported();
+        return null;
+      }
+    }
+    markAggregateSlotsUnsupported();
     return null;
   }
 }
@@ -497,7 +544,6 @@ export async function getBarberAvailableDays(
   params: GetBarberAvailableDaysParams,
   signal?: AbortSignal,
 ): Promise<BookingApiResponse<BarberAvailableDaysResult>> {
-  void signal;
   if (params.scope === "specific_branch" && !normalizeBranchCode(params.branchCode)) {
     throw new BookingApiError({
       message: "barberAvailabilityBranchRequired",
@@ -511,10 +557,36 @@ export async function getBarberAvailableDays(
     if (hit && Date.now() - hit.at < DAYS_CACHE_TTL_MS) return hit.value;
   }
   const { promise } = deduplicatedRequest(key, async (dedupSignal) => {
-    const primary = await tryPrimaryDays(params, dedupSignal);
-    const value = primary ?? (await compatDays(params));
-    if (cachingEnabled()) daysCache.set(key, { at: Date.now(), value });
-    return value;
+    const linked = new AbortController();
+    const onAbort = () => linked.abort();
+    signal?.addEventListener("abort", onAbort, { once: true });
+    dedupSignal.addEventListener("abort", onAbort, { once: true });
+    try {
+      // Never run primary + compat in parallel.
+      if (getAggregateDaysCapability() === "unsupported") {
+        const value = await compatDays(params);
+        bookingPerfMark("catalog_request_complete", {
+          empId: params.empId,
+          compatAvailabilityFallback: true,
+          source: "days",
+        });
+        if (cachingEnabled()) daysCache.set(key, { at: Date.now(), value });
+        return value;
+      }
+      const primary = await tryPrimaryDays(params, linked.signal);
+      const value = primary ?? (await compatDays(params));
+      if (value.data.meta?.compatFallback) {
+        bookingPerfMark("catalog_request_complete", {
+          empId: params.empId,
+          compatAvailabilityFallback: true,
+          source: "days",
+        });
+      }
+      if (cachingEnabled()) daysCache.set(key, { at: Date.now(), value });
+      return value;
+    } finally {
+      signal?.removeEventListener("abort", onAbort);
+    }
   });
   return promise;
 }
@@ -523,7 +595,6 @@ export async function getBarberAvailableSlots(
   params: GetBarberAvailableSlotsParams,
   signal?: AbortSignal,
 ): Promise<BookingApiResponse<BarberAvailableSlotsResult>> {
-  void signal;
   if (params.scope === "specific_branch" && !normalizeBranchCode(params.branchCode)) {
     throw new BookingApiError({
       message: "barberAvailabilityBranchRequired",
@@ -537,10 +608,35 @@ export async function getBarberAvailableSlots(
     if (hit && Date.now() - hit.at < SLOTS_CACHE_TTL_MS) return hit.value;
   }
   const { promise } = deduplicatedRequest(key, async (dedupSignal) => {
-    const primary = await tryPrimarySlots(params, dedupSignal);
-    const value = primary ?? (await compatSlots(params));
-    if (cachingEnabled()) slotsCache.set(key, { at: Date.now(), value });
-    return value;
+    const linked = new AbortController();
+    const onAbort = () => linked.abort();
+    signal?.addEventListener("abort", onAbort, { once: true });
+    dedupSignal.addEventListener("abort", onAbort, { once: true });
+    try {
+      if (getAggregateSlotsCapability() === "unsupported") {
+        const value = await compatSlots(params);
+        bookingPerfMark("catalog_request_complete", {
+          empId: params.empId,
+          compatAvailabilityFallback: true,
+          source: "slots",
+        });
+        if (cachingEnabled()) slotsCache.set(key, { at: Date.now(), value });
+        return value;
+      }
+      const primary = await tryPrimarySlots(params, linked.signal);
+      const value = primary ?? (await compatSlots(params));
+      if (value.data.meta?.compatFallback) {
+        bookingPerfMark("catalog_request_complete", {
+          empId: params.empId,
+          compatAvailabilityFallback: true,
+          source: "slots",
+        });
+      }
+      if (cachingEnabled()) slotsCache.set(key, { at: Date.now(), value });
+      return value;
+    } finally {
+      signal?.removeEventListener("abort", onAbort);
+    }
   });
   return promise;
 }

@@ -9,6 +9,7 @@ import { format } from "date-fns";
 import {
   getBookingConfig,
   getServices,
+  filterCatalogByServiceIds,
   listBranchBarbers,
   getPublicBarberProfile,
   getAvailableDays,
@@ -35,8 +36,17 @@ import {
   BookingApiError,
   getArabicErrorMessage,
   resolveBookableBranchesForBarber,
+  seedBarberProfileCache,
+  peekBarberProfileCache,
+  profileFromSeed,
+  seedIsCompleteForBranchDecision,
+  clearBarberProfileCache,
+  bookingPerfMark,
+  type BarberProfileSeed,
   type BookingConfig,
   type BookingService,
+  type BookingServiceCategory,
+  type ServicesCatalog,
   type PublicBarber,
   type PublicBarberBranch,
   type AvailableDay,
@@ -68,6 +78,19 @@ export type BookingUiStep =
   | "details"
   | "review"
   | "success";
+
+/** UI status for barber-first profile / branch loading. */
+export type BarberProfileUiStatus =
+  | "idle"
+  | "loading"
+  | "slow_loading"
+  | "success"
+  | "empty"
+  | "request_error"
+  | "aborted";
+
+const PROFILE_SLOW_MS = 2_000;
+const PROFILE_RETRY_HINT_MS = 5_000;
 
 const MAX_SERVICES = 12;
 const ALL_CROSS_TAB = "all";
@@ -120,6 +143,8 @@ export function useBookingFlow(opts: {
   initialAvailabilityScope?: BarberAvailabilityScope | null;
   /** Public branches intersecting the barber (from modal resolver). */
   allowedPublicBranches?: PublicBranch[];
+  /** Lightweight profile seed from discovery / prefetch (not trusted for plan/create). */
+  profileSeed?: BarberProfileSeed | null;
 }) {
   const {
     open,
@@ -132,6 +157,7 @@ export function useBookingFlow(opts: {
     explicitEntryBranchCode = null,
     initialAvailabilityScope = null,
     allowedPublicBranches = EMPTY_PUBLIC_BRANCHES,
+    profileSeed = null,
   } = opts;
 
   const isBarberFirst = entryMode === "barber_first";
@@ -147,11 +173,15 @@ export function useBookingFlow(opts: {
 
   const [config, setConfig] = useState<BookingConfig | null>(null);
   const [services, setServices] = useState<BookingService[]>([]);
+  const [serviceCategories, setServiceCategories] = useState<BookingServiceCategory[]>([]);
   const [barbers, setBarbers] = useState<PublicBarber[]>([]);
   const [barberBranches, setBarberBranches] = useState<PublicBarberBranch[]>([]);
   const [barberServiceIds, setBarberServiceIds] = useState<number[] | null>(null);
   const [barberProfileLoading, setBarberProfileLoading] = useState(false);
   const [barberProfileError, setBarberProfileError] = useState<string | null>(null);
+  const [barberProfileStatus, setBarberProfileStatus] = useState<BarberProfileUiStatus>("idle");
+  const [barberProfileShowRetry, setBarberProfileShowRetry] = useState(false);
+  const [barberProfileStaleWarning, setBarberProfileStaleWarning] = useState(false);
   const [catalogLoading, setCatalogLoading] = useState(false);
   const [catalogError, setCatalogError] = useState<string | null>(null);
 
@@ -384,11 +414,12 @@ export function useBookingFlow(opts: {
     }
   }, [open, explicitEntryBranchCode, initialAvailabilityScope]);
 
-  // Barber-first: load public branches + serviceIds for the selected barber
+  // Barber-first: load public branches + serviceIds (cache + seed + SWR)
   const [barberProfileReload, setBarberProfileReload] = useState(0);
   const retryBarberProfile = useCallback(() => {
     setBarberProfileReload((n) => n + 1);
   }, []);
+  const appliedProfileEmpRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (!open || !isBarberFirst) {
@@ -396,6 +427,10 @@ export function useBookingFlow(opts: {
       setBarberServiceIds(null);
       setBarberProfileError(null);
       setBarberProfileLoading(false);
+      setBarberProfileStatus("idle");
+      setBarberProfileShowRetry(false);
+      setBarberProfileStaleWarning(false);
+      appliedProfileEmpRef.current = null;
       return;
     }
 
@@ -404,35 +439,122 @@ export function useBookingFlow(opts: {
       setBarberServiceIds(null);
       setBarberProfileLoading(false);
       setBarberProfileError("barberIdMissing");
+      setBarberProfileStatus("request_error");
       setBarber(null);
       return;
     }
 
+    const empId = initialBarber.id;
     let cancelled = false;
     const controller = new AbortController();
-    setBarberProfileLoading(true);
-    setBarberProfileError(null);
     setMode("specific");
-    setBarber({ id: initialBarber.id, name: initialBarber.name });
+    setBarber({ id: empId, name: initialBarber.name });
 
-    (async () => {
-      try {
-        const res = await getPublicBarberProfile(initialBarber.id!, controller.signal);
+    const applyProfile = (profile: PublicBarber | null, opts?: { fromCache?: boolean }) => {
+      if (cancelled) return;
+      if (!profile) {
+        setBarberBranches([]);
+        setBarberServiceIds(null);
+        setBarberProfileError("barberNotBookableOnline");
+        setBarberProfileStatus("empty");
+        setBarberProfileLoading(false);
+        return;
+      }
+      const branches = profile.branches ?? [];
+      setBarber({ id: profile.id, name: initialBarber.name || profile.name });
+      setBarberBranches(branches);
+      setBarberServiceIds(Array.isArray(profile.serviceIds) ? profile.serviceIds : []);
+      setBarberProfileError(null);
+      if (branches.length === 0) {
+        setBarberProfileStatus("empty");
+      } else {
+        setBarberProfileStatus("success");
+      }
+      setBarberProfileLoading(false);
+      if (opts?.fromCache) {
+        bookingPerfMark("appointment_options_rendered", {
+          empId,
+          cacheHit: true,
+        });
+      }
+    };
+
+    // Seed discovery data into session cache when complete enough for branch decision.
+    if (profileSeed && seedIsCompleteForBranchDecision(profileSeed) && profileSeed.empId === empId) {
+      seedBarberProfileCache(profileSeed);
+    }
+
+    const cached = peekBarberProfileCache(empId);
+    const seedProfile =
+      profileSeed && profileSeed.empId === empId && seedIsCompleteForBranchDecision(profileSeed)
+        ? profileFromSeed(profileSeed)
+        : null;
+    const immediate = cached ?? seedProfile;
+
+    if (immediate && (immediate.branches?.length ?? 0) >= 0 && immediate.branches != null) {
+      applyProfile(immediate, { fromCache: true });
+      // Revalidate in background; keep UI unblocked.
+      setBarberProfileStaleWarning(false);
+    } else {
+      setBarberProfileLoading(true);
+      setBarberProfileError(null);
+      setBarberProfileStatus("loading");
+      setBarberProfileShowRetry(false);
+      setBarberProfileStaleWarning(false);
+    }
+
+    const needsBlockingLoad = !(immediate && immediate.branches != null);
+    const slowTimer = needsBlockingLoad
+      ? window.setTimeout(() => {
+          if (cancelled) return;
+          setBarberProfileStatus((s) => (s === "loading" ? "slow_loading" : s));
+        }, PROFILE_SLOW_MS)
+      : 0;
+    const retryTimer = needsBlockingLoad
+      ? window.setTimeout(() => {
+          if (cancelled) return;
+          setBarberProfileShowRetry(true);
+        }, PROFILE_RETRY_HINT_MS)
+      : 0;
+
+    const force = barberProfileReload > 0;
+    if (force) {
+      clearBarberProfileCache(empId);
+    }
+
+    // Prefer mocked getPublicBarberProfile in tests; production path uses shared cache.
+    getPublicBarberProfile(empId, controller.signal)
+      .then((res) => {
         if (cancelled) return;
-        const profile = res.data;
-        if (!profile) {
-          setBarberProfileError("barberNotBookableOnline");
-          setBarberBranches([]);
-          setBarberServiceIds(null);
+        if (appliedProfileEmpRef.current != null && appliedProfileEmpRef.current !== empId) {
           return;
         }
-        setBarber({ id: profile.id, name: initialBarber.name || profile.name });
-        setBarberBranches(profile.branches ?? []);
-        setBarberServiceIds(
-          Array.isArray(profile.serviceIds) ? profile.serviceIds : [],
-        );
-      } catch (err) {
-        if (cancelled || (err instanceof DOMException && err.name === "AbortError")) return;
+        appliedProfileEmpRef.current = empId;
+        const profile = res.data;
+        if (!profile) {
+          if (immediate?.branches != null) {
+            setBarberProfileStaleWarning(true);
+            setBarberProfileStatus("success");
+            setBarberProfileLoading(false);
+            return;
+          }
+          applyProfile(null);
+          return;
+        }
+        applyProfile(profile);
+        setBarberProfileStaleWarning(false);
+      })
+      .catch((err) => {
+        if (cancelled || (err instanceof DOMException && err.name === "AbortError")) {
+          if (!cancelled) setBarberProfileStatus("aborted");
+          return;
+        }
+        if (immediate?.branches != null) {
+          setBarberProfileStaleWarning(true);
+          setBarberProfileStatus("success");
+          setBarberProfileLoading(false);
+          return;
+        }
         if (err instanceof BookingApiError) {
           setBarberProfileError(err.message);
         } else {
@@ -440,16 +562,34 @@ export function useBookingFlow(opts: {
         }
         setBarberBranches([]);
         setBarberServiceIds(null);
-      } finally {
-        if (!cancelled) setBarberProfileLoading(false);
-      }
-    })();
+        setBarberProfileStatus("request_error");
+        setBarberProfileLoading(false);
+        setBarberProfileShowRetry(true);
+      })
+      .finally(() => {
+        window.clearTimeout(slowTimer);
+        window.clearTimeout(retryTimer);
+      });
+
+    appliedProfileEmpRef.current = empId;
 
     return () => {
       cancelled = true;
       controller.abort();
+      window.clearTimeout(slowTimer);
+      window.clearTimeout(retryTimer);
     };
-  }, [open, isBarberFirst, initialBarber?.id, initialBarber?.name, barberProfileReload]);
+    // selectedSpecificBranchCode intentionally omitted — only used for post-revalidate guard.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    open,
+    isBarberFirst,
+    initialBarber?.id,
+    initialBarber?.name,
+    barberProfileReload,
+    profileSeed?.empId,
+    profileSeed?.publicBranches,
+  ]);
 
   // Branch change mid-flow
   useEffect(() => {
@@ -493,17 +633,23 @@ export function useBookingFlow(opts: {
     type CachedCatalog = {
       config: BookingConfig | null;
       services: BookingService[];
+      categories?: BookingServiceCategory[];
       barbers: PublicBarber[];
     };
     const cached = getCachedCatalog<CachedCatalog>(catalogBranch);
     if (cached) {
-      let bookable = (cached.services ?? []).filter((s) => s.isBookableOnline);
-      if (isBarberFirst && barberServiceIdsRef.current !== null) {
-        const allowed = new Set(barberServiceIdsRef.current);
-        bookable = bookable.filter((s) => allowed.has(s.id));
-      }
+      const catalog: ServicesCatalog = {
+        services: cached.services ?? [],
+        categories: cached.categories ?? [],
+      };
+      const allowed =
+        isBarberFirst && barberServiceIdsRef.current !== null
+          ? new Set(barberServiceIdsRef.current)
+          : null;
+      const filtered = filterCatalogByServiceIds(catalog, allowed, true);
       setConfig(cached.config);
-      setServices(bookable);
+      setServices(filtered.services);
+      setServiceCategories(filtered.categories);
       setBarbers((cached.barbers ?? []).filter((b) => b.isBookableOnline));
       setCatalogError(null);
       setCatalogLoading(false);
@@ -532,18 +678,21 @@ export function useBookingFlow(opts: {
         ]);
         if (cancelled) return;
         setConfig(cfg.data);
-        let bookable = (svc.data ?? []).filter((s) => s.isBookableOnline);
-        if (isBarberFirst && barberServiceIdsRef.current !== null) {
-          const allowed = new Set(barberServiceIdsRef.current);
-          bookable = bookable.filter((s) => allowed.has(s.id));
-        }
-        setServices(bookable);
+        const catalog = svc.data ?? { services: [], categories: [] };
+        const allowed =
+          isBarberFirst && barberServiceIdsRef.current !== null
+            ? new Set(barberServiceIdsRef.current)
+            : null;
+        const filtered = filterCatalogByServiceIds(catalog, allowed, true);
+        setServices(filtered.services);
+        setServiceCategories(filtered.categories);
         const branchBarbers = (bar.data ?? []).filter((b) => b.isBookableOnline);
         setBarbers(branchBarbers);
         const existing = getCachedCatalog<CachedCatalog>(catalogBranch!);
         setCachedCatalog(catalogBranch!, {
           config: cfg.data,
-          services: svc.data ?? [],
+          services: catalog.services,
+          categories: catalog.categories,
           // Barber-first skips branch barbers fetch — don't wipe a prior cache.
           barbers: isBarberFirst ? (existing?.barbers ?? []) : (bar.data ?? []),
         });
@@ -588,14 +737,20 @@ export function useBookingFlow(opts: {
     const allowed = new Set(barberServiceIds);
     setServices((prev) => {
       const filtered = prev.filter((s) => allowed.has(s.id));
-      // If catalog not loaded yet, keep empty; catalog effect will set full list then this re-runs.
       if (prev.length === 0) return prev;
-      // Avoid churn when already filtered.
       if (filtered.length === prev.length && filtered.every((s, i) => s.id === prev[i]?.id)) {
         return prev;
       }
       return filtered;
     });
+    setServiceCategories((prev) =>
+      prev
+        .map((cat) => {
+          const services = cat.services.filter((s) => allowed.has(s.id));
+          return { ...cat, services, serviceCount: services.length };
+        })
+        .filter((cat) => cat.services.length > 0),
+    );
   }, [isBarberFirst, barberServiceIds]);
 
   // Prefetch available-days while still on service/mode so the calendar often
@@ -1510,10 +1665,14 @@ export function useBookingFlow(opts: {
     isBarberFirst,
     config,
     services,
+    serviceCategories,
     barbers,
     barberBranches,
     barberProfileLoading,
     barberProfileError,
+    barberProfileStatus,
+    barberProfileShowRetry,
+    barberProfileStaleWarning,
     retryBarberProfile,
     catalogLoading,
     catalogError,

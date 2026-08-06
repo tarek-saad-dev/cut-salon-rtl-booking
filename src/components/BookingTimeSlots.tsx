@@ -1,6 +1,6 @@
 "use client";
 
-import { Clock, CalendarX, Zap, MoonStar } from "lucide-react";
+import { Check, Clock, CalendarX, Zap, MoonStar } from "lucide-react";
 import type { AvailableSlot } from "@/lib/booking-api";
 import { useBookingTranslations } from "@/hooks/useBookingTranslations";
 
@@ -13,8 +13,6 @@ interface BookingTimeSlotsProps {
   slots: AvailableSlot[];
   isLoading?: boolean;
 }
-
-// ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function getDayOffset(slot: AvailableSlot): number {
   return slot.dayOffset ?? 0;
@@ -95,23 +93,21 @@ function organizePeriods(
   return periods;
 }
 
-// ─── Skeleton ────────────────────────────────────────────────────────────────
-
 const SlotsSkeleton = ({ dir }: { dir: "rtl" | "ltr" }) => (
-  <div className="p-6 space-y-5 animate-pulse" dir={dir}>
+  <div className="p-6 space-y-5 animate-pulse" dir={dir} aria-busy="true">
     <div>
-      <div className="h-6 bg-[#171717] rounded w-28 mb-2" />
-      <div className="h-4 bg-[#111111] rounded w-52" />
+      <div className="h-6 bg-[var(--booking-surface)] rounded w-28 mb-2" />
+      <div className="h-4 bg-[var(--booking-surface)] rounded w-52" />
     </div>
-    <div className="h-[72px] rounded-2xl bg-[#111111] border border-[rgba(212,175,55,0.18)]" />
+    <div className="h-[72px] rounded-2xl bg-[var(--booking-bg)] border border-[var(--booking-accent)]" />
     {[1, 2, 3].map((i) => (
       <div key={i} className="space-y-3">
-        <div className="h-4 bg-[#171717] rounded w-24" />
-        <div className="rounded-2xl bg-[#111111] border border-[rgba(212,175,55,0.08)] p-4">
-          <div className="h-5 bg-[#171717] rounded w-14 mb-3" />
+        <div className="h-4 bg-[var(--booking-surface)] rounded w-24" />
+        <div className="rounded-2xl bg-[var(--booking-bg)] border border-[var(--booking-border-subtle)] p-4">
+          <div className="h-5 bg-[var(--booking-surface)] rounded w-14 mb-3" />
           <div className="flex gap-2">
             {[1, 2, 3, 4].map((j) => (
-              <div key={j} className="h-9 w-[4.5rem] bg-[#171717] rounded-xl" />
+              <div key={j} className="h-9 w-[4.5rem] bg-[var(--booking-surface)] rounded-xl" />
             ))}
           </div>
         </div>
@@ -119,8 +115,6 @@ const SlotsSkeleton = ({ dir }: { dir: "rtl" | "ltr" }) => (
     ))}
   </div>
 );
-
-// ─── Slot Pill ───────────────────────────────────────────────────────────────
 
 const SlotPill = ({
   slot,
@@ -136,22 +130,18 @@ const SlotPill = ({
   <button
     type="button"
     onClick={onSelect}
+    aria-pressed={selected}
     className={`
-      relative py-2.5 px-4 rounded-xl text-sm font-medium tabular-nums
+      relative inline-flex items-center gap-1.5 py-2.5 px-4 rounded-xl text-sm font-medium tabular-nums
       transition-all duration-150 cursor-pointer
       focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--booking-accent)]
-      ${
-        selected
-          ? "bg-gradient-to-b from-cut-gold to-cut-gold/80 text-cut-black font-bold shadow-[0_6px_20px_rgba(212,175,55,0.22)] scale-[1.03]"
-          : "bg-[#171717] border border-[rgba(212,175,55,0.1)] text-[#f7f7f2] hover:border-[rgba(212,175,55,0.35)] hover:text-cut-gold hover:shadow-[0_0_12px_rgba(212,175,55,0.06)]"
-      }
+      ${selected ? "booking-slot-selected font-bold" : "booking-slot-default"}
     `}
   >
     <span className="relative">{slot.label ?? formatTime(slot.time)}</span>
+    {selected ? <Check className="w-3.5 h-3.5 flex-shrink-0" strokeWidth={3} aria-hidden /> : null}
   </button>
 );
-
-// ─── Main Component ──────────────────────────────────────────────────────────
 
 const BookingTimeSlots = ({
   selectedTime,
@@ -170,29 +160,22 @@ const BookingTimeSlots = ({
   const visibleSlots = availableSlots;
   const overnightSlots = visibleSlots.filter((s) => getDayOffset(s) === 1);
 
-  if (process.env.NODE_ENV === "development" && slots.length > 0) {
-    const d0 = slots.filter((s) => getDayOffset(s) === 0);
-    const d1 = slots.filter((s) => getDayOffset(s) === 1);
-    console.log("[time slots] raw slots:", slots.length);
-    console.log("[time slots] dayOffset=0:", d0.length);
-    console.log("[time slots] dayOffset=1:", d1.length);
-  }
-
   if (visibleSlots.length === 0) {
     return (
       <div
-        className="flex flex-col items-center justify-center py-14 gap-4 text-center px-6"
+        className="flex flex-col items-center justify-center py-14 gap-4 text-center px-6 bg-[var(--booking-bg)]"
         dir={dir}
+        data-booking-surface="time"
       >
-        <div className="w-16 h-16 rounded-full bg-[#111111] border border-[rgba(212,175,55,0.18)] flex items-center justify-center">
-          <CalendarX className="w-7 h-7 text-[#71717a]" />
+        <div className="w-16 h-16 rounded-full bg-[var(--booking-surface)] border border-[var(--booking-border)] flex items-center justify-center">
+          <CalendarX className="w-7 h-7 text-[var(--booking-text-muted)]" />
         </div>
         <div>
           <p className="text-[var(--booking-error)] font-heading font-bold text-sm mb-2">
             {t("time.empty")}
           </p>
           {onSwitchToNearest && (
-            <p className="text-[#a1a1aa] text-[13px] leading-relaxed max-w-[240px] mx-auto">
+            <p className="text-[var(--booking-text-secondary)] text-[13px] leading-relaxed max-w-[240px] mx-auto">
               {t("time.emptyNearestHint")}
             </p>
           )}
@@ -202,7 +185,7 @@ const BookingTimeSlots = ({
             <button
               type="button"
               onClick={onSwitchToNearest}
-              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-cut-gold text-black text-sm font-heading font-bold hover:bg-cut-gold/80 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--booking-accent)]"
+              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-[var(--booking-accent)] text-white text-sm font-heading font-bold hover:opacity-95 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--booking-accent)]"
             >
               <Zap className="w-4 h-4" />
               {t("actions.switchToNearestBarber")}
@@ -212,7 +195,7 @@ const BookingTimeSlots = ({
             <button
               type="button"
               onClick={onNextDay}
-              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl border border-[rgba(212,175,55,0.18)] bg-[#111111] text-cut-gold text-sm font-heading font-bold hover:bg-[#171717] hover:border-[rgba(212,175,55,0.4)] transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--booking-accent)]"
+              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl border border-[var(--booking-border)] bg-[var(--booking-bg)] text-[var(--booking-text)] text-sm font-heading font-bold hover:bg-[var(--booking-surface-hover)] transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--booking-accent)]"
             >
               <span>{t("actions.showNextDaySlots")}</span>
             </button>
@@ -233,66 +216,63 @@ const BookingTimeSlots = ({
   });
 
   const formatTime = (time: string) => format.time(time);
+  const nearestSelected = nearest
+    ? isSlotSelected(nearest, selectedTime, selectedSlotProp)
+    : false;
 
   return (
-    <div className="p-5 md:p-6 space-y-5" dir={dir}>
+    <div className="p-5 md:p-6 space-y-5 bg-[var(--booking-bg)]" dir={dir} data-booking-surface="time">
       <div>
-        <h3 className="text-xl font-heading font-bold text-[#f7f7f2] mb-0.5">{t("time.title")}</h3>
-        <p className="text-[#a1a1aa] text-sm">{t("time.subtitle")}</p>
+        <h3 className="text-xl font-heading font-bold text-[var(--booking-text)] mb-0.5">
+          {t("time.title")}
+        </h3>
+        <p className="text-[var(--booking-text-secondary)] text-sm">{t("time.subtitle")}</p>
       </div>
 
       {nearest && (
         <button
           type="button"
           onClick={() => onTimeSelect(nearest)}
+          aria-pressed={nearestSelected}
           className={`
             w-full relative overflow-hidden rounded-2xl p-4 transition-all duration-200 text-start cursor-pointer
             focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--booking-accent)]
+            bg-[var(--booking-bg)]
             ${
-              isSlotSelected(nearest, selectedTime, selectedSlotProp)
-                ? "bg-[#171717] border-2 border-cut-gold shadow-[0_0_24px_rgba(212,175,55,0.12)]"
-                : "bg-[#111111] border border-[rgba(212,175,55,0.18)] hover:border-[rgba(212,175,55,0.4)] hover:shadow-[0_0_16px_rgba(212,175,55,0.06)]"
+              nearestSelected
+                ? "border-2 border-[var(--booking-slot-selected-outline)] bg-[var(--booking-accent-soft)]"
+                : "border-2 border-[var(--booking-accent)] hover:bg-[var(--booking-accent-soft)]/50"
             }
           `}
         >
-          <div className="absolute top-0 start-0 w-full h-full bg-[radial-gradient(circle_at_top_left,rgba(212,175,55,0.06),transparent_60%)] pointer-events-none" />
           <div className="relative flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <div
-                className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${
-                  isSlotSelected(nearest, selectedTime, selectedSlotProp)
-                    ? "bg-cut-gold"
-                    : "bg-cut-gold/10"
-                }`}
-              >
-                <Zap
-                  className={`w-5 h-5 ${
-                    isSlotSelected(nearest, selectedTime, selectedSlotProp)
-                      ? "text-cut-black"
-                      : "text-cut-gold"
-                  }`}
-                />
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center border border-[var(--booking-accent)]/40 bg-[var(--booking-accent-soft)]">
+                <Zap className="w-5 h-5 text-[var(--booking-accent)]" />
               </div>
               <div>
-                <p className="text-[13px] text-cut-gold font-heading font-bold mb-0.5">
+                <p className="text-[13px] text-[var(--booking-text)] font-heading font-bold mb-0.5">
                   {t("time.nearestFeatured")}
                 </p>
-                <p className="text-[#71717a] text-[13px]">{t("time.nearestFeaturedHint")}</p>
+                <p className="text-[var(--booking-text-secondary)] text-[13px]">
+                  {t("time.nearestFeaturedHint")}
+                </p>
               </div>
             </div>
             <div className="text-end">
-              <div
-                className={`font-heading font-black text-xl tabular-nums transition-colors ${
-                  isSlotSelected(nearest, selectedTime, selectedSlotProp)
-                    ? "text-cut-gold"
-                    : "text-[#f7f7f2]"
-                }`}
-              >
+              <div className="font-heading font-black text-xl tabular-nums text-[var(--booking-text)]">
                 {nearest.label ?? formatTime(nearest.time)}
               </div>
               {getDayOffset(nearest) === 1 && (
-                <p className="text-[13px] text-cut-gold/60 mt-0.5">{t("overnight.afterMidnight")}</p>
+                <p className="text-[13px] text-[var(--booking-text-muted)] mt-0.5">
+                  {t("overnight.afterMidnight")}
+                </p>
               )}
+              {nearestSelected ? (
+                <span className="inline-flex items-center gap-1 mt-1 text-[12px] font-bold text-[var(--booking-text)]">
+                  <Check className="w-3.5 h-3.5" strokeWidth={3} aria-hidden />
+                </span>
+              ) : null}
             </div>
           </div>
         </button>
@@ -301,9 +281,11 @@ const BookingTimeSlots = ({
       {periods.map((period) => (
         <div key={period.key} className="space-y-3">
           <div className="flex items-center gap-2.5 pt-1">
-            <Clock className="w-3.5 h-3.5 text-cut-gold/50" />
-            <span className="text-sm font-heading font-bold text-[#a1a1aa]">{period.title}</span>
-            <div className="flex-1 h-px bg-gradient-to-l from-transparent via-[rgba(212,175,55,0.1)] to-transparent" />
+            <Clock className="w-3.5 h-3.5 text-[var(--booking-text-muted)]" />
+            <span className="text-sm font-heading font-bold text-[var(--booking-text-secondary)]">
+              {period.title}
+            </span>
+            <div className="flex-1 h-px bg-[var(--booking-border-subtle)]" />
           </div>
 
           {period.groups.map((group) => {
@@ -311,13 +293,13 @@ const BookingTimeSlots = ({
             return (
               <div
                 key={group.hour}
-                className="rounded-2xl bg-[#111111] border border-[rgba(212,175,55,0.08)] p-4 md:p-5 transition-all duration-200 hover:border-[rgba(212,175,55,0.18)]"
+                className="rounded-2xl bg-[var(--booking-bg)] border border-[var(--booking-border-subtle)] p-4 md:p-5"
               >
                 <div className="flex items-center gap-2.5 mb-3.5">
-                  <span className="font-heading font-black text-xl md:text-2xl text-[#f7f7f2] leading-none tabular-nums">
+                  <span className="font-heading font-black text-xl md:text-2xl text-[var(--booking-text)] leading-none tabular-nums">
                     {formatTime(hourTime)}
                   </span>
-                  <span className="text-[#71717a] text-[13px] ms-auto bg-[#171717] px-2 py-0.5 rounded-md">
+                  <span className="text-[var(--booking-text-muted)] text-[13px] ms-auto bg-[var(--booking-surface)] px-2 py-0.5 rounded-md border border-[var(--booking-border-subtle)]">
                     {format.number(group.slots.length)}{" "}
                     {group.slots.length === 1 ? t("time.slotCountOne") : t("time.slotCountMany")}
                   </span>
@@ -341,34 +323,26 @@ const BookingTimeSlots = ({
       ))}
 
       {overnightSlots.length > 0 && (
-        <div className="space-y-3">
+        <div className="space-y-3 bg-[var(--booking-bg)]">
           <div className="flex items-center gap-2.5 pt-1">
-            <MoonStar className="w-3.5 h-3.5 text-cut-gold/50" />
-            <span className="text-sm font-heading font-bold text-[#a1a1aa]">
+            <MoonStar className="w-3.5 h-3.5 text-[var(--booking-text-muted)]" />
+            <span className="text-sm font-heading font-bold text-[var(--booking-text-secondary)]">
               {t("overnight.afterMidnight")}
             </span>
-            <div className="flex-1 h-px bg-gradient-to-l from-transparent via-[rgba(212,175,55,0.1)] to-transparent" />
+            <div className="flex-1 h-px bg-[var(--booking-border-subtle)]" />
           </div>
-          <p className="text-[13px] text-[#71717a]">{t("overnight.explanation")}</p>
+          <p className="text-[13px] text-[var(--booking-text-secondary)]">
+            {t("overnight.explanation")}
+          </p>
           <div className="flex flex-wrap gap-2.5">
             {overnightSlots.map((slot) => (
-              <button
+              <SlotPill
                 key={slotKey(slot)}
-                type="button"
-                onClick={() => onTimeSelect(slot)}
-                className={`
-                  relative py-2.5 px-4 rounded-xl text-sm font-medium tabular-nums
-                  transition-all duration-150 cursor-pointer
-                  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--booking-accent)]
-                  ${
-                    isSlotSelected(slot, selectedTime, selectedSlotProp)
-                      ? "bg-gradient-to-b from-cut-gold to-cut-gold/80 text-cut-black font-bold shadow-[0_6px_20px_rgba(212,175,55,0.22)]"
-                      : "bg-[#171717] border border-[rgba(212,175,55,0.1)] text-[#f7f7f2] hover:border-[rgba(212,175,55,0.35)] hover:text-cut-gold"
-                  }
-                `}
-              >
-                <span>{formatTime(slot.time)}</span>
-              </button>
+                slot={slot}
+                selected={isSlotSelected(slot, selectedTime, selectedSlotProp)}
+                onSelect={() => onTimeSelect(slot)}
+                formatTime={formatTime}
+              />
             ))}
           </div>
         </div>
@@ -376,13 +350,13 @@ const BookingTimeSlots = ({
 
       {onNextDay && (
         <div className="pt-2 space-y-3">
-          <div className="h-px bg-gradient-to-l from-transparent via-[rgba(212,175,55,0.12)] to-transparent" />
+          <div className="h-px bg-[var(--booking-border-subtle)]" />
           <div className="text-center space-y-3 py-2">
-            <p className="text-[#71717a] text-[13px]">{t("time.nextDayHint")}</p>
+            <p className="text-[var(--booking-text-muted)] text-[13px]">{t("time.nextDayHint")}</p>
             <button
               type="button"
               onClick={onNextDay}
-              className="inline-flex items-center gap-2.5 px-6 py-3 rounded-xl border border-[rgba(212,175,55,0.18)] bg-[#111111] text-cut-gold font-heading font-bold text-sm hover:bg-[#171717] hover:border-[rgba(212,175,55,0.4)] hover:shadow-[0_4px_16px_rgba(212,175,55,0.08)] active:scale-[0.97] transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--booking-accent)]"
+              className="inline-flex items-center gap-2.5 px-6 py-3 rounded-xl border border-[var(--booking-border)] bg-[var(--booking-bg)] text-[var(--booking-text)] font-heading font-bold text-sm hover:bg-[var(--booking-surface-hover)] active:scale-[0.97] transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--booking-accent)]"
             >
               <span>{t("actions.showNextDaySlots")}</span>
             </button>
@@ -390,13 +364,13 @@ const BookingTimeSlots = ({
         </div>
       )}
 
-      <div className="flex items-center gap-5 pt-3 border-t border-[rgba(212,175,55,0.08)] text-[13px] text-[#71717a]">
+      <div className="flex items-center gap-5 pt-3 border-t border-[var(--booking-border-subtle)] text-[13px] text-[var(--booking-text-muted)]">
         <div className="flex items-center gap-1.5">
-          <div className="w-3.5 h-3.5 rounded-md bg-gradient-to-b from-cut-gold to-cut-gold/80" />
+          <div className="w-3.5 h-3.5 rounded-md booking-slot-selected" />
           <span>{t("time.legendSelected")}</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="w-3.5 h-3.5 rounded-md bg-[#171717] border border-[rgba(212,175,55,0.1)]" />
+          <div className="w-3.5 h-3.5 rounded-md booking-slot-default" />
           <span>{t("time.legendAvailable")}</span>
         </div>
       </div>

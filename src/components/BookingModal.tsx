@@ -12,11 +12,7 @@ import {
   WifiOff,
   Zap,
   UserCheck,
-  Copy,
   MapPin,
-  Scissors,
-  CalendarDays,
-  Clock,
 } from "lucide-react";
 import ConfettiBurst from "./ConfettiBurst";
 import BookingStepHeader from "./BookingStepHeader";
@@ -26,7 +22,10 @@ import BookingCalendar from "./BookingCalendar";
 import BookingTimeSlots from "./BookingTimeSlots";
 import BookingMultiBranchTimeSlots from "./BookingMultiBranchTimeSlots";
 import BookingAvailabilityScopeStep from "./BookingAvailabilityScope";
+import BookingAvailabilityScopeLoading from "./BookingAvailabilityScopeLoading";
 import BookingServiceSelect from "./BookingServiceSelect";
+import BookingReviewStep from "./BookingReviewStep";
+import BookingSuccessStep from "./BookingSuccessStep";
 import BranchPicker from "./BranchPicker";
 import CrossBranchSlotsPanel from "@/components/CrossBranchSlotsPanel";
 import BarberPhoto from "./BarberPhoto";
@@ -47,6 +46,7 @@ import {
   getEffectiveBookingBranch,
   getBookingBranchDisplay,
   localizeBranchName,
+  bookingPerfMark,
   type PublicBranch,
   type BookingMode,
   type BookingEntryMode,
@@ -55,6 +55,7 @@ import {
   type BookingStepId,
   type BarberAvailabilityScope,
   type BarberAvailableSlot,
+  type BarberProfileSeed,
 } from "@/lib/booking-api";
 
 type ClientLookupStatus = "idle" | "loading" | "found" | "new";
@@ -79,10 +80,10 @@ const FLOW_ERROR_KEYS = new Set([
 function SelectedServicesBilingual({
   services,
   compact = false,
-  dark = false,
 }: {
   services: BookingService[];
   compact?: boolean;
+  /** @deprecated Sidebar is white in Phase 1D; kept for call-site compat. */
   dark?: boolean;
 }) {
   const { lang } = useBookingTranslations();
@@ -99,9 +100,9 @@ function SelectedServicesBilingual({
         return (
           <div key={s.id} className="min-w-0">
             <p
-              className={`font-heading font-bold leading-tight ${
-                dark ? "text-cut-ivory" : "text-cut-black"
-              } ${compact ? "text-xs" : "text-sm"}`}
+              className={`font-heading font-bold leading-tight text-[var(--booking-text)] ${
+                compact ? "text-xs" : "text-sm"
+              }`}
               lang={primaryLang}
               dir={primaryLang === "ar" ? "rtl" : "ltr"}
             >
@@ -109,9 +110,7 @@ function SelectedServicesBilingual({
             </p>
             {secondary ? (
               <p
-                className={`font-editorial leading-snug tracking-wide ${
-                  dark ? "text-[var(--booking-sidebar-muted)]" : "text-[var(--booking-text-secondary)]"
-                } text-[13px]`}
+                className="font-editorial leading-snug tracking-wide text-[var(--booking-text-secondary)] text-[13px]"
                 lang={secondaryLang}
                 dir={secondaryLang === "ar" ? "rtl" : "ltr"}
               >
@@ -135,6 +134,9 @@ export interface BarberBookingInfo {
   rating?: number;
   reviewCount?: string;
   location?: string;
+  /** Optional discovery seed — language-neutral branch codes. */
+  publicBranches?: { branchCode: string; branchName: string }[];
+  serviceIds?: number[];
 }
 
 interface BookingModalProps {
@@ -151,11 +153,17 @@ interface BookingModalProps {
   explicitEntryBranchCode?: string | null;
   /** Preselect scope when entry CTA is branch-specific. */
   initialAvailabilityScope?: BarberAvailabilityScope | null;
+  /** Lightweight profile seed from discovery / prefetch. */
+  profileSeed?: BarberProfileSeed | null;
 }
 
 function stepForHeader(step: BookingUiStep): string {
   if (step === "success") return "review";
   return step;
+}
+
+function isReviewOrSuccess(step: BookingUiStep): boolean {
+  return step === "review" || step === "success";
 }
 
 const BookingModal = ({
@@ -169,6 +177,7 @@ const BookingModal = ({
   entryMode = "branch_first",
   explicitEntryBranchCode = null,
   initialAvailabilityScope = null,
+  profileSeed = null,
 }: BookingModalProps) => {
   const { lang, dir, t, format } = useBookingTranslations();
   const BackIcon = dir === "rtl" ? ArrowRight : ArrowLeft;
@@ -219,7 +228,26 @@ const BookingModal = ({
     initialAvailabilityScope,
     /** All public branches — hook intersects with barber profile branches. */
     allowedPublicBranches: branches,
+    profileSeed:
+      profileSeed ??
+      (hasBarberEmpId && barber.publicBranches
+        ? {
+            empId: barber.id!,
+            displayName: barber.name,
+            image: barber.image,
+            publicBranches: barber.publicBranches,
+            serviceIds: barber.serviceIds,
+          }
+        : null),
   });
+
+  useEffect(() => {
+    if (open) {
+      bookingPerfMark("modal_mounted", {
+        empId: hasBarberEmpId ? barber.id : undefined,
+      });
+    }
+  }, [open, hasBarberEmpId, barber.id]);
 
   const branchResolution = useMemo(() => {
     if (isBarberFirst) {
@@ -259,7 +287,9 @@ const BookingModal = ({
     isBarberFirst &&
     (branchResolution.resolution === "multiple" ||
       branchResolution.resolution === "preferred" ||
-      allowedBranches.length > 1);
+      allowedBranches.length > 1 ||
+      (flow.barberProfileLoading &&
+        (profileSeed?.publicBranches?.length ?? barber.publicBranches?.length ?? 0) > 1));
 
   const effectiveBranch = useMemo(
     () =>
@@ -765,6 +795,38 @@ const BookingModal = ({
 
     if (flow.step === "appointment_scope") {
       const scopeValue = scopeDraft ?? flow.availabilityScope;
+      const profileBusy =
+        flow.barberProfileStatus === "loading" ||
+        flow.barberProfileStatus === "slow_loading";
+      const profileError = flow.barberProfileStatus === "request_error";
+      const waitingForMulti =
+        profileBusy &&
+        allowedBranches.length <= 1 &&
+        (profileSeed?.publicBranches?.length ?? barber.publicBranches?.length ?? 0) <= 1;
+
+      if (profileError && allowedBranches.length === 0) {
+        return (
+          <BookingAvailabilityScopeLoading
+            barberName={barber.name}
+            error
+            onRetry={() => flow.retryBarberProfile()}
+            onChooseAnotherBarber={handleClose}
+          />
+        );
+      }
+
+      if (waitingForMulti) {
+        return (
+          <BookingAvailabilityScopeLoading
+            barberName={barber.name}
+            slow={flow.barberProfileStatus === "slow_loading"}
+            showRetry={flow.barberProfileShowRetry}
+            onRetry={() => flow.retryBarberProfile()}
+            onBack={visibleStepIds[0] === "appointment_scope" ? undefined : handleBack}
+          />
+        );
+      }
+
       return (
         <BookingAvailabilityScopeStep
           barberName={barber.name}
@@ -793,11 +855,50 @@ const BookingModal = ({
                 ? t("branch.titleBarberFirst", { name: barber.name })
                 : t("branch.title")}
             </h3>
-            <p className="text-cut-black/50 text-xs">
-              {isBarberFirst ? t("branch.subtitleBarberFirst") : t("branch.subtitle")}
+            <p className="text-cut-black/50 text-xs" aria-live="polite">
+              {flow.barberProfileStatus === "slow_loading"
+                ? t("branch.loadingSlow", { name: barber.name })
+                : flow.barberProfileStatus === "loading"
+                  ? t("branch.loadingShort")
+                  : isBarberFirst
+                    ? t("branch.subtitleBarberFirst")
+                    : t("branch.subtitle")}
             </p>
+            {flow.barberProfileStaleWarning ? (
+              <p className="mt-2 text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5">
+                {t("branch.staleWarning")}
+              </p>
+            ) : null}
           </div>
-          {(flow.barberProfileError || branchesError) && (
+          {(flow.barberProfileError || branchesError) &&
+            flow.barberProfileStatus === "request_error" &&
+            allowedBranches.length === 0 && (
+            <div
+              className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm text-center space-y-3"
+              role="alert"
+            >
+              <p className="font-bold">{t("branch.loadFailedTitle", { name: barber.name })}</p>
+              <p>{t("branch.loadFailedBody")}</p>
+              <div className="flex flex-col gap-2">
+                <button
+                  type="button"
+                  onClick={() => flow.retryBarberProfile()}
+                  className="inline-flex items-center justify-center px-3 py-1.5 rounded-lg border border-red-200 bg-white text-red-700 text-xs font-bold hover:bg-red-50 transition-colors"
+                >
+                  {t("actions.retry")}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleClose}
+                  className="inline-flex items-center justify-center px-3 py-1.5 rounded-lg border border-red-200 bg-white text-red-700 text-xs font-bold hover:bg-red-50 transition-colors"
+                >
+                  {t("branch.chooseAnotherBarber")}
+                </button>
+              </div>
+            </div>
+          )}
+          {(flow.barberProfileError || branchesError) &&
+            !(flow.barberProfileStatus === "request_error" && allowedBranches.length === 0) && (
             <div
               className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm text-center space-y-3"
               role="alert"
@@ -819,24 +920,39 @@ const BookingModal = ({
               </button>
             </div>
           )}
-          {!flow.barberProfileLoading && (
-            <BranchPicker
-              branches={allowedBranches}
-              selectedBranchCode={selectedCode ?? undefined}
-              isLoading={isLoadingBranches || (isBarberFirst && flow.barberProfileLoading)}
-              error={
-                !flow.barberProfileError &&
-                !branchesError &&
-                isBarberFirst &&
-                !flow.barberProfileLoading &&
-                branchResolution.resolution === "none"
-                  ? t("errors.noPublicBranchesForBarber")
-                  : null
-              }
-              variant="light"
-              onSelect={handleBranchSelect}
-            />
-          )}
+          <BranchPicker
+            branches={allowedBranches}
+            selectedBranchCode={selectedCode ?? undefined}
+            isLoading={
+              isLoadingBranches ||
+              (isBarberFirst &&
+                (flow.barberProfileStatus === "loading" ||
+                  flow.barberProfileStatus === "slow_loading") &&
+                allowedBranches.length === 0)
+            }
+            error={
+              !flow.barberProfileError &&
+              !branchesError &&
+              isBarberFirst &&
+              !flow.barberProfileLoading &&
+              branchResolution.resolution === "none"
+                ? t("errors.noPublicBranchesForBarber")
+                : null
+            }
+            variant="light"
+            onSelect={handleBranchSelect}
+          />
+          {(flow.barberProfileStatus === "loading" ||
+            flow.barberProfileStatus === "slow_loading") &&
+            flow.barberProfileShowRetry && (
+              <button
+                type="button"
+                onClick={() => flow.retryBarberProfile()}
+                className="mt-3 w-full py-3 rounded-xl border border-[var(--booking-border)] text-sm font-bold"
+              >
+                {t("actions.retry")}
+              </button>
+            )}
           {specificScopeBranch && (
             <div className="mt-4 flex flex-col gap-2">
               <button
@@ -1029,10 +1145,12 @@ const BookingModal = ({
             )}
             <BookingServiceSelect
               services={flow.services}
+              categories={flow.serviceCategories}
               selectedIds={flow.serviceIds}
               onCoreSelect={handleCoreServiceSelect}
               onToggleService={handleToggleService}
               isLoading={flow.catalogLoading}
+              isError={Boolean(flow.catalogError) && flow.services.length === 0}
               totalPrice={flow.catalogPrice}
               totalDuration={flow.catalogDuration}
               selectedCount={selectedServices.length}
@@ -1169,61 +1287,66 @@ const BookingModal = ({
           flow.availabilityScope === "all_branches";
 
         return (
-          <div className={useMultiSlots ? "bg-[var(--booking-bg)] min-h-full" : "bg-[#0a0a0a] min-h-full"}>
+          <div className="bg-[var(--booking-bg)] min-h-full" data-booking-surface="time">
             {renderMutationBanner()}
             {showBranchBanner && (
               <div
-                className="mx-5 md:mx-6 mt-4 mb-1 rounded-2xl border-2 border-[#D4AF37]/45 bg-black px-4 py-3.5 shadow-[inset_0_0_0_1px_rgba(212,175,55,0.12)]"
+                className="mx-5 md:mx-6 mt-4 mb-1 rounded-2xl border border-[var(--booking-border)] bg-[var(--booking-bg)] px-4 py-3.5"
                 role="status"
                 aria-live="polite"
               >
                 <div className="flex items-start gap-3">
                   <div
-                    className="mt-0.5 w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 text-black font-black"
-                    style={{ backgroundColor: bannerAccent.swatch }}
+                    className="mt-0.5 w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 border border-[var(--booking-border-subtle)]"
+                    style={{ backgroundColor: bannerAccent.swatch + "22" }}
                   >
-                    <MapPin className="w-5 h-5" />
+                    <MapPin className={`w-5 h-5 ${bannerAccent.icon}`} />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="text-[11px] font-bold tracking-wide text-white/55 mb-0.5">
+                    <p className="text-[11px] font-bold tracking-wide text-[var(--booking-text-secondary)] mb-0.5">
                       {t("time.barberLocationLabel")}
                       {dateLabel ? ` · ${dateLabel}` : ""}
                     </p>
                     {flow.dayLocation && !flow.dayLocation.isWorking ? (
-                      <p className="text-sm font-bold text-amber-300">
+                      <p className="text-sm font-bold text-amber-800">
                         {t("time.barberNotWorking", { name: displayBarberName })}
                       </p>
                     ) : bannerName ? (
                       <>
-                        <p className="text-base md:text-lg font-heading font-black leading-snug text-white">
+                        <p className="text-base md:text-lg font-heading font-bold leading-snug text-[var(--booking-text)]">
                           {t("time.barberAtBranch", {
                             name: displayBarberName,
                             branch: branchAccentLabel(bannerAccent.key),
                           })}
                         </p>
-                        <p className="text-sm font-semibold text-[#D4AF37] mt-1 flex items-center gap-2 flex-wrap">
-                          <span>{bannerName}</span>
+                        <p className="text-sm font-semibold text-[var(--booking-text)] mt-1 flex items-center gap-2 flex-wrap">
+                          <span
+                            className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md border text-sm ${bannerAccent.chip} ${bannerAccent.chipText}`}
+                          >
+                            <span className={`w-1.5 h-1.5 rounded-full ${bannerAccent.dot}`} aria-hidden />
+                            {bannerName}
+                          </span>
                           {flow.dayLocationLoading && (
-                            <span className="inline-flex items-center gap-1 text-[11px] font-medium text-white/45">
-                              <Loader2 className="w-3 h-3 animate-spin text-[#D4AF37]" />
+                            <span className="inline-flex items-center gap-1 text-[11px] font-medium text-[var(--booking-text-muted)]">
+                              <Loader2 className="w-3 h-3 animate-spin text-[var(--booking-accent)]" />
                               {t("time.confirming")}
                             </span>
                           )}
                         </p>
                         {locBranch?.address && (
-                          <p className="text-xs text-white/55 mt-0.5 leading-relaxed">
+                          <p className="text-xs text-[var(--booking-text-secondary)] mt-0.5 leading-relaxed">
                             {locBranch.address}
                           </p>
                         )}
                       </>
                     ) : flow.dayLocationError ? (
-                      <p className="text-sm font-medium text-white/70">
+                      <p className="text-sm font-medium text-[var(--booking-text-secondary)]">
                         {t("time.locationError")}
                       </p>
                     ) : (
-                      <p className="text-sm font-bold text-white/70 flex items-center gap-2">
+                      <p className="text-sm font-bold text-[var(--booking-text-secondary)] flex items-center gap-2">
                         {flow.dayLocationLoading && (
-                          <Loader2 className="w-4 h-4 animate-spin text-[#D4AF37]" />
+                          <Loader2 className="w-4 h-4 animate-spin text-[var(--booking-accent)]" />
                         )}
                         {t("time.checkingBranch", { name: displayBarberName })}
                       </p>
@@ -1233,7 +1356,7 @@ const BookingModal = ({
               </div>
             )}
             {flow.slotsError && (
-              <p className={`px-6 pt-4 text-sm ${useMultiSlots ? "text-red-600" : "text-red-400"}`} aria-live="assertive">
+              <p className="px-6 pt-4 text-sm text-red-600" aria-live="assertive">
                 {resolveError(flow.slotsError)}
               </p>
             )}
@@ -1411,101 +1534,95 @@ const BookingModal = ({
 
       case "review": {
         const p = flow.plan;
+        const serviceLines =
+          (p?.plan ?? []).length > 0
+            ? (p!.plan ?? []).map((item) => ({
+                name: item.serviceName,
+                durationLabel: format.duration(item.durationMinutes),
+              }))
+            : selectedServices.map((s) => ({
+                name:
+                  lang === "en"
+                    ? s.nameEn || s.nameAr || s.name
+                    : s.nameAr || s.nameEn || s.name,
+                durationLabel: s.durationMinutes
+                  ? format.duration(s.durationMinutes)
+                  : undefined,
+              }));
+        const barberLabel = isNearestMode
+          ? resolveBarberDisplayName(
+              {
+                nameAr: p?.plan?.[0]?.empName,
+                nameEn: p?.plan?.[0]?.empNameEn,
+              },
+              lang,
+            ) || t("review.barberPending")
+          : displayBarberName ||
+            resolveBarberDisplayName(
+              {
+                nameAr: p?.plan?.[0]?.empName,
+                nameEn: p?.plan?.[0]?.empNameEn,
+              },
+              lang,
+            );
+        const appointmentDate = flow.selectedDate
+          ? format.date(flow.selectedDate)
+          : "—";
+        const appointmentTime = flow.selectedSlot?.time
+          ? format.time(flow.selectedSlot.time)
+          : p?.plan?.[0]?.startTime
+            ? format.time(p.plan[0].startTime)
+            : "—";
+
         return (
-          <div className="flex flex-col min-h-0 flex-1">
-            <div className="p-6 flex-1">
-              <h3 className="text-xl font-heading font-bold text-cut-black mb-1">{t("review.title")}</h3>
-              <p className="text-cut-black/50 text-xs mb-4">
-                {t("review.subtitle")}
-              </p>
-              {renderMutationBanner()}
-              <div className="bg-cut-black/[0.04] rounded-xl p-5 mb-4 border border-cut-gold/15 space-y-2.5 text-sm">
-                <div className="flex justify-between items-center gap-3">
-                  <span
-                    className={`inline-flex items-center gap-1.5 text-xs font-bold px-2 py-0.5 rounded-md border ${branchAccent.chip} ${branchAccent.chipText}`}
-                  >
-                    <span className={`w-1.5 h-1.5 rounded-full ${branchAccent.dot}`} aria-hidden />
-                    {p?.branchName ?? displayBranchName}
-                  </span>
-                  <span className="text-cut-black/50 text-xs">{t("branch.label")}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>
-                    {isNearestMode
-                      ? resolveBarberDisplayName(
-                          {
-                            nameAr: p?.plan?.[0]?.empName,
-                            nameEn: p?.plan?.[0]?.empNameEn,
-                          },
-                          lang,
-                        ) || t("review.barberPending")
-                      : displayBarberName ||
-                        resolveBarberDisplayName(
-                          {
-                            nameAr: p?.plan?.[0]?.empName,
-                            nameEn: p?.plan?.[0]?.empNameEn,
-                          },
-                          lang,
-                        )}
-                  </span>
-                  <span className="text-cut-black/50 text-xs">{t("review.barber")}</span>
-                </div>
-                {(p?.plan ?? []).map((item) => (
-                  <div key={`${item.serviceId}-${item.startTime}`} className="flex justify-between text-xs">
-                    <span>
-                      {item.serviceName} · {format.time(item.startTime)}
-                    </span>
-                    <span>
-                      {format.price(item.price)} · {format.duration(item.durationMinutes)}
-                    </span>
-                  </div>
-                ))}
-                <div className="flex justify-between pt-2 border-t border-cut-gold/15">
-                  <span className="font-bold text-cut-gold">
-                    {p?.totalPrice != null ? format.price(p.totalPrice) : "—"}
-                  </span>
-                  <span className="text-cut-black/50 text-xs">{t("review.totalFinal")}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="font-medium">
-                    {p?.totalDurationMinutes != null
-                      ? format.duration(p.totalDurationMinutes)
-                      : "—"}
-                  </span>
-                  <span className="text-cut-black/50 text-xs">{t("review.durationFinal")}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>{flow.customerName.trim()}</span>
-                  <span className="text-cut-black/50 text-xs">{t("review.name")}</span>
-                </div>
-                <div className="flex justify-between" dir="ltr">
-                  <span>{flow.customerPhone.trim()}</span>
-                  <span className="text-cut-black/50 text-xs" dir={dir}>
-                    {t("review.phone")}
-                  </span>
-                </div>
-              </div>
-            </div>
-            <BookingNavFooter
-              onBack={handleBack}
-              backLabel={t("actions.editSelections")}
-              onContinue={() => void flow.confirmCreate()}
-              continueLabel={t("actions.confirmBooking")}
-              continueDisabled={
-                flow.mutationUi.kind === "creating" ||
-                (flow.mutationUi.kind === "rate_limited" &&
-                  flow.rateLimitRemainingSeconds > 0)
-              }
-              continueLoading={flow.mutationUi.kind === "creating"}
-            />
-          </div>
+          <BookingReviewStep
+            branchName={p?.branchName ?? displayBranchName}
+            branchBadge={
+              <span
+                className={`inline-flex items-center gap-1.5 text-sm font-bold px-2 py-0.5 rounded-md border ${branchAccent.chip} ${branchAccent.chipText}`}
+              >
+                <span className={`w-1.5 h-1.5 rounded-full ${branchAccent.dot}`} aria-hidden />
+                {p?.branchName ?? displayBranchName}
+              </span>
+            }
+            barberName={barberLabel || "—"}
+            serviceLines={serviceLines.length ? serviceLines : [{ name: "—" }]}
+            appointmentDateLabel={appointmentDate}
+            appointmentTimeLabel={appointmentTime}
+            customerName={flow.customerName.trim()}
+            customerPhone={flow.customerPhone.trim()}
+            totalDurationLabel={
+              p?.totalDurationMinutes != null
+                ? format.duration(p.totalDurationMinutes)
+                : "—"
+            }
+            totalPriceLabel={
+              p?.totalPrice != null ? format.price(p.totalPrice) : "—"
+            }
+            mutationBanner={renderMutationBanner()}
+            onEditBranch={() => flow.setStep(isBarberFirst ? "branch" : "branch")}
+            onEditBarber={
+              isNearestMode || isBarberFirst
+                ? undefined
+                : () => flow.setStep("mode")
+            }
+            onEditService={() => flow.setStep("service")}
+            onEditAppointment={() => flow.setStep("date")}
+            onEditCustomer={() => flow.setStep("details")}
+            onBack={handleBack}
+            onConfirm={() => void flow.confirmCreate()}
+            confirmDisabled={
+              flow.mutationUi.kind === "creating" ||
+              (flow.mutationUi.kind === "rate_limited" &&
+                flow.rateLimitRemainingSeconds > 0)
+            }
+            confirmLoading={flow.mutationUi.kind === "creating"}
+          />
         );
       }
 
       case "success": {
         const booking = flow.created;
-        // Always prefer create response; fall back to in-flow selection so nearest
-        // mode never lands on an empty summary if wire normalize is partial.
         const confirmedBranch =
           (booking?.branchName || "").trim() || displayBranchName || "";
         const confirmedBranchAccent = getBranchAccent(
@@ -1527,187 +1644,36 @@ const BookingModal = ({
         const confirmedTime = confirmedTimeRaw
           ? format.time(confirmedTimeRaw)
           : "—";
-        const confirmedServices = (
-          booking?.services?.map((s) => String(s || "").trim()).filter(Boolean) ??
-          []
-        ).length
-          ? booking!.services!.map((s) => String(s || "").trim()).filter(Boolean)
-          : selectedServices.map((s) =>
-              lang === "en"
-                ? s.nameEn || s.nameAr || s.name
-                : s.nameAr || s.nameEn || s.name,
-            ).filter(Boolean);
-        const confirmedTotal =
-          booking?.totalPrice ??
-          flow.catalogPrice ??
-          (selectedServices.reduce((sum, s) => sum + (s.price || 0), 0) || null);
+        const dateLine = confirmedDateParts.weekday
+          ? `${confirmedDateParts.weekday}${confirmedDateParts.dateLine ? ` · ${confirmedDateParts.dateLine}` : ""}`
+          : confirmedDateParts.full;
 
         return (
-          <div className="p-5 md:p-6">
-            {/* Success banner */}
-            <div className="rounded-2xl bg-[#0a0a0a] text-cut-ivory px-5 py-5 mb-4 text-center border border-[#D4AF37]/30 shadow-[0_0_24px_rgba(212,175,55,0.12)]">
-              <div className="w-14 h-14 rounded-full bg-[#D4AF37] flex items-center justify-center mx-auto mb-3 shadow-[0_0_24px_rgba(212,175,55,0.45)]">
-                <Check className="w-7 h-7 text-black" strokeWidth={3} />
-              </div>
-              <h3 className="text-xl md:text-2xl font-heading font-black text-[#D4AF37] mb-1">
-                {t("success.title")}
-              </h3>
-              <p className="text-white/65 text-xs md:text-sm">
-                {t("success.subtitle")}
-              </p>
-              {booking?.bookingCode && (
-                <div className="mt-4 inline-flex flex-col sm:flex-row items-center gap-2 rounded-xl bg-[#D4AF37]/10 border border-[#D4AF37]/25 px-3 py-2">
-                  <span className="text-white/55 text-[11px]">{t("success.bookingCode")}</span>
-                  <span className="font-mono font-bold text-[#D4AF37] tracking-wide text-sm">
-                    {booking.bookingCode}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => void copyCode(booking.bookingCode)}
-                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#D4AF37] text-black text-[11px] font-bold hover:bg-[#C4A030]"
-                  >
-                    <Copy className="w-3 h-3" />
-                    {copied ? t("actions.copied") : t("actions.copy")}
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {/* Key confirmation details — classic black + yellow */}
-            <div
-              className="rounded-2xl bg-[#0a0a0a] border border-[#D4AF37]/20 overflow-hidden mb-4"
-              role="status"
-              aria-live="polite"
-              aria-label={t("success.confirmationDetailsAria")}
-            >
-              <div className="px-4 py-2.5 border-b border-[#D4AF37]/15 bg-[#D4AF37]/[0.06]">
-                <p className="text-[11px] font-bold tracking-widest text-[#D4AF37] uppercase text-center">
-                  {t("success.summary")}
-                </p>
-              </div>
-
-              <div className="divide-y divide-[#D4AF37]/15">
-                {/* Branch */}
-                <div className="flex items-start gap-3 px-4 py-4">
-                  <div
-                    className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${confirmedBranchAccent.softBg}`}
-                  >
-                    <MapPin className={`w-5 h-5 ${confirmedBranchAccent.icon}`} />
-                  </div>
-                  <div className="min-w-0 flex-1 text-start">
-                    <p className="text-white/45 text-[11px] mb-1">{t("branch.label")}</p>
-                    <p
-                      className={`inline-flex items-center gap-1.5 text-base font-bold px-2.5 py-1 rounded-lg border ${confirmedBranchAccent.chip} ${confirmedBranchAccent.chipText}`}
-                    >
-                      <span
-                        className={`w-2 h-2 rounded-full ${confirmedBranchAccent.dot}`}
-                        aria-hidden
-                      />
-                      {confirmedBranch || "—"}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Barber */}
-                <div className="flex items-start gap-3 px-4 py-4">
-                  <div className="w-10 h-10 rounded-xl bg-[#D4AF37]/15 flex items-center justify-center flex-shrink-0">
-                    <Scissors className="w-5 h-5 text-[#D4AF37]" />
-                  </div>
-                  <div className="min-w-0 flex-1 text-start">
-                    <p className="text-white/45 text-[11px] mb-1">{t("success.craftsman")}</p>
-                    <p className="text-white text-lg font-heading font-bold leading-snug">
-                      {confirmedBarber || "—"}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Day + Date + Time grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x sm:divide-x-reverse divide-[#D4AF37]/15">
-                  <div className="flex items-start gap-3 px-4 py-4">
-                    <div className="w-10 h-10 rounded-xl bg-[#D4AF37]/15 flex items-center justify-center flex-shrink-0">
-                      <CalendarDays className="w-5 h-5 text-[#D4AF37]" />
-                    </div>
-                    <div className="min-w-0 flex-1 text-start">
-                      <p className="text-white/45 text-[11px] mb-1">{t("success.dayAndDate")}</p>
-                      {confirmedDateParts.weekday ? (
-                        <>
-                          <p className="text-white text-lg font-heading font-bold leading-snug">
-                            {confirmedDateParts.weekday}
-                          </p>
-                          <p className="text-white/80 text-sm mt-0.5 font-medium">
-                            {confirmedDateParts.dateLine}
-                          </p>
-                        </>
-                      ) : (
-                        <p className="text-white text-base font-bold">
-                          {confirmedDateParts.full}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-3 px-4 py-4">
-                    <div className="w-10 h-10 rounded-xl bg-[#D4AF37]/15 flex items-center justify-center flex-shrink-0">
-                      <Clock className="w-5 h-5 text-[#D4AF37]" />
-                    </div>
-                    <div className="min-w-0 flex-1 text-start">
-                      <p className="text-white/45 text-[11px] mb-1">{t("success.clock")}</p>
-                      <p className="text-[#D4AF37] text-2xl font-heading font-black tabular-nums leading-none tracking-tight">
-                        {confirmedTime}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Secondary details */}
-            {(confirmedServices.length > 0 || confirmedTotal != null) && (
-              <div className="rounded-xl border border-cut-gold/20 bg-white px-4 py-3 mb-4 space-y-2 text-sm">
-                {confirmedServices.length > 0 && (
-                  <div className="flex justify-between gap-3 items-start">
-                    <span className="font-semibold text-cut-black text-start">
-                      {confirmedServices.join(" + ")}
-                    </span>
-                    <span className="text-cut-black/45 text-xs shrink-0">{t("success.services")}</span>
-                  </div>
-                )}
-                {confirmedTotal != null && (
-                  <div className="flex justify-between gap-3 items-center border-t border-cut-black/5 pt-2">
-                    <span className="text-cut-gold font-black text-base">
-                      {format.price(confirmedTotal)}
-                    </span>
-                    <span className="text-cut-black/45 text-xs shrink-0">{t("success.total")}</span>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {booking?.message && (
-              <p className="text-cut-black/60 text-xs mb-4 text-center">{booking.message}</p>
-            )}
-
-            <div className="flex flex-col gap-2">
-              {booking?.bookingCode && (
-                <a
-                  href={`/booking?code=${encodeURIComponent(booking.bookingCode)}`}
-                  className="w-full py-3 rounded-xl border border-cut-gold/30 text-cut-black font-bold text-center"
-                >
-                  {t("success.viewDetails")}
-                </a>
-              )}
-              <button
-                type="button"
-                onClick={() => {
-                  setConfettiTrigger((p) => p + 1);
-                  setTimeout(handleClose, 400);
-                }}
-                className="w-full py-3.5 rounded-xl bg-[#D4AF37] text-black font-bold text-base hover:bg-[#C4A030] shadow-md shadow-[#D4AF37]/25"
+          <BookingSuccessStep
+            bookingCode={booking?.bookingCode}
+            dateLine={dateLine}
+            timeLabel={confirmedTime}
+            branchName={confirmedBranch || "—"}
+            branchBadge={
+              <span
+                className={`inline-flex items-center gap-1.5 text-sm font-bold px-2.5 py-1 rounded-lg border ${confirmedBranchAccent.chip} ${confirmedBranchAccent.chipText}`}
               >
-                {t("actions.doneThanks")}
-              </button>
-            </div>
-          </div>
+                <span
+                  className={`w-2 h-2 rounded-full ${confirmedBranchAccent.dot}`}
+                  aria-hidden
+                />
+                {confirmedBranch || "—"}
+              </span>
+            }
+            barberName={confirmedBarber || "—"}
+            message={booking?.message}
+            copied={copied}
+            onCopyCode={(code) => void copyCode(code)}
+            onDone={() => {
+              setConfettiTrigger((p) => p + 1);
+              setTimeout(handleClose, 400);
+            }}
+          />
         );
       }
     }
@@ -1722,7 +1688,7 @@ const BookingModal = ({
       <Dialog open={open} onOpenChange={(next) => { if (!next) handleClose(); }}>
         <DialogContent
           hideDefaultClose
-          className="max-w-4xl w-[95vw] max-h-[92vh] p-0 bg-[var(--booking-bg)] border border-[#D4AF37]/25 overflow-hidden gap-0 rounded-2xl shadow-2xl booking-modal-shell"
+          className="max-w-4xl w-[95vw] max-h-[92vh] p-0 bg-[var(--booking-bg)] border border-[var(--booking-border)] overflow-hidden gap-0 rounded-2xl shadow-2xl booking-modal-shell flex flex-col"
           dir={dir}
           lang={lang}
         >
@@ -1743,20 +1709,23 @@ const BookingModal = ({
             barberName={displayBarberName}
             onClose={handleClose}
             nearest={isNearestMode}
+            allCompleted={flow.step === "success"}
           />
 
-          <div
-            className="flex flex-col md:flex-row overflow-hidden"
-            style={{ maxHeight: "calc(92vh - 130px)" }}
-          >
-            <div className="hidden md:block w-72 flex-shrink-0 border-e border-cut-gold/15 overflow-y-auto">
+          <div className="flex flex-col md:flex-row flex-1 min-h-0 overflow-hidden">
+            <aside
+              className={`hidden md:block w-72 flex-shrink-0 border-e border-[var(--booking-border-subtle)] bg-[var(--booking-bg)] ${
+                isReviewOrSuccess(flow.step) ? "overflow-hidden" : "overflow-y-auto"
+              }`}
+              data-testid="booking-desktop-sidebar"
+            >
               <BookingInfoPanel
                 barber={{ ...barber, name: sidebarBarberName }}
                 selectedDate={flow.selectedDate}
                 selectedTime={flow.selectedSlot?.time}
                 service={
                   selectedServices.length > 0 ? (
-                    <SelectedServicesBilingual services={selectedServices} dark />
+                    <SelectedServicesBilingual services={selectedServices} />
                   ) : undefined
                 }
                 servicePrice={
@@ -1770,40 +1739,42 @@ const BookingModal = ({
                 mode={flow.mode}
                 branchName={displayBranchName}
                 branchCode={displayBranchCode}
+                density={isReviewOrSuccess(flow.step) ? "identity" : "compact"}
               />
-            </div>
+            </aside>
 
-            <div className="flex-1 flex flex-col overflow-hidden min-h-0">
+            <div className="flex-1 flex flex-col overflow-hidden min-h-0 bg-[var(--booking-bg)]">
               <div
-                className={`flex-1 bg-[var(--booking-bg)] ${
+                className={`flex-1 bg-[var(--booking-bg)] min-h-0 ${
                   flow.step === "service"
-                    ? "flex flex-col min-h-0 overflow-hidden"
+                    ? "flex flex-col overflow-hidden"
                     : "overflow-y-auto"
                 }`}
               >
                 {flow.step !== "service" &&
                   flow.step !== "success" &&
+                  flow.step !== "review" &&
                   flow.step !== "branch" &&
                   (flow.serviceIds.length > 0 || flow.selectedDate || flow.selectedSlot) && (
-                    <div className="md:hidden bg-cut-black/[0.04] px-4 py-2.5 border-b border-cut-gold/10 flex-shrink-0">
+                    <div className="md:hidden bg-[var(--booking-surface)] px-4 py-2.5 border-b border-[var(--booking-border-subtle)] flex-shrink-0">
                       <div className="flex items-center gap-2 text-xs">
                         {selectedServices.length > 0 && (
                           <SelectedServicesBilingual services={selectedServices} compact />
                         )}
                         {flow.selectedDate && (
-                          <span className="text-cut-black/70">
+                          <span className="text-[var(--booking-text-secondary)]">
                             {format.shortDate(flow.selectedDate)}
                           </span>
                         )}
                         {flow.selectedSlot && (
-                          <span className="text-cut-black/70 font-medium">
+                          <span className="text-[var(--booking-text)] font-medium">
                             {format.time(flow.selectedSlot.time)}
                           </span>
                         )}
                         <button
                           type="button"
                           onClick={handleBack}
-                          className="ms-auto text-cut-gold font-medium flex items-center gap-1"
+                          className="ms-auto text-[var(--booking-text)] font-medium flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--booking-accent)] rounded"
                         >
                           <BackIcon className="w-3 h-3" />
                           {t("actions.edit")}
@@ -1816,14 +1787,14 @@ const BookingModal = ({
             </div>
           </div>
 
-          <div className="md:hidden flex-shrink-0 border-t border-cut-gold/10 bg-cut-black px-4 py-3 safe-area-pb">
+          <div className="md:hidden flex-shrink-0 border-t border-[var(--booking-border-subtle)] bg-[var(--booking-bg)] px-4 py-3 safe-area-pb">
             <div className="flex items-center gap-3">
               {isNearestMode ? (
-                <div className="w-9 h-9 rounded-full bg-cut-gold/10 flex items-center justify-center border border-cut-gold/30 flex-shrink-0">
-                  <Zap className="w-4 h-4 text-cut-gold" />
+                <div className="w-9 h-9 rounded-full bg-[var(--booking-accent-soft)] flex items-center justify-center border border-[var(--booking-border)] flex-shrink-0">
+                  <Zap className="w-4 h-4 text-[var(--booking-accent)]" />
                 </div>
               ) : (
-                <div className="w-9 h-9 rounded-full overflow-hidden border border-cut-gold/30 flex-shrink-0">
+                <div className="w-9 h-9 rounded-full overflow-hidden border border-[var(--booking-border)] flex-shrink-0">
                   <BarberPhoto
                     src={barber.image}
                     name={barber.name}
@@ -1832,8 +1803,10 @@ const BookingModal = ({
                 </div>
               )}
               <div className="flex-1 min-w-0">
-                <p className="font-bold text-cut-ivory text-sm leading-none">{displayBarberName}</p>
-                <p className="text-cut-ivory/50 text-xs mt-0.5">
+                <p className="font-bold text-[var(--booking-text)] text-sm leading-none">
+                  {displayBarberName}
+                </p>
+                <p className="text-[var(--booking-text-secondary)] text-xs mt-0.5">
                   {isNearestMode
                     ? t("header.nearestBarber")
                     : barber.specialty || barber.role || t("header.professionalBarber")}

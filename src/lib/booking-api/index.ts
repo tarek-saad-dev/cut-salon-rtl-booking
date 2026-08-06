@@ -36,12 +36,41 @@ export {
   type BarberAvailabilityMeta,
 } from "./barber-availability";
 export {
+  loadBarberProfile,
+  peekBarberProfileCache,
+  seedBarberProfileCache,
+  prefetchBarberProfile,
+  profileFromSeed,
+  seedIsCompleteForBranchDecision,
+  clearBarberProfileCache,
+  __resetBarberProfileCacheForTests,
+  type BarberProfileSeed,
+} from "./barber-profile-cache";
+export {
+  enqueueBarberProfilePrefetch,
+  prioritizeBarberProfilePrefetch,
+  __resetBarberPrefetchForTests,
+} from "./barber-profile-prefetch";
+export {
+  toWireAvailabilityScope,
+  getAggregateDaysCapability,
+  getAggregateSlotsCapability,
+  __resetAggregateCapabilityForTests,
+} from "./aggregate-capability";
+export { bookingPerfMark, getBookingPerfSnapshot, clearBookingPerfMarks } from "./booking-perf";
+export {
   isBarberEligibleForPublicDiscovery,
   filterBarbersForPublicDiscovery,
   isBarberAssignedToBranch,
   filterBarbersForBranchRoster,
 } from "./barber-eligibility";
-export { getBookingConfig, getBookingStatus, getServices } from "./services";
+export {
+  getBookingConfig,
+  getBookingStatus,
+  getServices,
+  filterCatalogByServiceIds,
+  normalizeServicesCatalog,
+} from "./services";
 export {
   listBranchBarbers,
   listGlobalBarbers,

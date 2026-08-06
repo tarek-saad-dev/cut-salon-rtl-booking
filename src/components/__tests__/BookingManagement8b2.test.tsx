@@ -328,11 +328,17 @@ describe("BookingDetailsAccessibility / ManagementMobile contracts", () => {
   });
 
   it("success link uses bookingCode only", () => {
-    const src = fs.readFileSync(
+    const modalSrc = fs.readFileSync(
       path.resolve(__dirname, "../BookingModal.tsx"),
       "utf8",
     );
-    expect(src).toMatch(/\/booking\?code=/);
-    expect(src).not.toMatch(/bookingAccessToken=/);
+    const successSrc = fs.readFileSync(
+      path.resolve(__dirname, "../BookingSuccessStep.tsx"),
+      "utf8",
+    );
+    expect(modalSrc).toMatch(/BookingSuccessStep/);
+    expect(successSrc).toMatch(/\/booking\?code=/);
+    expect(successSrc).not.toMatch(/bookingAccessToken=/);
+    expect(modalSrc).not.toMatch(/bookingAccessToken=/);
   });
 });

@@ -10,6 +10,10 @@ const modalSrc = fs.readFileSync(
   path.resolve(__dirname, "../BookingModal.tsx"),
   "utf8",
 );
+const reviewSrc = fs.readFileSync(
+  path.resolve(__dirname, "../BookingReviewStep.tsx"),
+  "utf8",
+);
 const hookSrc = fs.readFileSync(
   path.resolve(__dirname, "../../hooks/useBookingFlow.ts"),
   "utf8",
@@ -47,15 +51,17 @@ describe("BookingModalPlan (source contract)", () => {
   it("creates plan then moves to review step", () => {
     expect(hookSrc).toMatch(/createBookingPlan/);
     expect(hookSrc).toMatch(/setStep\("review"\)/);
-    expect(modalSrc).toMatch(/review\.title/);
+    expect(modalSrc).toMatch(/BookingReviewStep/);
+    expect(reviewSrc).toMatch(/review\.title/);
   });
 });
 
 describe("BookingModalCreate (source contract)", () => {
   it("confirms via submitBookingFromPlan", () => {
     expect(hookSrc).toMatch(/submitBookingFromPlan/);
-    expect(modalSrc).toMatch(/actions\.confirmBooking/);
-    expect(modalSrc).toMatch(/loading\.creating/);
+    expect(reviewSrc).toMatch(/actions\.confirmBooking/);
+    expect(modalSrc).toMatch(/confirmCreate/);
+    expect(reviewSrc).toMatch(/BookingNavFooter/);
   });
 });
 

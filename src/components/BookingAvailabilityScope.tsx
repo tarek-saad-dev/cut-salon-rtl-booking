@@ -62,26 +62,26 @@ export default function BookingAvailabilityScopeStep({
                 onClick={() => onChange(card.id)}
                 className={`w-full rounded-2xl border bg-white p-5 text-start transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--booking-accent)] focus-visible:ring-offset-2 ${
                   selected
-                    ? "border-cut-black shadow-md ring-2 ring-cut-black"
-                    : "border-[var(--booking-border)] hover:border-cut-black/40"
+                    ? "border-[var(--booking-slot-selected-outline)] shadow-sm ring-2 ring-[var(--booking-slot-selected-outline)] bg-[var(--booking-accent-soft)]"
+                    : "border-[var(--booking-border)] hover:bg-[var(--booking-surface-hover)]"
                 }`}
               >
                 <div className="flex items-start gap-3">
                   <div
-                    className={`mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full border ${
+                    className={`mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full border-2 ${
                       selected
-                        ? "border-cut-black bg-cut-black text-white"
-                        : "border-cut-black/25 bg-white"
+                        ? "border-[var(--booking-slot-selected-outline)] bg-[var(--booking-bg)] text-[var(--booking-text)]"
+                        : "border-[var(--booking-border)] bg-white"
                     }`}
                     aria-hidden
                   >
                     {selected ? <Check className="h-3.5 w-3.5" strokeWidth={3} /> : null}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <h4 className="font-heading font-bold text-base text-cut-black mb-1">
+                    <h4 className="font-heading font-bold text-base text-[var(--booking-text)] mb-1">
                       {card.title}
                     </h4>
-                    <p className="text-cut-black/60 text-xs leading-relaxed">
+                    <p className="text-[var(--booking-text-secondary)] text-xs leading-relaxed">
                       {card.description}
                     </p>
                   </div>

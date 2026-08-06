@@ -15,8 +15,13 @@ import {
 } from "@/lib/booking-api";
 import { useBranch } from "@/context/BranchContext";
 import { useBookingController } from "@/context/BookingController";
+import { useBarberCardPrefetch } from "@/hooks/useBarberCardPrefetch";
 
-type DisplayBarber = BarberBookingInfo & { buttonText: string };
+type DisplayBarber = BarberBookingInfo & {
+  buttonText: string;
+  publicBranches?: { branchCode: string; branchName: string }[];
+  serviceIds?: number[];
+};
 
 function hasEmpId(barber: { id?: number } | null | undefined): barber is { id: number } {
   return barber?.id != null && Number.isFinite(barber.id) && barber.id > 0;
@@ -30,6 +35,8 @@ function apiToDisplay(b: PublicBarber): DisplayBarber {
     image: resolveBarberPhotoUrl(b),
     location: "Cut Salon · الإسكندرية",
     buttonText: `احجز مع ${resolveBarberDisplayName(b, "ar")}`,
+    publicBranches: b.branches,
+    serviceIds: b.serviceIds,
   };
 }
 
@@ -56,8 +63,25 @@ const BarberCard = ({
   isActive?: boolean;
 }) => {
   const canBook = hasEmpId(barber);
+  const { rootRef, prefetchHandlers } = useBarberCardPrefetch({
+    empId: barber.id,
+    seed:
+      barber.id != null
+        ? {
+            empId: barber.id,
+            displayName: barber.name,
+            image: barber.image,
+            publicBranches: barber.publicBranches,
+            serviceIds: barber.serviceIds,
+          }
+        : null,
+  });
   return (
     <div
+      ref={rootRef as React.RefObject<HTMLDivElement>}
+      onPointerEnter={prefetchHandlers.onPointerEnter}
+      onFocus={prefetchHandlers.onFocus}
+      onTouchStart={prefetchHandlers.onTouchStart}
       className={`rounded-2xl border overflow-hidden group transition-all duration-300
       ${
         isActive
@@ -138,6 +162,13 @@ const BarbersSection = () => {
       barber,
       entryMode: "barber_first",
       initialMode: "specific",
+      profileSeed: {
+        empId: barber.id,
+        displayName: barber.name,
+        image: barber.image,
+        publicBranches: barber.publicBranches,
+        serviceIds: barber.serviceIds,
+      },
     });
   };
 

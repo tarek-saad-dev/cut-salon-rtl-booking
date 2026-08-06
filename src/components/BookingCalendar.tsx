@@ -256,14 +256,14 @@ const BookingCalendar = ({
                 if (todayCell) btnClass += " ring-1 ring-cut-black/30";
               } else if (bothBranches) {
                 btnClass +=
-                  " font-semibold cursor-pointer bg-zinc-100 text-cut-black hover:bg-zinc-200";
-                if (todayCell) btnClass += " ring-1 ring-cut-black/30";
+                  " font-semibold cursor-pointer bg-[var(--booking-surface)] text-[var(--booking-text)] hover:bg-[var(--booking-surface-hover)]";
+                if (todayCell) btnClass += " ring-1 ring-[var(--booking-border)]";
               } else if (todayCell) {
                 btnClass +=
-                  " ring-2 ring-[var(--booking-success)] text-[var(--booking-success)] font-bold hover:bg-cut-warm-beige hover:text-cut-ivory";
+                  " ring-2 ring-[var(--booking-success)] text-[var(--booking-success)] font-bold hover:bg-[var(--booking-success-soft)]";
               } else {
                 btnClass +=
-                  " bg-emerald-50 text-[var(--booking-success)] font-semibold hover:bg-emerald-500 hover:text-cut-ivory cursor-pointer";
+                  " bg-emerald-50 text-[var(--booking-success)] font-semibold hover:bg-emerald-100 cursor-pointer";
               }
 
               return (
@@ -278,7 +278,7 @@ const BookingCalendar = ({
                   aria-pressed={selected}
                 >
                   {selected ? (
-                    <span className="absolute -top-0.5 -end-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-cut-black text-white">
+                    <span className="absolute -top-0.5 -end-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full border border-[var(--booking-slot-selected-outline)] bg-[var(--booking-bg)] text-[var(--booking-text)]">
                       <Check className="h-2.5 w-2.5" strokeWidth={3} aria-hidden />
                     </span>
                   ) : null}

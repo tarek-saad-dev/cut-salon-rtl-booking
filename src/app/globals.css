@@ -72,18 +72,25 @@
     --gold-glow: 43 74% 52%;
     --surface-elevated: 350 75% 7%;
 
-    /* Phase 1A — temporary accessible booking modal tokens (AA-minded) */
+    /* Phase 1D — white booking modal surface system (AA-minded) */
     --booking-bg: #ffffff;
     --booking-surface: #f8f6f1;
+    --booking-surface-hover: #f3f0ea;
     --booking-text: #111111;
     --booking-text-secondary: #5f5a53;
+    --booking-text-muted: #746f67;
     --booking-border: #d8d3ca;
+    --booking-border-subtle: #e5e1d9;
     --booking-accent: #9a7414;
+    --booking-accent-soft: #f7f1e0;
     --booking-error: #b42318;
     --booking-success: #157347;
-    --booking-sidebar-bg: #111111;
-    --booking-sidebar-text: #f5f2ea;
-    --booking-sidebar-muted: #c9c2b6;
+    --booking-success-soft: #e8f5ee;
+    --booking-sidebar-bg: #ffffff;
+    --booking-sidebar-text: #111111;
+    --booking-sidebar-muted: #5f5a53;
+    --booking-slot-selected-outline: #111111;
+    --booking-focus-ring: #9a7414;
   }
 }
 
@@ -93,16 +100,48 @@
     --bm-surface: var(--booking-surface);
     --bm-text: var(--booking-text);
     --bm-text-secondary: var(--booking-text-secondary);
+    --bm-text-muted: var(--booking-text-muted);
     --bm-border: var(--booking-border);
+    --bm-border-subtle: var(--booking-border-subtle);
     --bm-accent: var(--booking-accent);
     --bm-error: var(--booking-error);
+    --bm-success: var(--booking-success);
     color: var(--bm-text);
+    background: var(--bm-bg);
   }
   .booking-modal-shell .booking-text-secondary {
     color: var(--bm-text-secondary);
   }
+  .booking-modal-shell .booking-text-muted {
+    color: var(--bm-text-muted);
+  }
   .booking-modal-shell .booking-accent-text {
     color: var(--bm-accent);
+  }
+  .scrollbar-none {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+  .booking-slot-default {
+    background: var(--booking-bg);
+    border: 1px solid var(--booking-border);
+    color: var(--booking-text);
+  }
+  .booking-slot-default:hover:not(:disabled) {
+    background: var(--booking-surface-hover);
+  }
+  .booking-slot-selected {
+    background: var(--booking-accent-soft);
+    border: 2px solid var(--booking-slot-selected-outline);
+    color: var(--booking-text);
+  }
+  .booking-slot-disabled {
+    background: var(--booking-surface);
+    border: 1px solid var(--booking-border-subtle);
+    color: var(--booking-text-muted);
   }
 }
 

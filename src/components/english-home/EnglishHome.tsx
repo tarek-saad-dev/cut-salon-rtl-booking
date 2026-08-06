@@ -42,6 +42,8 @@ const displayBarber = (barber: PublicBarber): BarberBookingInfo => ({
   image: resolveBarberPhotoUrl(barber),
   role: barber.job || "CUT Salon Barber",
   location: "CUT Salon · Alexandria",
+  publicBranches: barber.branches,
+  serviceIds: barber.serviceIds,
 });
 
 const nearestBarber: BarberBookingInfo = {
@@ -139,6 +141,16 @@ export default function EnglishHome() {
       barber,
       entryMode: mode === "specific" ? "barber_first" : "branch_first",
       initialMode: mode,
+      profileSeed:
+        barber.id != null && barber.publicBranches
+          ? {
+              empId: barber.id,
+              displayName: barber.name,
+              image: barber.image,
+              publicBranches: barber.publicBranches,
+              serviceIds: barber.serviceIds,
+            }
+          : null,
     });
   };
 
@@ -255,6 +267,8 @@ export default function EnglishHome() {
                       image: resolveBarberPhotoUrl(barber),
                       role: barber.job || "CUT Salon Barber",
                       location: "CUT Salon · Alexandria",
+                      publicBranches: barber.branches,
+                      serviceIds: barber.serviceIds,
                     },
                     "specific",
                   );

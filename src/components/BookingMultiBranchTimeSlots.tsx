@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarX, Loader2, MoonStar, Zap } from "lucide-react";
+import { CalendarX, Check, Loader2, MoonStar, Zap } from "lucide-react";
 import {
   barberSlotKey,
   localizeBranchName,
@@ -121,8 +121,8 @@ export default function BookingMultiBranchTimeSlots({
             onClick={() => onBranchFilterChange("all")}
             className={`flex-shrink-0 px-3 py-1.5 rounded-full text-[13px] font-bold border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--booking-accent)] ${
               branchFilter === "all"
-                ? "bg-cut-black text-white border-cut-black"
-                : "bg-white text-cut-black/70 border-[var(--booking-border)] hover:border-cut-black/40"
+                ? "bg-[var(--booking-accent-soft)] text-[var(--booking-text)] border-[var(--booking-slot-selected-outline)] ring-1 ring-[var(--booking-slot-selected-outline)]"
+                : "bg-white text-[var(--booking-text-secondary)] border-[var(--booking-border)] hover:bg-[var(--booking-surface-hover)]"
             }`}
           >
             {t("time.filterAll")}
@@ -139,20 +139,20 @@ export default function BookingMultiBranchTimeSlots({
                 onClick={() => onBranchFilterChange(b.branchCode)}
                 className={`flex-shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[13px] font-bold border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--booking-accent)] ${
                   selected
-                    ? "text-white border-transparent"
-                    : "bg-white text-cut-black/70 border-[var(--booking-border)] hover:border-cut-black/40"
+                    ? "text-[var(--booking-text)] border-[var(--booking-slot-selected-outline)] ring-1 ring-[var(--booking-slot-selected-outline)]"
+                    : "bg-white text-[var(--booking-text-secondary)] border-[var(--booking-border)] hover:bg-[var(--booking-surface-hover)]"
                 }`}
                 style={
                   selected
-                    ? { backgroundColor: visual.accent, borderColor: visual.accent }
+                    ? { backgroundColor: visual.softBackground }
                     : undefined
                 }
               >
-                <span
-                  className="w-2 h-2 rounded-full flex-shrink-0"
-                  style={{ backgroundColor: selected ? "#fff" : visual.accent }}
-                  aria-hidden
-                />
+                  <span
+                    className="w-2 h-2 rounded-full flex-shrink-0"
+                    style={{ backgroundColor: visual.accent }}
+                    aria-hidden
+                  />
                 {filterLabel(b.branchCode, t, lang, b)}
               </button>
             );
@@ -204,15 +204,15 @@ export default function BookingMultiBranchTimeSlots({
                   onClick={() => onSelect(slot)}
                   className={`w-full rounded-2xl border p-3.5 text-start transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--booking-accent)] ${
                     selected
-                      ? "border-cut-black ring-2 ring-cut-black bg-white shadow-md"
-                      : "border-[var(--booking-border)] bg-white hover:border-cut-black/35"
+                      ? "border-[var(--booking-slot-selected-outline)] ring-2 ring-[var(--booking-slot-selected-outline)] bg-[var(--booking-accent-soft)] shadow-sm"
+                      : "border-[var(--booking-border)] bg-white hover:bg-[var(--booking-surface-hover)]"
                   }`}
                   style={branchVisualStyle(slot.branchCode)}
                 >
                   <div className="flex items-center justify-between gap-3">
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-heading font-bold text-lg tabular-nums text-cut-black">
+                        <span className="font-heading font-bold text-lg tabular-nums text-[var(--booking-text)]">
                           {slot.label ?? format.time(slot.time)}
                         </span>
                         {isOvernight(slot) && (
@@ -222,13 +222,14 @@ export default function BookingMultiBranchTimeSlots({
                           </span>
                         )}
                         {isEarliest && (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-cut-black text-white text-[10px] font-bold px-2 py-0.5">
-                            <Zap className="w-3 h-3" aria-hidden />
+                          <span className="inline-flex items-center gap-1 rounded-full border border-[var(--booking-accent)] bg-[var(--booking-accent-soft)] text-[var(--booking-text)] text-[10px] font-bold px-2 py-0.5">
+                            <Zap className="w-3 h-3 text-[var(--booking-accent)]" aria-hidden />
                             {t("time.earliestAvailable")}
                           </span>
                         )}
                       </div>
-                      <div className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-black/10 px-2.5 py-1 text-[12px] font-bold text-cut-black"
+                      <div
+                        className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-[var(--booking-border-subtle)] px-2.5 py-1 text-[12px] font-bold text-[var(--booking-text)]"
                         style={{ backgroundColor: "var(--branch-soft-bg)" }}
                       >
                         <span
@@ -240,8 +241,8 @@ export default function BookingMultiBranchTimeSlots({
                       </div>
                     </div>
                     {selected ? (
-                      <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-cut-black text-white text-xs font-bold">
-                        ✓
+                      <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full border-2 border-[var(--booking-slot-selected-outline)] bg-[var(--booking-bg)] text-[var(--booking-text)] text-xs font-bold">
+                        <Check className="w-3.5 h-3.5" strokeWidth={3} aria-hidden />
                       </span>
                     ) : null}
                   </div>

@@ -9,6 +9,8 @@ import type {
   AvailableDay,
   AvailableSlot,
   BookingService,
+  BookingServiceCategory,
+  ServicesCatalog,
   PublicBarber,
   BookingConfig,
 } from "@/lib/booking-api";
@@ -40,7 +42,10 @@ export const mockServices: BookingService[] = [
     nameEn: "Hair Cut",
     price: 100,
     durationMinutes: 30,
-    categoryName: "حلاقة",
+    categoryId: "19",
+    categoryName: "قص الشعر",
+    categoryNameAr: "قص الشعر",
+    categoryNameEn: "Hair Cut",
     isBookableOnline: true,
   },
   {
@@ -50,10 +55,39 @@ export const mockServices: BookingService[] = [
     nameEn: "Beard",
     price: 50,
     durationMinutes: 15,
-    categoryName: "حلاقة",
+    categoryId: "20",
+    categoryName: "خدمات اللحية",
+    categoryNameAr: "خدمات اللحية",
+    categoryNameEn: "Beard Cut",
     isBookableOnline: true,
   },
 ];
+
+export const mockServiceCategories: BookingServiceCategory[] = [
+  {
+    id: "19",
+    name: "قص الشعر",
+    nameAr: "قص الشعر",
+    nameEn: "Hair Cut",
+    sortOrder: 10,
+    serviceCount: 1,
+    services: [mockServices[0]!],
+  },
+  {
+    id: "20",
+    name: "خدمات اللحية",
+    nameAr: "خدمات اللحية",
+    nameEn: "Beard Cut",
+    sortOrder: 20,
+    serviceCount: 1,
+    services: [mockServices[1]!],
+  },
+];
+
+export const mockServicesCatalog: ServicesCatalog = {
+  services: mockServices,
+  categories: mockServiceCategories,
+};
 
 export const mockBarbers: PublicBarber[] = [
   { id: 5, name: "أحمد", nameAr: "أحمد", nameEn: "Ahmed", job: null, imageUrl: null, photoUrl: null, bio: null, isBookableOnline: true },
@@ -169,7 +203,7 @@ export type BookingApiMockFns = ReturnType<typeof createBookingApiMockFns>;
 export function installDefaultCatalogMocks(fns: BookingApiMockFns) {
   fns.resetSelectionVersion();
   fns.getBookingConfig.mockResolvedValue(apiOk(mockConfig));
-  fns.getServices.mockResolvedValue(apiOk(mockServices));
+  fns.getServices.mockResolvedValue(apiOk(mockServicesCatalog));
   fns.listBranchBarbers.mockResolvedValue(apiOk(mockBarbers));
   fns.getAvailableDays.mockResolvedValue(apiOk(mockDays));
   fns.getAvailableSlots.mockResolvedValue(apiOk(mockSlots));

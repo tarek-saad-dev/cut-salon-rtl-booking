@@ -13,6 +13,9 @@ import BookingModal, {
   type BookingMode,
 } from "@/components/BookingModal";
 import type { BarberAvailabilityScope, BookingEntryMode } from "@/lib/booking-api";
+import type { BarberProfileSeed } from "@/lib/booking-api/barber-profile-cache";
+import { seedBarberProfileCache } from "@/lib/booking-api/barber-profile-cache";
+import { bookingPerfMark } from "@/lib/booking-api/booking-perf";
 
 export type OpenBookingIntent = {
   barber: BarberBookingInfo;
@@ -25,6 +28,8 @@ export type OpenBookingIntent = {
   explicitEntryBranchCode?: string | null;
   /** Preselect scope when entry CTA is branch-specific. */
   initialAvailabilityScope?: BarberAvailabilityScope | null;
+  /** Optional lightweight profile seed (branches / serviceIds). */
+  profileSeed?: BarberProfileSeed | null;
 };
 
 type BookingControllerValue = {
@@ -57,6 +62,7 @@ export function BookingControllerProvider({ children }: { children: ReactNode })
   const [explicitEntryBranchCode, setExplicitEntryBranchCode] = useState<string | null>(null);
   const [initialAvailabilityScope, setInitialAvailabilityScope] =
     useState<BarberAvailabilityScope | null>(null);
+  const [profileSeed, setProfileSeed] = useState<BarberProfileSeed | null>(null);
 
   const closeBooking = useCallback(() => {
     setOpen(false);
@@ -77,6 +83,26 @@ export function BookingControllerProvider({ children }: { children: ReactNode })
       return;
     }
 
+    bookingPerfMark("barber_card_click", {
+      empId: intent.barber.id,
+    });
+
+    const seed: BarberProfileSeed | null =
+      intent.profileSeed ??
+      (intent.barber.id != null && intent.barber.publicBranches
+        ? {
+            empId: intent.barber.id,
+            displayName: intent.barber.name,
+            image: intent.barber.image,
+            publicBranches: intent.barber.publicBranches,
+            serviceIds: intent.barber.serviceIds,
+          }
+        : null);
+
+    if (seed) {
+      seedBarberProfileCache(seed);
+    }
+
     setBarber(intent.barber);
     setEntryMode(nextEntry);
     setInitialMode(intent.initialMode);
@@ -85,6 +111,7 @@ export function BookingControllerProvider({ children }: { children: ReactNode })
     setBookingNote(intent.bookingNote);
     setExplicitEntryBranchCode(intent.explicitEntryBranchCode ?? null);
     setInitialAvailabilityScope(intent.initialAvailabilityScope ?? null);
+    setProfileSeed(seed);
     setSessionKey((k) => k + 1);
     setOpen(true);
   }, []);
@@ -111,6 +138,7 @@ export function BookingControllerProvider({ children }: { children: ReactNode })
         bookingNote={bookingNote}
         explicitEntryBranchCode={explicitEntryBranchCode}
         initialAvailabilityScope={initialAvailabilityScope}
+        profileSeed={profileSeed}
       />
     </BookingControllerContext.Provider>
   );

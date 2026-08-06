@@ -41,6 +41,22 @@ export interface BookingConfig {
 
 // ─── Services ────────────────────────────────────────────────────────────────
 
+export interface BookingServiceCategory {
+  id: string;
+  name: string;
+  nameAr: string | null;
+  nameEn: string | null;
+  sortOrder: number;
+  serviceCount: number;
+  services: BookingService[];
+}
+
+export interface ServicesCatalog {
+  services: BookingService[];
+  categories: BookingServiceCategory[];
+}
+
+/** @deprecated Prefer BookingServiceCategory from the public catalog. */
 export interface ServiceCategory {
   name: string;
   services: BookingService[];
@@ -54,8 +70,26 @@ export interface BookingService {
   nameEn: string | null;
   price: number;
   durationMinutes: number;
+  categoryId?: string | null;
   categoryName: string | null;
+  categoryNameAr?: string | null;
+  categoryNameEn?: string | null;
+  sortOrder?: number | null;
   isBookableOnline: boolean;
+  /** Optional public catalog image (Phase 1E). */
+  imageUrl?: string | null;
+  photoUrl?: string | null;
+  descriptionAr?: string | null;
+  descriptionEn?: string | null;
+  /** Optional future admin metadata — ignored when absent. */
+  isFeatured?: boolean;
+  isMostRequested?: boolean;
+  isPackage?: boolean;
+  displayPriority?: number | null;
+  visualKey?: string | null;
+  badgeKey?: string | null;
+  shortDescriptionAr?: string | null;
+  shortDescriptionEn?: string | null;
 }
 
 // ─── Barbers ─────────────────────────────────────────────────────────────────

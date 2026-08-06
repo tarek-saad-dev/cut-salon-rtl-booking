@@ -219,30 +219,24 @@ export async function listGlobalBarbers(
 
 /**
  * Resolve a public barber profile (branches + serviceIds) for barber-first entry.
- * Prefers single-emp API; falls back to global list if profile route unavailable.
+ * Uses the shared profile cache (dedupe + SWR). Prefers single-emp API; falls back
+ * to global list if the profile route is unavailable.
  */
 export async function getPublicBarberProfile(
   empId: number,
   signal?: AbortSignal,
 ): Promise<BookingApiResponse<PublicBarber | null>> {
+  const { loadBarberProfile } = await import("./barber-profile-cache");
+  const { promise, release } = loadBarberProfile(empId, {
+    signal,
+    staleWhileRevalidate: true,
+  });
   try {
-    const res = await bookingApiRequest<{
-      ok: boolean;
-      barber?: BarbersResponse["barbers"][number];
-    }>({
-      path: `/api/public/booking/barbers/${empId}`,
-      signal,
-      timeoutMs: 12_000,
-    });
-    if (res.data?.barber) {
-      return { ...res, data: normalizeBarber(res.data.barber) };
-    }
-  } catch {
-    /* fall through to roster */
+    const result = await promise;
+    return result.response;
+  } finally {
+    release();
   }
-  const res = await listGlobalBarbers(signal);
-  const found = (res.data ?? []).find((b) => b.id === empId) ?? null;
-  return { ...res, data: found };
 }
 
 export async function getBarberCalendar(

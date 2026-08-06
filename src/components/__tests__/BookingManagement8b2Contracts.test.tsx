@@ -126,6 +126,10 @@ describe("CustomerUpcomingBookingsMigration (source)", () => {
     expect(read(roots.upcoming)).not.toMatch(/publicBookingApi/);
     expect(read(roots.upcoming)).not.toMatch(/cut_customer_phone/);
     expect(read(roots.profile)).toMatch(/getSavedClient/);
-    expect(read(roots.modal)).toMatch(/\/booking\?code=/);
+    const successSrc = read(
+      path.resolve(__dirname, "../BookingSuccessStep.tsx"),
+    );
+    expect(successSrc).toMatch(/\/booking\?code=/);
+    expect(read(roots.modal)).toMatch(/BookingSuccessStep/);
   });
 });
