@@ -14,7 +14,6 @@ import {
 } from "@/lib/booking-api";
 import { getServiceCatalog, type ServiceCatalogCategory } from "@/lib/serviceCatalogApi";
 import { type BarberBookingInfo, type BookingMode } from "@/components/BookingModal";
-import BranchPicker from "@/components/BranchPicker";
 import EnglishBarbersRail from "@/components/english-home/EnglishBarbersRail";
 import { useBookingController } from "@/context/BookingController";
 
@@ -71,11 +70,11 @@ function Eyebrow({ children }: { children: React.ReactNode }) {
 }
 
 export default function EnglishHome() {
-  const { branches, isLoadingBranches, branchesError, selectedBranch, selectBranch } = useBranch();
+  const { branches, isLoadingBranches, selectedBranch, selectBranch } = useBranch();
   const { openBooking } = useBookingController();
   const [catalog, setCatalog] = useState<ServiceCatalogCategory[]>([]);
   const [allBarbers, setAllBarbers] = useState<PublicBarber[]>([]);
-  const [status, setStatus] = useState<"loading" | "enabled" | "closed" | "branch">("loading");
+  const [status, setStatus] = useState<"loading" | "enabled" | "closed">("loading");
 
   useEffect(() => {
     getServiceCatalog().then(setCatalog).catch(() => setCatalog([]));
@@ -83,7 +82,8 @@ export default function EnglishHome() {
 
   useEffect(() => {
     if (!selectedBranch?.branchCode) {
-      setStatus(isLoadingBranches ? "loading" : "branch");
+      // No saved branch — show discovery barbers; branch is chosen inside booking.
+      setStatus(isLoadingBranches ? "loading" : "enabled");
       return;
     }
     let cancelled = false;
@@ -235,21 +235,7 @@ export default function EnglishHome() {
               Find nearest slot <ArrowRight className="h-4 w-4" />
             </button>
           </div>
-          {status === "branch" ? (
-            <div className="mt-10 max-w-xl border border-cut-bronze/30 bg-cut-soft-black p-6">
-              <h3 className="text-xl font-bold">Select a branch to see availability</h3>
-              <div className="mt-5">
-                <BranchPicker
-                  branches={branches}
-                  selectedBranchCode={selectedBranch?.branchCode}
-                  isLoading={isLoadingBranches}
-                  error={branchesError}
-                  variant="dark"
-                  onSelect={selectBranch}
-                />
-              </div>
-            </div>
-          ) : status === "closed" ? (
+          {status === "closed" ? (
             <div className="mt-10 max-w-xl border border-cut-bronze/30 bg-cut-wine-black p-6">
               <p className="font-bold">Online booking is temporarily unavailable.</p>
               <p className="mt-2 text-sm text-cut-ivory/65">Call 035861483 or 01012126899 for assistance.</p>
