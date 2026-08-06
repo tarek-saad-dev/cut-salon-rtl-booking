@@ -19,10 +19,17 @@ export default {
     },
     extend: {
       fontFamily: {
-        heading: ["Cairo", "sans-serif"],
-        body: ["Tajawal", "sans-serif"],
-        display: ["Oswald", "sans-serif"],
-        editorial: ["Playfair Display", "serif"],
+        /** Arabic display (LAXR) — headings only, never long copy/buttons */
+        display: ["var(--font-display)"],
+        laxr: ["var(--font-laxr)", "LAXR", "var(--font-alexandria)", "sans-serif"],
+        /** UI / body / booking / forms */
+        ui: ["var(--font-ui)"],
+        alexandria: ["Alexandria", "sans-serif"],
+        heading: ["var(--font-ui)"],
+        body: ["var(--font-ui)"],
+        /** English brand logo “CUT SALON” (Oswald) */
+        brand: ["var(--font-brand)"],
+        editorial: ["var(--font-editorial)"],
       },
       colors: {
         cut: {

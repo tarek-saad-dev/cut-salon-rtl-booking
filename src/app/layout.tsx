@@ -1,21 +1,29 @@
 import type { Metadata } from "next";
-import { IBM_Plex_Sans_Arabic, Noto_Naskh_Arabic } from "next/font/google";
+import { Alexandria } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 import { Providers } from "@/components/providers";
 import MainNav from "@/components/MainNav";
 
-const arabicDisplay = Noto_Naskh_Arabic({
-  variable: "--font-ar-display-loaded",
-  subsets: ["arabic"],
-  weight: ["600", "700"],
+const alexandria = Alexandria({
+  variable: "--font-alexandria-loaded",
+  subsets: ["latin", "arabic"],
+  weight: ["400", "500", "600", "700"],
   display: "swap",
 });
 
-const arabicUi = IBM_Plex_Sans_Arabic({
-  variable: "--font-ar-ui-loaded",
-  subsets: ["arabic"],
-  weight: ["400", "500", "600", "700"],
+/** Local Arabic display face — used only for hero / section display headings. */
+const laxr = localFont({
+  src: [
+    {
+      path: "../assets/fonts/LAXR.otf",
+      weight: "400",
+      style: "normal",
+    },
+  ],
+  variable: "--font-laxr-loaded",
   display: "swap",
+  fallback: ["Alexandria", "sans-serif"],
 });
 
 export const metadata: Metadata = {
@@ -84,7 +92,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" dir="ltr" suppressHydrationWarning>
-      <body className={`${arabicDisplay.variable} ${arabicUi.variable} antialiased`}>
+      <body className={`${alexandria.variable} ${laxr.variable} antialiased`}>
         <Providers>
           <MainNav />
           {children}

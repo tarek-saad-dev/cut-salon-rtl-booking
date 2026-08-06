@@ -164,7 +164,19 @@ export default function EnglishHome() {
 
   return (
     <main lang="en" dir="ltr" className="overflow-x-hidden bg-cut-black text-cut-ivory">
-      <section className="relative isolate min-h-[760px] overflow-hidden bg-cut-black pt-24 lg:min-h-[820px]">
+      <section className="relative isolate min-h-[calc(100svh-7.5rem)] overflow-hidden bg-cut-black md:min-h-[calc(100svh-5.5rem)] md:pt-8 lg:min-h-[820px] lg:pt-16">
+        {/* Mobile / tablet: full-bleed hero image */}
+        <div className="absolute inset-0 lg:hidden">
+          <img
+            src="/hero_vertical.png"
+            alt=""
+            aria-hidden="true"
+            className="h-full w-full object-cover object-[center_20%] opacity-70"
+          />
+          <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(5,5,5,0.55)_0%,rgba(5,5,5,0.35)_40%,rgba(5,5,5,0.82)_100%)]" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_25%,rgba(74,0,15,0.45),transparent_45%)]" />
+        </div>
+        {/* Desktop: side hero image */}
         <div className="absolute inset-y-0 right-0 hidden w-[58%] lg:block">
           <img
             src="/hero.png"
@@ -173,37 +185,45 @@ export default function EnglishHome() {
           />
           <div className="absolute inset-0 bg-[linear-gradient(90deg,#050505_0%,rgba(5,5,5,0.48)_45%,rgba(74,0,15,0.16)_100%)]" />
         </div>
-        <div className="absolute -left-48 top-24 h-[36rem] w-[36rem] rounded-full border border-cut-bronze/20" />
+        <div className="absolute -left-48 top-24 hidden h-[36rem] w-[36rem] rounded-full border border-cut-bronze/20 lg:block" />
         <div className="absolute right-[19%] top-[19%] hidden h-32 w-32 rotate-45 border border-cut-warm-beige/30 lg:block" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_82%_28%,rgba(74,0,15,0.8),transparent_28%),radial-gradient(circle_at_20%_85%,rgba(74,0,15,0.38),transparent_35%)]" />
+        <div className="absolute inset-0 hidden bg-[radial-gradient(circle_at_82%_28%,rgba(74,0,15,0.8),transparent_28%),radial-gradient(circle_at_20%_85%,rgba(74,0,15,0.38),transparent_35%)] lg:block" />
         <p
           aria-hidden
-          className="pointer-events-none absolute -bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap font-display text-[clamp(5rem,17vw,16rem)] font-bold text-cut-ivory/[0.035]"
+          className="pointer-events-none absolute -bottom-8 left-1/2 hidden -translate-x-1/2 whitespace-nowrap font-display text-[clamp(5rem,17vw,16rem)] font-bold text-cut-ivory/[0.035] md:block"
         >
           CUT SALON
         </p>
-        <div className="relative mx-auto grid min-h-[690px] max-w-[1360px] items-center gap-12 px-[clamp(24px,5vw,80px)] pb-24 lg:grid-cols-12">
-          <div className="lg:col-span-6">
-            <Eyebrow>{copy.hero.eyebrow}</Eyebrow>
-            <h1 className="mt-7 max-w-3xl font-editorial text-[clamp(4rem,7vw,7.4rem)] font-semibold leading-[0.88] tracking-tight">
+        <div className="relative mx-auto flex min-h-[calc(100svh-7.5rem)] max-w-[1360px] items-end md:min-h-[calc(100svh-7rem)] md:items-center px-[clamp(20px,5vw,80px)] pb-7 md:pb-24 lg:min-h-[690px] lg:grid lg:grid-cols-12">
+          <div className="w-full lg:col-span-6">
+            <div className="hidden sm:block">
+              <Eyebrow>{copy.hero.eyebrow}</Eyebrow>
+            </div>
+            <p className="flex items-center gap-3 text-xs font-bold tracking-[0.28em] text-cut-warm-beige sm:hidden">
+              <span className="h-2 w-2 rounded-full bg-cut-bronze" />
+              CUT SALON
+            </p>
+            <h1 className="mt-3 max-w-3xl font-editorial text-[clamp(2.4rem,9.5vw,7.4rem)] font-semibold leading-[0.92] tracking-tight md:mt-7 md:text-[clamp(4rem,7vw,7.4rem)] md:leading-[0.88]">
               {copy.hero.title}
             </h1>
-            <p className="mt-8 max-w-xl text-lg leading-8 text-cut-ivory/70">{copy.hero.body}</p>
-            <div className="mt-10 flex flex-wrap gap-3">
+            <p className="mt-4 hidden max-w-xl text-lg leading-8 text-cut-ivory/70 md:mt-8 md:block">
+              {copy.hero.body}
+            </p>
+            <div className="mt-5 flex flex-col gap-3 sm:mt-10 sm:flex-row sm:flex-wrap">
               <button
                 onClick={() => document.getElementById("english-barbers")?.scrollIntoView({ behavior: "smooth" })}
-                className="inline-flex min-h-12 items-center gap-2 bg-cut-ivory px-6 font-bold text-cut-black transition hover:bg-cut-warm-beige"
+                className="inline-flex min-h-12 items-center justify-center gap-2 bg-cut-ivory px-6 font-bold text-cut-black transition hover:bg-cut-warm-beige"
               >
                 Book Now <ArrowRight className="h-4 w-4" />
               </button>
               <button
                 onClick={() => openBookingFlow(nearestBarber, "nearest")}
-                className="inline-flex min-h-12 items-center gap-2 border border-cut-bronze/55 px-6 font-bold transition hover:bg-cut-burgundy/40"
+                className="hidden min-h-12 items-center justify-center gap-2 border border-cut-bronze/55 bg-cut-black/40 px-6 font-bold backdrop-blur-sm transition hover:bg-cut-burgundy/40 sm:inline-flex"
               >
-                Find the Nearest Slot <Zap className="h-4 w-4 text-cut-warm-beige" />
+                Find nearest slot <Zap className="h-4 w-4 text-cut-warm-beige" />
               </button>
             </div>
-            <div className="mt-12 flex flex-wrap gap-x-7 gap-y-3 text-sm text-cut-ivory/65">
+            <div className="mt-12 hidden flex-wrap gap-x-7 gap-y-3 text-sm text-cut-ivory/65 md:flex">
               <span>Open daily from 11:00 AM</span>
               <span>Professional barbers</span>
               <span>Clear, organized queue</span>
@@ -510,7 +530,7 @@ export default function EnglishHome() {
       <footer className="bg-cut-black py-16">
         <div className="mx-auto grid max-w-[1360px] gap-10 px-[clamp(24px,5vw,80px)] md:grid-cols-4">
           <div>
-            <p className="font-display text-3xl font-bold tracking-[0.2em]">CUT</p>
+            <p className="font-brand text-3xl font-bold tracking-[0.2em]">CUT</p>
             <p className="mt-1 text-xs font-bold tracking-[0.45em] text-cut-bronze">SALON</p>
             <p className="mt-5 max-w-xs text-sm leading-7 text-cut-ivory/60">
               Refined grooming, designed around detail, confidence and your time.

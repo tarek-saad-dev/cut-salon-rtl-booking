@@ -1,4 +1,13 @@
-@import url("https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&family=Tajawal:wght@400;500;700;800;900&family=Oswald:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500;1,600;1,700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Alexandria:wght@400;500;600;700&family=Oswald:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500;1,600;1,700&display=swap");
+
+@font-face {
+  font-family: "LAXR";
+  src: url("/fonts/LAXR.otf") format("opentype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -20,10 +29,21 @@
     --cut-bronze: #a48879;
     --cut-warm-beige: #d2b7a3;
     --cut-green-muted: #273c2c;
-    --font-ar-display: var(--font-ar-display-loaded), serif;
-    --font-ar-ui: var(--font-ar-ui-loaded), sans-serif;
-    --font-en-display: "Playfair Display", serif;
-    --font-en-ui: system-ui, sans-serif;
+
+    /* Typography system — static fallbacks on :root.
+       next/font variables (--*-loaded) live on <body>, so stacks that
+       depend on them must be re-declared on body (see below). */
+    --font-alexandria: "Alexandria", sans-serif;
+    --font-laxr: "LAXR", sans-serif;
+    --font-display: var(--font-laxr), var(--font-alexandria);
+    --font-ui: var(--font-alexandria);
+    --font-brand: "Oswald", sans-serif;
+    --font-editorial: "Playfair Display", serif;
+    /* Arabic aliases → shared system (LAXR display / Alexandria UI) */
+    --font-ar-display: var(--font-display);
+    --font-ar-ui: var(--font-ui);
+    --font-en-display: var(--font-editorial);
+    --font-en-ui: var(--font-ui);
 
     /* Classic Cut yellow (booking / CTAs) — keep bronze separate for editorial surfaces */
     --cut-gold: #d4af37;
@@ -108,6 +128,7 @@
     --bm-success: var(--booking-success);
     color: var(--bm-text);
     background: var(--bm-bg);
+    font-family: var(--font-ui);
   }
   .booking-modal-shell .booking-text-secondary {
     color: var(--bm-text-secondary);
@@ -154,46 +175,64 @@
     scroll-behavior: smooth;
   }
   body {
-    @apply bg-background text-foreground font-body antialiased;
+    @apply bg-background text-foreground antialiased;
+    /* Re-resolve stacks here: next/font sets --*-loaded on <body> */
+    --font-alexandria: var(--font-alexandria-loaded), "Alexandria", sans-serif;
+    --font-laxr: var(--font-laxr-loaded), "LAXR", sans-serif;
+    --font-display: var(--font-laxr), var(--font-alexandria);
+    --font-ui: var(--font-alexandria);
+    --font-ar-display: var(--font-display);
+    --font-ar-ui: var(--font-ui);
+    --font-en-ui: var(--font-ui);
+    font-family: var(--font-ui);
+  }
+  button,
+  input,
+  select,
+  textarea,
+  nav,
+  nav a {
+    font-family: var(--font-ui);
   }
   h1, h2, h3, h4, h5, h6 {
-    @apply font-heading;
+    font-family: var(--font-ui);
   }
+  /* Arabic: UI everywhere; LAXR only on intentional display headings */
   html[lang="ar"] body {
-    font-family: var(--font-ar-ui);
+    font-family: var(--font-ui);
     font-weight: 400;
     line-height: 1.75;
   }
   html[lang="ar"] h1,
   html[lang="ar"] h2 {
-    font-family: var(--font-ar-display);
+    font-family: var(--font-ui);
     font-weight: 700;
     letter-spacing: 0;
     line-height: 1.25;
   }
   html[lang="ar"] .font-heading,
-  html[lang="ar"] .font-body {
-    font-family: var(--font-ar-ui);
+  html[lang="ar"] .font-body,
+  html[lang="ar"] .font-ui {
+    font-family: var(--font-ui);
     letter-spacing: 0;
   }
-  html[lang="ar"] h1.font-heading,
-  html[lang="ar"] h2.font-heading {
-    font-family: var(--font-ar-display);
-    font-weight: 700;
+  html[lang="ar"] .font-display,
+  html[lang="ar"] h1.font-display,
+  html[lang="ar"] h2.font-display {
+    font-family: var(--font-display);
     letter-spacing: 0;
-    line-height: 1.25;
   }
   html[lang="ar"] button,
   html[lang="ar"] input,
   html[lang="ar"] select,
   html[lang="ar"] textarea {
-    font-family: var(--font-ar-ui);
+    font-family: var(--font-ui);
     font-weight: 600;
     letter-spacing: 0;
     line-height: 1.2;
   }
   html[lang="ar"] nav a {
-    font-family: var(--font-ar-ui);
+    font-family: var(--font-ui);
     font-weight: 600;
     letter-spacing: 0;
     line-height: 1;
@@ -237,7 +276,7 @@
     @apply font-display text-[10px] md:text-xs font-semibold uppercase tracking-[0.35em] text-cut-bronze;
   }
   html[lang="ar"] .cut-editorial-label {
-    font-family: var(--font-ar-ui);
+    font-family: var(--font-ui);
     font-size: 0.8125rem;
     font-weight: 500;
     letter-spacing: 0;
@@ -245,44 +284,44 @@
     text-transform: none;
   }
   html[lang="ar"] .cut-ar-hero-heading {
-    font-family: var(--font-ar-display);
-    font-weight: 700;
+    font-family: var(--font-laxr), var(--font-display);
+    font-weight: 400;
     letter-spacing: 0;
     line-height: 1.25;
   }
   html[lang="ar"] .cut-ar-hero-primary {
-    font-family: var(--font-ar-display);
+    font-family: var(--font-laxr), var(--font-display);
     font-size: clamp(2.875rem, 5.5vw, 5.125rem);
-    font-weight: 700;
+    font-weight: 400;
     letter-spacing: 0;
     line-height: 1.25;
   }
   html[lang="ar"] .cut-ar-hero-secondary {
-    font-family: var(--font-ar-display);
+    font-family: var(--font-laxr), var(--font-display);
     font-size: clamp(2.35rem, 4.5vw, 4.25rem);
-    font-weight: 700;
+    font-weight: 400;
     letter-spacing: 0;
     line-height: 1.25;
   }
   html[lang="ar"] .cut-ar-hero-heading .font-editorial {
-    font-family: var(--font-ar-display);
+    font-family: var(--font-laxr), var(--font-display);
     font-style: normal;
   }
   html[lang="ar"] .cut-ar-section-heading {
-    font-family: var(--font-ar-display);
+    font-family: var(--font-laxr), var(--font-display);
     font-size: clamp(2.125rem, 4vw, 3.625rem);
-    font-weight: 700;
+    font-weight: 400;
     letter-spacing: 0;
     line-height: 1.25;
   }
   html[lang="ar"] .cut-ar-ui-title {
-    font-family: var(--font-ar-ui);
+    font-family: var(--font-ui);
     font-weight: 600;
     letter-spacing: 0;
     line-height: 1.6;
   }
   html[lang="ar"] .cut-ar-meta {
-    font-family: var(--font-ar-ui);
+    font-family: var(--font-ui);
     font-weight: 500;
     letter-spacing: 0;
     line-height: 1.5;
@@ -311,6 +350,31 @@
 }
 
 @layer utilities {
+  .font-display {
+    font-family: var(--font-display);
+  }
+  /* English surfaces keep Oswald for existing display labels / watermarks */
+  html[lang="en"] .font-display:not(.font-laxr):not(.cut-ar-hero-heading):not(.cut-ar-hero-primary):not(.cut-ar-section-heading) {
+    font-family: var(--font-brand);
+  }
+  html[lang="ar"] .font-display {
+    font-family: var(--font-display);
+  }
+  /** Always LAXR — use on Arabic hero / display titles regardless of UI language */
+  .font-laxr,
+  .cut-ar-hero-heading,
+  .cut-ar-hero-primary,
+  .cut-ar-hero-secondary,
+  .cut-ar-section-heading {
+    font-family: var(--font-laxr), "LAXR", var(--font-alexandria), sans-serif !important;
+    font-weight: 400 !important;
+  }
+  .font-ui {
+    font-family: var(--font-ui);
+  }
+  .font-brand {
+    font-family: var(--font-brand);
+  }
   .text-bronze-gradient {
     background: linear-gradient(135deg, #a48879, #d2b7a3, #a48879);
     -webkit-background-clip: text;

@@ -360,7 +360,7 @@ function LoyaltyPageInner() {
         />
       </div>
 
-      <div className="relative z-10 mx-auto max-w-4xl px-4 pb-16 pt-24">
+      <div className="relative z-10 mx-auto max-w-4xl px-4 pb-16 pt-8">
 
         {/* ── Page header ─────────────────────────────────────────────── */}
         <PageHeader accentColor={cfg.color} border={cfg.border} bg={cfg.bg} />
@@ -500,7 +500,7 @@ export default function LoyaltyPage() {
     <Suspense
       fallback={
         <div className="min-h-screen bg-cut-black text-cut-ivory" dir="rtl">
-          <div className="relative z-10 mx-auto max-w-4xl px-4 pb-16 pt-24">
+          <div className="relative z-10 mx-auto max-w-4xl px-4 pb-16 pt-8">
             <PageHeader
               accentColor={LEVEL_CONFIG["Gold"].color}
               border={LEVEL_CONFIG["Gold"].border}

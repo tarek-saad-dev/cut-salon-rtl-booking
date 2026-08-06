@@ -259,7 +259,7 @@ function PriceSection({ category }: { category: PriceCategory }) {
 
 function StickyCategoryNav() {
   return (
-    <nav aria-label="تنقل سريع في قائمة الأسعار" className="sticky top-[65px] z-40 border-y border-cut-bronze/20 bg-cut-black/95 py-2.5 shadow-[0_8px_30px_rgba(0,0,0,0.24)] backdrop-blur-xl">
+    <nav aria-label="تنقل سريع في قائمة الأسعار" className="sticky top-0 z-40 border-y border-cut-bronze/20 bg-cut-black/95 py-2.5 shadow-[0_8px_30px_rgba(0,0,0,0.24)] backdrop-blur-xl">
       <div className="scrollbar-hide mx-auto flex max-w-[1200px] divide-x divide-x-reverse divide-cut-bronze/20 overflow-x-auto px-4 md:px-6">
         {quickLinks.map((link) => <a key={link.href} href={link.href} className="shrink-0 px-3 py-2 text-xs font-bold text-cut-ivory/65 transition first:pr-0 hover:bg-cut-burgundy/35 hover:text-cut-warm-beige focus:bg-cut-burgundy/35 focus:text-cut-warm-beige focus:outline-none md:px-5">{link.label}</a>)}
       </div>
