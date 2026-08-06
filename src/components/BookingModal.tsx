@@ -1146,6 +1146,7 @@ const BookingModal = ({
             <BookingServiceSelect
               services={flow.services}
               categories={flow.serviceCategories}
+              mostPopular={flow.serviceMostPopular}
               selectedIds={flow.serviceIds}
               onCoreSelect={handleCoreServiceSelect}
               onToggleService={handleToggleService}

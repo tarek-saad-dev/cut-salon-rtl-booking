@@ -87,6 +87,19 @@ export const mockServiceCategories: BookingServiceCategory[] = [
 export const mockServicesCatalog: ServicesCatalog = {
   services: mockServices,
   categories: mockServiceCategories,
+  mostPopular: {
+    id: "most_popular",
+    title: "الأكثر طلباً",
+    titleAr: "الأكثر طلباً",
+    titleEn: "Most Popular",
+    services: [
+      {
+        ...mockServices[0]!,
+        popularityRank: 1,
+        isMostRequested: true,
+      },
+    ],
+  },
 };
 
 export const mockBarbers: PublicBarber[] = [

@@ -51,9 +51,19 @@ export interface BookingServiceCategory {
   services: BookingService[];
 }
 
+/** Backend `mostPopular` block from GET /api/public/booking/services. */
+export interface BookingMostPopularSection {
+  id: string;
+  title: string;
+  titleAr: string | null;
+  titleEn: string | null;
+  services: BookingService[];
+}
+
 export interface ServicesCatalog {
   services: BookingService[];
   categories: BookingServiceCategory[];
+  mostPopular: BookingMostPopularSection | null;
 }
 
 /** @deprecated Prefer BookingServiceCategory from the public catalog. */
@@ -84,6 +94,8 @@ export interface BookingService {
   /** Optional future admin metadata — ignored when absent. */
   isFeatured?: boolean;
   isMostRequested?: boolean;
+  /** Rank within backend `mostPopular.services` (1 = top). */
+  popularityRank?: number | null;
   isPackage?: boolean;
   displayPriority?: number | null;
   visualKey?: string | null;

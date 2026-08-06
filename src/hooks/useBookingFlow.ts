@@ -46,6 +46,7 @@ import {
   type BookingConfig,
   type BookingService,
   type BookingServiceCategory,
+  type BookingMostPopularSection,
   type ServicesCatalog,
   type PublicBarber,
   type PublicBarberBranch,
@@ -174,6 +175,8 @@ export function useBookingFlow(opts: {
   const [config, setConfig] = useState<BookingConfig | null>(null);
   const [services, setServices] = useState<BookingService[]>([]);
   const [serviceCategories, setServiceCategories] = useState<BookingServiceCategory[]>([]);
+  const [serviceMostPopular, setServiceMostPopular] =
+    useState<BookingMostPopularSection | null>(null);
   const [barbers, setBarbers] = useState<PublicBarber[]>([]);
   const [barberBranches, setBarberBranches] = useState<PublicBarberBranch[]>([]);
   const [barberServiceIds, setBarberServiceIds] = useState<number[] | null>(null);
@@ -634,6 +637,7 @@ export function useBookingFlow(opts: {
       config: BookingConfig | null;
       services: BookingService[];
       categories?: BookingServiceCategory[];
+      mostPopular?: BookingMostPopularSection | null;
       barbers: PublicBarber[];
     };
     const cached = getCachedCatalog<CachedCatalog>(catalogBranch);
@@ -641,6 +645,7 @@ export function useBookingFlow(opts: {
       const catalog: ServicesCatalog = {
         services: cached.services ?? [],
         categories: cached.categories ?? [],
+        mostPopular: cached.mostPopular ?? null,
       };
       const allowed =
         isBarberFirst && barberServiceIdsRef.current !== null
@@ -650,6 +655,7 @@ export function useBookingFlow(opts: {
       setConfig(cached.config);
       setServices(filtered.services);
       setServiceCategories(filtered.categories);
+      setServiceMostPopular(filtered.mostPopular);
       setBarbers((cached.barbers ?? []).filter((b) => b.isBookableOnline));
       setCatalogError(null);
       setCatalogLoading(false);
@@ -678,7 +684,7 @@ export function useBookingFlow(opts: {
         ]);
         if (cancelled) return;
         setConfig(cfg.data);
-        const catalog = svc.data ?? { services: [], categories: [] };
+        const catalog = svc.data ?? { services: [], categories: [], mostPopular: null };
         const allowed =
           isBarberFirst && barberServiceIdsRef.current !== null
             ? new Set(barberServiceIdsRef.current)
@@ -686,6 +692,7 @@ export function useBookingFlow(opts: {
         const filtered = filterCatalogByServiceIds(catalog, allowed, true);
         setServices(filtered.services);
         setServiceCategories(filtered.categories);
+        setServiceMostPopular(filtered.mostPopular);
         const branchBarbers = (bar.data ?? []).filter((b) => b.isBookableOnline);
         setBarbers(branchBarbers);
         const existing = getCachedCatalog<CachedCatalog>(catalogBranch!);
@@ -693,6 +700,7 @@ export function useBookingFlow(opts: {
           config: cfg.data,
           services: catalog.services,
           categories: catalog.categories,
+          mostPopular: catalog.mostPopular,
           // Barber-first skips branch barbers fetch — don't wipe a prior cache.
           barbers: isBarberFirst ? (existing?.barbers ?? []) : (bar.data ?? []),
         });
@@ -751,6 +759,11 @@ export function useBookingFlow(opts: {
         })
         .filter((cat) => cat.services.length > 0),
     );
+    setServiceMostPopular((prev) => {
+      if (!prev) return prev;
+      const services = prev.services.filter((s) => allowed.has(s.id));
+      return services.length > 0 ? { ...prev, services } : null;
+    });
   }, [isBarberFirst, barberServiceIds]);
 
   // Prefetch available-days while still on service/mode so the calendar often
@@ -1666,6 +1679,7 @@ export function useBookingFlow(opts: {
     config,
     services,
     serviceCategories,
+    serviceMostPopular,
     barbers,
     barberBranches,
     barberProfileLoading,

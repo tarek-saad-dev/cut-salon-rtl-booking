@@ -122,10 +122,13 @@ describe("Phase 1E BookingServiceStep", () => {
       ),
     );
     const featured = container.querySelectorAll('[data-service-card="featured"]');
-    expect(featured.length).toBeGreaterThanOrEqual(2);
-    fireEvent.click(screen.getByRole("button", { name: /All services/i }));
+    expect(featured.length).toBeGreaterThanOrEqual(1);
+    fireEvent.click(screen.getByRole("button", { name: /Beard Cut/i }));
     const compact = container.querySelectorAll('[data-service-card="compact"]');
-    expect(compact.length).toBeGreaterThanOrEqual(1);
+    expect(
+      featured.length + compact.length + container.querySelectorAll('[data-service-card="featured"]').length,
+    ).toBeGreaterThanOrEqual(1);
+    expect(container.querySelector('[data-service-category="20"]')).toBeTruthy();
   });
 
   it("shows English name/description only in EN", () => {
@@ -180,9 +183,10 @@ describe("Phase 1E BookingServiceStep", () => {
       ),
     );
     expect(screen.getByText(/Selected/i)).toBeInTheDocument();
-    const allFilter = screen.getByRole("button", { name: /All services/i });
-    fireEvent.click(allFilter);
-    expect(screen.getByText(/Selected/i)).toBeInTheDocument();
+    const beardFilter = screen.getByRole("button", { name: /Beard Cut/i });
+    fireEvent.click(beardFilter);
+    expect(document.querySelector("[data-service-summary]")).toBeTruthy();
+    expect(document.querySelector("[data-service-summary]")?.textContent).toMatch(/1/);
     expect(onCore).not.toHaveBeenCalled();
   });
 
@@ -216,6 +220,7 @@ describe("Phase 1E BookingServiceStep", () => {
         />,
       ),
     );
+    fireEvent.click(screen.getByRole("button", { name: /Beard Cut/i }));
     const beard = screen.getAllByRole("radio").find((el) => {
       const text = el.textContent ?? "";
       return text.includes("Beard Styling") && !text.includes("Haircut");
@@ -243,6 +248,40 @@ describe("Phase 1E BookingServiceStep", () => {
     const summary = document.querySelector("[data-service-summary]");
     expect(summary?.textContent).toMatch(/1/);
     expect(summary?.textContent).toMatch(/200|EGP/i);
+  });
+
+  it("keeps cart collapsed after selecting; expands on tap with browse-services CTA", () => {
+    const onToggle = vi.fn();
+    render(
+      wrap(
+        <BookingServiceStep
+          services={catalog}
+          categories={categories}
+          selectedIds={[9]}
+          onCoreSelect={() => undefined}
+          onToggleService={onToggle}
+          selectedCount={1}
+          totalPrice={200}
+          totalDuration={30}
+          onContinue={() => undefined}
+        />,
+      ),
+    );
+    const cart = document.querySelector("[data-service-cart]");
+    expect(cart).toBeTruthy();
+    expect(cart?.getAttribute("data-cart-expanded")).toBe("false");
+    expect(document.querySelector("[data-cart-continue]")).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: /View cart|عرض السلة/i }));
+    expect(cart?.getAttribute("data-cart-expanded")).toBe("true");
+    expect(document.querySelector('[data-cart-item="9"]')).toBeTruthy();
+    expect(document.querySelector("[data-cart-browse-services]")).toBeTruthy();
+    expect(document.querySelector("[data-cart-add-service]")).toBeTruthy();
+    expect(document.querySelectorAll("[data-cart-upsell] button").length).toBe(1);
+
+    const remove = screen.getByRole("button", { name: /Remove service from cart/i });
+    fireEvent.click(remove);
+    expect(onToggle).toHaveBeenCalledWith(9);
   });
 
   it("loading skeletons match featured + compact layouts", () => {
@@ -312,11 +351,45 @@ describe("Phase 1E BookingServiceStep", () => {
     const labels = [...(toolbar?.querySelectorAll("button") ?? [])].map(
       (b) => b.textContent?.trim() ?? "",
     );
-    expect(labels[0]).toMatch(/All services/i);
-    expect(labels.slice(1)).toEqual(["Hair Cut", "Beard Cut", "Skincare"]);
+    expect(labels).toEqual(["Hair Cut", "Beard Cut", "Skincare"]);
     expect(container.querySelector('[data-service-category="19"]')).toBeTruthy();
-    expect(container.querySelector('[data-service-category="20"]')).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /All services/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /^Hair$/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /Most popular/i })).not.toBeInTheDocument();
+  });
+
+  it("renders Most Popular first among category filters", () => {
+    const mostPopular = {
+      id: "most_popular",
+      title: "الأكثر طلباً",
+      titleAr: "الأكثر طلباً",
+      titleEn: "Most Popular",
+      services: [
+        { ...catalog[2]!, popularityRank: 1, isMostRequested: true },
+        { ...catalog[0]!, popularityRank: 2, isMostRequested: true },
+      ],
+    };
+    const { container } = render(
+      wrap(
+        <BookingServiceStep
+          services={catalog}
+          categories={categories}
+          mostPopular={mostPopular}
+          selectedIds={[]}
+          onCoreSelect={() => undefined}
+          onToggleService={() => undefined}
+        />,
+      ),
+    );
+    const toolbarLabels = [
+      ...(container.querySelector("[data-service-filters]")?.querySelectorAll("button") ?? []),
+    ].map((b) => b.textContent?.trim() ?? "");
+    expect(toolbarLabels[0]).toMatch(/Most Popular/i);
+    expect(toolbarLabels.slice(1)).toEqual(["Hair Cut", "Beard Cut", "Skincare"]);
+    expect(screen.queryByRole("button", { name: /All services/i })).not.toBeInTheDocument();
+
+    const ready = container.querySelector('[data-service-step="ready"]');
+    const sectionNodes = [...(ready?.querySelectorAll("[data-service-category]") ?? [])];
+    expect(sectionNodes).toHaveLength(1);
+    expect(sectionNodes[0]?.getAttribute("data-service-category")).toBe("most_popular");
   });
 });

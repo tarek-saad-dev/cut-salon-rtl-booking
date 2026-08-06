@@ -4,6 +4,7 @@ import type {
   BookingConfig,
   BookingService,
   BookingServiceCategory,
+  BookingMostPopularSection,
   BookingApiResponse,
   ServicesCatalog,
 } from "./types";
@@ -41,6 +42,7 @@ type RawService = BookingService & {
   visualKey?: string | null;
   badgeKey?: string | null;
   sortOrder?: number | null;
+  popularityRank?: number | null;
 };
 
 interface RawCategory {
@@ -54,11 +56,20 @@ interface RawCategory {
   services?: RawService[];
 }
 
+interface RawMostPopular {
+  id?: string;
+  title?: string;
+  titleAr?: string | null;
+  titleEn?: string | null;
+  services?: RawService[];
+}
+
 interface ServicesResponse {
   ok: boolean;
   services?: RawService[];
   categories?: RawCategory[];
   groups?: RawCategory[];
+  mostPopular?: RawMostPopular | null;
   meta?: {
     preferredShape?: string;
     serviceCount?: number;
@@ -161,6 +172,10 @@ function normalizeService(
     shortDescriptionEn: (raw.shortDescriptionEn ?? "").trim() || null,
     isFeatured: raw.isFeatured === true,
     isMostRequested: raw.isMostRequested === true,
+    popularityRank:
+      raw.popularityRank != null && Number.isFinite(Number(raw.popularityRank))
+        ? Number(raw.popularityRank)
+        : null,
     isPackage: raw.isPackage === true,
     displayPriority:
       raw.displayPriority != null && Number.isFinite(Number(raw.displayPriority))
@@ -238,6 +253,57 @@ function categoriesFromFlatServices(services: BookingService[]): BookingServiceC
   return [...map.values()];
 }
 
+function enrichFromCatalog(
+  partial: BookingService,
+  byId: Map<number, BookingService>,
+): BookingService {
+  const full = byId.get(partial.id);
+  if (!full) {
+    return { ...partial, isMostRequested: true };
+  }
+  return {
+    ...full,
+    // Prefer mostPopular payload fields when present.
+    name: partial.name || full.name,
+    nameAr: partial.nameAr ?? full.nameAr,
+    nameEn: partial.nameEn ?? full.nameEn,
+    price: partial.price || full.price,
+    durationMinutes: partial.durationMinutes || full.durationMinutes,
+    imageUrl: partial.imageUrl || full.imageUrl,
+    photoUrl: partial.photoUrl || full.photoUrl || partial.imageUrl || full.imageUrl,
+    popularityRank: partial.popularityRank ?? full.popularityRank ?? null,
+    isMostRequested: true,
+  };
+}
+
+function normalizeMostPopular(
+  raw: RawMostPopular | null | undefined,
+  catalogServices: BookingService[],
+): BookingMostPopularSection | null {
+  if (!raw || !Array.isArray(raw.services) || raw.services.length === 0) return null;
+  const byId = new Map(catalogServices.map((s) => [s.id, s]));
+  const services = raw.services
+    .map((s) => normalizeService({ ...s, isMostRequested: true }))
+    .filter((s): s is BookingService => s != null)
+    .map((s) => enrichFromCatalog(s, byId))
+    .sort(
+      (a, b) =>
+        (a.popularityRank ?? 999) - (b.popularityRank ?? 999) || a.id - b.id,
+    );
+  if (services.length === 0) return null;
+  const titleAr = (raw.titleAr ?? "").trim() || null;
+  const titleEn = (raw.titleEn ?? "").trim() || null;
+  const fallback = (raw.title ?? "").trim() || null;
+  const title = titleAr || titleEn || fallback || "Most Popular";
+  return {
+    id: (raw.id ?? "most_popular").trim() || "most_popular",
+    title,
+    titleAr: titleAr ?? title,
+    titleEn,
+    services,
+  };
+}
+
 /** Prefer admin `categories` shape; fall back to flat `services` / legacy `groups`. */
 export function normalizeServicesCatalog(raw: ServicesResponse): ServicesCatalog {
   const rawCategories = raw.categories?.length
@@ -262,8 +328,9 @@ export function normalizeServicesCatalog(raw: ServicesResponse): ServicesCatalog
     categories = categoriesFromFlatServices(services);
   }
 
-  // Keep categories bookable-visible services only for display lists later.
-  return { services, categories };
+  const mostPopular = normalizeMostPopular(raw.mostPopular, services);
+
+  return { services, categories, mostPopular };
 }
 
 export async function getServices(
@@ -313,5 +380,13 @@ export function filterCatalogByServiceIds(
     .filter((cat) => cat.services.length > 0)
     .sort((a, b) => a.sortOrder - b.sortOrder || a.id.localeCompare(b.id));
   const services = flattenFromCategories(categories);
-  return { services, categories };
+  let mostPopular = catalog.mostPopular;
+  if (mostPopular) {
+    const popularServices = mostPopular.services.filter(allow);
+    mostPopular =
+      popularServices.length > 0
+        ? { ...mostPopular, services: popularServices }
+        : null;
+  }
+  return { services, categories, mostPopular };
 }

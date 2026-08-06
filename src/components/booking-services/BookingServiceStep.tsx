@@ -1,8 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Scissors } from "lucide-react";
-import type { BookingService, BookingServiceCategory } from "@/lib/booking-api";
+import type {
+  BookingService,
+  BookingServiceCategory,
+  BookingMostPopularSection,
+} from "@/lib/booking-api";
 import {
   isServiceVisible,
   isCoreService,
@@ -21,12 +25,16 @@ import BookingServiceFilters, {
   type ServiceCategoryFilterId,
   type ServiceCategoryFilterOption,
 } from "./BookingServiceFilters";
-import BookingSelectedServicesSummary from "./BookingSelectedServicesSummary";
+import BookingServiceCart from "./BookingServiceCart";
+
+export const MOST_POPULAR_FILTER_ID = "most_popular";
 
 export interface BookingServiceStepProps {
   services: BookingService[];
   /** Admin categories from GET /api/public/booking/services (preferred display shape). */
   categories?: BookingServiceCategory[];
+  /** Backend `mostPopular` block — shown first when present. */
+  mostPopular?: BookingMostPopularSection | null;
   selectedIds: number[];
   onCoreSelect: (id: number) => void;
   onToggleService: (id: number) => void;
@@ -80,6 +88,11 @@ function CompactSkeleton() {
 function categoryLabel(cat: BookingServiceCategory, lang: "ar" | "en"): string {
   if (lang === "ar") return (cat.nameAr || cat.name || cat.nameEn || "").trim();
   return (cat.nameEn || cat.name || cat.nameAr || "").trim();
+}
+
+function mostPopularLabel(section: BookingMostPopularSection, lang: "ar" | "en"): string {
+  if (lang === "ar") return (section.titleAr || section.title || section.titleEn || "").trim();
+  return (section.titleEn || section.title || section.titleAr || "").trim();
 }
 
 /** Fallback when API categories are missing — group flat services by category fields. */
@@ -188,6 +201,7 @@ function ServiceGrid({
 export default function BookingServiceStep({
   services,
   categories: categoriesProp,
+  mostPopular: mostPopularProp = null,
   selectedIds,
   onCoreSelect,
   onToggleService,
@@ -221,32 +235,58 @@ export default function BookingServiceStep({
       .sort((a, b) => a.sortOrder - b.sortOrder || a.id.localeCompare(b.id));
   }, [categoriesProp, visible, visibleIds]);
 
+  const mostPopular = useMemo(() => {
+    if (!mostPopularProp?.services?.length) return null;
+    const servicesInView = mostPopularProp.services
+      .filter((s) => visibleIds.has(s.id) && isServiceVisible(s))
+      .sort(
+        (a, b) =>
+          (a.popularityRank ?? 999) - (b.popularityRank ?? 999) || a.id - b.id,
+      );
+    if (servicesInView.length === 0) return null;
+    return { ...mostPopularProp, services: servicesInView };
+  }, [mostPopularProp, visibleIds]);
+
   const featured = useMemo(() => resolveFeaturedServices(visible), [visible]);
   const featuredIds = useMemo(() => new Set(featured.map((s) => s.id)), [featured]);
+  const popularIds = useMemo(
+    () => new Set(mostPopular?.services.map((s) => s.id) ?? []),
+    [mostPopular],
+  );
 
   const filterOptions = useMemo((): ServiceCategoryFilterOption[] => {
-    const opts: ServiceCategoryFilterOption[] = [
-      { id: "all", label: t("service.filterAll") },
-    ];
+    const opts: ServiceCategoryFilterOption[] = [];
+    if (mostPopular) {
+      opts.push({
+        id: MOST_POPULAR_FILTER_ID,
+        label: mostPopularLabel(mostPopular, lang) || t("service.filterPopular"),
+      });
+    }
     for (const cat of categories) {
       opts.push({ id: cat.id, label: categoryLabel(cat, lang) || cat.id });
     }
     return opts;
-  }, [categories, lang, t]);
+  }, [categories, mostPopular, lang, t]);
 
   const filterIds = useMemo(() => filterOptions.map((f) => f.id), [filterOptions]);
 
+  const defaultFilterId = useMemo((): ServiceCategoryFilterId => {
+    if (mostPopular) return MOST_POPULAR_FILTER_ID;
+    return categories[0]?.id ?? MOST_POPULAR_FILTER_ID;
+  }, [mostPopular, categories]);
+
   const [activeFilter, setActiveFilter] = useState<ServiceCategoryFilterId>(() => {
-    if (initialFilter && filterIds.includes(initialFilter)) return initialFilter;
-    return "all";
+    if (initialFilter) return initialFilter;
+    return defaultFilterId;
   });
 
   useEffect(() => {
+    if (filterIds.length === 0) return;
     if (!filterIds.includes(activeFilter)) {
-      setActiveFilter("all");
-      onFilterChange?.("all");
+      setActiveFilter(defaultFilterId);
+      onFilterChange?.(defaultFilterId);
     }
-  }, [filterIds, activeFilter, onFilterChange]);
+  }, [filterIds, activeFilter, defaultFilterId, onFilterChange]);
 
   const setFilter = (id: ServiceCategoryFilterId) => {
     setActiveFilter(id);
@@ -254,9 +294,12 @@ export default function BookingServiceStep({
   };
 
   const sections = useMemo(() => {
-    if (activeFilter === "all") return categories;
+    if (activeFilter === MOST_POPULAR_FILTER_ID) return [];
     return categories.filter((c) => c.id === activeFilter);
   }, [categories, activeFilter]);
+
+  const showMostPopular =
+    Boolean(mostPopular) && activeFilter === MOST_POPULAR_FILTER_ID;
 
   const hasMainSelected = selectedIds.some((id) => {
     const s = visible.find((x) => x.id === id);
@@ -265,10 +308,33 @@ export default function BookingServiceStep({
 
   const addons = useMemo(() => {
     if (!hasMainSelected && selectedIds.length === 0) return [];
-    return getRecommendedAddons(visible, selectedIds, 8);
+    return getRecommendedAddons(visible, selectedIds);
   }, [visible, selectedIds, hasMainSelected]);
 
+  const selectedServices = useMemo(() => {
+    const byId = new Map(visible.map((s) => [s.id, s]));
+    return selectedIds
+      .map((id) => byId.get(id))
+      .filter((s): s is BookingService => s != null);
+  }, [visible, selectedIds]);
+
+  const servicesScrollRef = useRef<HTMLDivElement>(null);
+
+  const browseServicesFromCart = () => {
+    // Leave most-popular-only view so the guest can pick from a full category list.
+    const firstCategory = categories[0]?.id;
+    if (firstCategory && activeFilter === MOST_POPULAR_FILTER_ID) {
+      setFilter(firstCategory);
+    }
+    const el = servicesScrollRef.current;
+    if (!el) return;
+    window.requestAnimationFrame(() => {
+      el.scrollTo({ top: 0, behavior: "smooth" });
+    });
+  };
+
   const badgeLabel = (service: BookingService) => {
+    if (popularIds.has(service.id)) return t("service.badgeMostRequested");
     const key = getQuickPickBadge(service, visible);
     return key ? t(BADGE_I18N[key]) : null;
   };
@@ -335,12 +401,16 @@ export default function BookingServiceStep({
     );
   }
 
-  const showAddons = selectedIds.length > 0 && addons.length > 0 && activeFilter === "all";
-  const showCategoryHeadings = activeFilter === "all" && sections.length > 1;
+  const showAddons = selectedIds.length > 0 && addons.length > 0;
+  const showCategoryHeadings = true;
 
   return (
     <div className="flex flex-col min-h-0 flex-1 bg-[var(--booking-bg)]" dir={dir} data-service-step="ready">
-      <div className="flex-1 overflow-y-auto p-5 md:p-6 pb-4 space-y-5">
+      <div
+        ref={servicesScrollRef}
+        className="flex-1 overflow-y-auto p-5 md:p-6 pb-4 space-y-5"
+        data-services-scroll
+      >
         <div>
           <h3 className="text-lg md:text-xl font-heading font-bold text-[var(--booking-text)] mb-0.5">
             {t("service.title")}
@@ -353,6 +423,31 @@ export default function BookingServiceStep({
           active={activeFilter}
           onChange={setFilter}
         />
+
+        {showMostPopular && mostPopular ? (
+          <section
+            aria-labelledby="most-popular-heading"
+            data-service-category={MOST_POPULAR_FILTER_ID}
+            data-most-popular
+          >
+            <h4
+              id="most-popular-heading"
+              className="text-[13px] font-bold uppercase tracking-widest text-[var(--booking-text-muted)] mb-2.5"
+            >
+              {mostPopularLabel(mostPopular, lang) || t("service.filterPopular")}
+            </h4>
+            <ServiceGrid
+              services={mostPopular.services}
+              featuredIds={popularIds}
+              selectedIds={selectedIds}
+              selectService={selectService}
+              selectionTypeFor={selectionTypeFor}
+              badgeLabel={badgeLabel}
+              lang={lang}
+              showFeaturedFirst
+            />
+          </section>
+        ) : null}
 
         {sections.map((cat) => {
           const heading = categoryLabel(cat, lang) || cat.name;
@@ -417,24 +512,15 @@ export default function BookingServiceStep({
         )}
       </div>
 
-      <BookingSelectedServicesSummary
-        selectedCount={selectedCount}
-        totalDuration={totalDuration}
+      <BookingServiceCart
+        selectedServices={selectedServices}
         totalPrice={totalPrice}
+        totalDuration={totalDuration}
+        onRemove={onToggleService}
+        onBrowseServices={browseServicesFromCart}
+        onContinue={onContinue}
+        continueDisabled={selectedCount === 0}
       />
-
-      {onContinue ? (
-        <div className="flex-shrink-0 px-5 md:px-6 pb-5 pt-2 border-t border-[var(--booking-border-subtle)] bg-[var(--booking-bg)] sticky bottom-0">
-          <button
-            type="button"
-            onClick={onContinue}
-            disabled={selectedCount === 0}
-            className="w-full min-h-11 py-3 rounded-xl bg-[var(--booking-accent)] text-white font-bold text-sm disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--booking-accent)]"
-          >
-            {t("actions.continue")}
-          </button>
-        </div>
-      ) : null}
     </div>
   );
 }
