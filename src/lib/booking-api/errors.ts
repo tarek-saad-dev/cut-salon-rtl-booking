@@ -126,7 +126,7 @@ const ENGLISH_ERROR_MESSAGES: Partial<Record<PublicBookingErrorCode, string>> = 
 /** Locale-aware public booking API error message (UI display). */
 export function getLocalizedBookingErrorMessage(
   code: PublicBookingErrorCode,
-  lang: "ar" | "en" = "ar",
+  lang: "ar" | "en" = "en",
 ): string {
   if (lang === "en") {
     return ENGLISH_ERROR_MESSAGES[code] ?? ENGLISH_ERROR_MESSAGES.UNKNOWN_ERROR!;
