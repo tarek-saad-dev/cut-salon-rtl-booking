@@ -1790,39 +1790,18 @@ const BookingModal = ({
   const activeStepId = stepForHeader(flow.step);
   const headerSteps = steps;
 
+  // Full-screen blur freeze is only for plan/create mutations.
+  // Data loads (barber profile, catalog, slots, lookup) already have step-level UI;
+  // overlaying them blocked the modal (retry/close) after choosing a barber.
   const mutationBusy =
     flow.mutationUi.kind === "planning" || flow.mutationUi.kind === "creating";
-  const dataBusy =
-    flow.catalogLoading ||
-    flow.daysLoading ||
-    flow.slotsLoading ||
-    flow.crossSlotsLoading ||
-    flow.barberProfileStatus === "loading" ||
-    flow.barberProfileStatus === "slow_loading" ||
-    lookupStatus === "loading";
-  const waitingBusy = mutationBusy || dataBusy;
-  const waitingDelayMs = mutationBusy ? 280 : 800;
-  const waitingTone = mutationBusy ? "confirm" : "slots";
-  const waitingLabel = mutationBusy
-    ? flow.mutationUi.kind === "planning"
+  const waitingBusy = mutationBusy;
+  const waitingDelayMs = 280;
+  const waitingTone = "confirm" as const;
+  const waitingLabel =
+    flow.mutationUi.kind === "planning"
       ? t("loading.planning")
-      : t("loading.creating")
-    : flow.catalogLoading
-      ? t("loading.catalog")
-      : flow.crossSlotsLoading
-        ? t("loading.crossBranchSlots")
-        : lookupStatus === "loading"
-          ? lang === "ar"
-            ? "جاري التحقق من بياناتك…"
-            : "Looking up your profile…"
-          : flow.barberProfileStatus === "loading" ||
-              flow.barberProfileStatus === "slow_loading"
-            ? t("branch.loadingShort")
-            : flow.daysLoading
-              ? t("date.loading")
-              : lang === "ar"
-                ? "جاري تحميل المواعيد…"
-                : "Loading times…";
+      : t("loading.creating");
 
   return (
     <>
@@ -1830,10 +1809,11 @@ const BookingModal = ({
       <Dialog open={open} onOpenChange={(next) => { if (!next) handleClose(); }}>
         <DialogContent
           hideDefaultClose
-          className="relative max-w-4xl w-[95vw] max-h-[92vh] p-0 bg-[var(--booking-bg)] border border-[var(--booking-border)] overflow-hidden gap-0 rounded-2xl shadow-2xl booking-modal-shell flex flex-col"
+          className="max-w-4xl w-[95vw] max-h-[92vh] p-0 bg-[var(--booking-bg)] border border-[var(--booking-border)] overflow-hidden gap-0 rounded-2xl shadow-2xl booking-modal-shell"
           dir={dir}
           lang={lang}
         >
+          <div className="relative flex max-h-[92vh] min-h-0 w-full flex-col overflow-hidden">
           <BookDelayedWaitingOverlay
             busy={waitingBusy}
             delayMs={waitingDelayMs}
@@ -1964,6 +1944,7 @@ const BookingModal = ({
                 </p>
               </div>
             </div>
+          </div>
           </div>
         </DialogContent>
       </Dialog>

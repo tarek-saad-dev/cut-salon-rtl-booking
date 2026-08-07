@@ -549,7 +549,10 @@ export function useBookingFlow(opts: {
       })
       .catch((err) => {
         if (cancelled || (err instanceof DOMException && err.name === "AbortError")) {
-          if (!cancelled) setBarberProfileStatus("aborted");
+          if (!cancelled) {
+            setBarberProfileStatus("aborted");
+            setBarberProfileLoading(false);
+          }
           return;
         }
         if (immediate?.branches != null) {
