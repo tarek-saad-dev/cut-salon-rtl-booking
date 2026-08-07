@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Loader2 } from "lucide-react";
+import { Clock, Loader2, Plus, Scissors, User } from "lucide-react";
 import { BookFlowChrome } from "@/components/book/BookFlowChrome";
 import { BookDelayedWaitingOverlay } from "@/components/book/BookDelayedWaitingOverlay";
 import { useBranch } from "@/context/BranchContext";
@@ -108,14 +108,22 @@ export default function BookCartClient() {
     return serviceIds.map((id) => map.get(id)).filter(Boolean) as BookingService[];
   }, [catalog, serviceIds]);
 
+  const totalPrice = selectedServices.reduce((sum, s) => sum + (s.price ?? 0), 0);
+  const totalDuration = selectedServices.reduce(
+    (sum, s) => sum + (s.durationMinutes ?? 0),
+    0,
+  );
+
   const barberLabel =
     professional?.kind === "specific"
       ? professional.name
       : ar
         ? "أول حلاق متاح"
-        : "the first available";
+        : "First Available";
 
-  const withLabel = ar ? `مع ${barberLabel}` : `with ${barberLabel}`;
+  const branchLabel = selectedBranch
+    ? (selectedBranch.shortName || selectedBranch.branchName || "").trim()
+    : branchCode;
 
   const goAddMore = () => {
     if (!branchCode) return;
@@ -154,10 +162,16 @@ export default function BookCartClient() {
           lang={lang}
           label={ar ? "جاري تحميل السلة…" : "Loading cart…"}
         />
-        <div className="px-5 pt-6 sm:px-6">
+
+        <div className="border-b border-cut-black/10 px-5 py-5 sm:px-6">
           <h1 className="text-[13px] font-black uppercase tracking-[0.16em] text-cut-black">
             {ar ? "سلتك" : "Your cart"}
           </h1>
+          <p className="mt-2 text-sm text-cut-black/55">
+            {ar
+              ? "راجع خدماتك قبل متابعة الحجز."
+              : "Review your services before continuing."}
+          </p>
         </div>
 
         {loading ? (
@@ -174,35 +188,92 @@ export default function BookCartClient() {
         ) : null}
 
         {!loading && !error ? (
-          <>
-            <ul className="mt-2 divide-y divide-cut-black/10">
-              {selectedServices.map((service) => (
-                <li key={service.id} className="px-5 py-4 sm:px-6">
-                  <div className="flex items-start justify-between gap-4">
+          <div className="space-y-4 px-5 py-5 sm:px-6">
+            <div className="rounded-2xl border border-cut-burgundy/15 bg-cut-ivory/90 px-4 py-3.5 shadow-[0_8px_28px_rgba(74,0,15,0.05)]">
+              <div className="flex items-center gap-3">
+                <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-cut-burgundy/10 text-cut-burgundy">
+                  <User className="h-4 w-4" strokeWidth={2} />
+                </span>
+                <div className="min-w-0">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-cut-black/45">
+                    {ar ? "الحلاق" : "Professional"}
+                  </p>
+                  <p className="truncate text-[15px] font-bold text-cut-black">{barberLabel}</p>
+                  {branchLabel ? (
+                    <p className="mt-0.5 truncate text-[12px] text-cut-black/50">{branchLabel}</p>
+                  ) : null}
+                </div>
+              </div>
+            </div>
+
+            <div className="overflow-hidden rounded-2xl border border-cut-black/10 bg-cut-ivory">
+              <div className="flex items-center justify-between border-b border-cut-black/8 px-4 py-3">
+                <p className="inline-flex items-center gap-1.5 text-[13px] font-bold text-cut-black">
+                  <Scissors className="h-3.5 w-3.5 text-cut-burgundy" strokeWidth={2} />
+                  {ar ? "الخدمات" : "Services"}
+                </p>
+                <p className="text-[12px] text-cut-black/45">
+                  {selectedServices.length}{" "}
+                  {ar
+                    ? selectedServices.length === 1
+                      ? "خدمة"
+                      : "خدمات"
+                    : selectedServices.length === 1
+                      ? "service"
+                      : "services"}
+                </p>
+              </div>
+
+              <ul className="divide-y divide-cut-black/8">
+                {selectedServices.map((service) => (
+                  <li key={service.id} className="flex items-start justify-between gap-4 px-4 py-3.5">
                     <div className="min-w-0">
-                      <p className="text-[15px] font-bold text-cut-black">
+                      <p className="text-[15px] font-semibold text-cut-black">
                         {serviceLabel(service, lang)}
                       </p>
-                      <p className="mt-1 text-[13px] text-cut-black/55">{withLabel}</p>
+                      {service.durationMinutes ? (
+                        <p className="mt-1 inline-flex items-center gap-1 text-[12px] text-cut-black/50">
+                          <Clock className="h-3 w-3" strokeWidth={2} />
+                          {service.durationMinutes} {ar ? "دقيقة" : "min"}
+                        </p>
+                      ) : null}
                     </div>
-                    <p className="shrink-0 text-[15px] font-bold text-cut-black">
+                    <p className="shrink-0 text-[15px] font-bold text-cut-burgundy">
                       {money(service.price ?? 0, lang)}
                     </p>
-                  </div>
-                </li>
-              ))}
-            </ul>
+                  </li>
+                ))}
+              </ul>
 
-            <div className="px-5 pt-5 sm:px-6">
-              <button
-                type="button"
-                onClick={goAddMore}
-                className="inline-flex min-h-11 w-full items-center justify-center rounded-full border border-cut-black bg-transparent px-5 text-sm font-bold text-cut-black transition hover:bg-cut-warm-paper"
-              >
-                {ar ? "أضف المزيد" : "Add More"}
-              </button>
+              <div className="space-y-2 border-t border-cut-black/10 bg-cut-warm-paper/40 px-4 py-3.5">
+                {totalDuration > 0 ? (
+                  <div className="flex items-center justify-between text-[13px] text-cut-black/60">
+                    <span>{ar ? "المدة الإجمالية" : "Total duration"}</span>
+                    <span className="font-semibold text-cut-black">
+                      {totalDuration} {ar ? "دقيقة" : "min"}
+                    </span>
+                  </div>
+                ) : null}
+                <div className="flex items-center justify-between">
+                  <span className="text-[15px] font-bold text-cut-black">
+                    {ar ? "الإجمالي" : "Total"}
+                  </span>
+                  <span className="text-[17px] font-black text-cut-burgundy">
+                    {money(totalPrice, lang)}
+                  </span>
+                </div>
+              </div>
             </div>
-          </>
+
+            <button
+              type="button"
+              onClick={goAddMore}
+              className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full border border-cut-burgundy/25 bg-cut-ivory px-5 text-sm font-bold text-cut-burgundy transition hover:border-cut-burgundy/45 hover:bg-cut-warm-paper"
+            >
+              <Plus className="h-4 w-4" strokeWidth={2.25} />
+              {ar ? "أضف خدمة أخرى" : "Add another service"}
+            </button>
+          </div>
         ) : null}
 
         <div className="fixed inset-x-0 bottom-0 z-20 border-t border-cut-black/10 bg-cut-soft-ivory/95 px-5 py-4 backdrop-blur-sm sm:px-6">

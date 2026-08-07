@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ChevronDown, Loader2 } from "lucide-react";
+import { Check, ChevronDown, Loader2, Search } from "lucide-react";
 import { BookFlowChrome } from "@/components/book/BookFlowChrome";
 import { BookDelayedWaitingOverlay } from "@/components/book/BookDelayedWaitingOverlay";
 import { useBranch } from "@/context/BranchContext";
@@ -10,27 +10,20 @@ import { useLanguage } from "@/context/LanguageContext";
 import { normalizeBranchCode } from "@/lib/booking-api/branch-code";
 import { saveClient } from "@/lib/clientStorage";
 import {
+  BOOK_PHONE_COUNTRIES,
+  detectPhoneCountry,
+  isInternationalPhoneReady,
+  nationalFromStored,
+  toInternationalDigits,
+  type BookPhoneCountry,
+} from "@/lib/phone-countries";
+import {
   readBookFlowDraft,
   saveBookFlowDraft,
   type BookFlowDraft,
 } from "@/lib/book-flow-draft";
 
 type LookupStatus = "idle" | "loading" | "found" | "new" | "error";
-
-function toLocalMobileInput(digits: string) {
-  const d = digits.replace(/\D/g, "");
-  if (d.startsWith("20") && d.length >= 12) return d.slice(2);
-  if (d.startsWith("0") && d.length >= 11) return d.slice(1);
-  return d;
-}
-
-function toLookupDigits(local: string) {
-  const d = local.replace(/\D/g, "");
-  if (!d) return "";
-  if (d.startsWith("0")) return d;
-  if (d.startsWith("20")) return d;
-  return `0${d}`;
-}
 
 export default function BookPhoneClient() {
   const router = useRouter();
@@ -55,8 +48,16 @@ export default function BookPhoneClient() {
     ? `/book/cart?branch=${encodeURIComponent(branchCode)}&visit=${visitKind}`
     : "/book";
 
+  const initialCountry = useMemo(
+    () => detectPhoneCountry(draft?.customer?.phone ?? ""),
+    [draft?.customer?.phone],
+  );
+
+  const [country, setCountry] = useState<BookPhoneCountry>(initialCountry);
+  const [countryOpen, setCountryOpen] = useState(false);
+  const [countryQuery, setCountryQuery] = useState("");
   const [localPhone, setLocalPhone] = useState(() =>
-    toLocalMobileInput(draft?.customer?.phone ?? ""),
+    nationalFromStored(draft?.customer?.phone ?? "", initialCountry),
   );
   const [lookupStatus, setLookupStatus] = useState<LookupStatus>("idle");
   const [lookedUpName, setLookedUpName] = useState<string | null>(
@@ -71,6 +72,7 @@ export default function BookPhoneClient() {
   const [clientId, setClientId] = useState<number | null>(
     draft?.customer?.clientId ?? null,
   );
+  const pickerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (isLoadingBranches) return;
@@ -93,7 +95,19 @@ export default function BookPhoneClient() {
     }
   }, [draft, router, cartHref]);
 
-  const lookupDigits = toLookupDigits(localPhone);
+  useEffect(() => {
+    if (!countryOpen) return;
+    const onDoc = (e: MouseEvent) => {
+      if (!pickerRef.current?.contains(e.target as Node)) {
+        setCountryOpen(false);
+        setCountryQuery("");
+      }
+    };
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, [countryOpen]);
+
+  const internationalDigits = toInternationalDigits(country, localPhone);
   const resolvedName =
     lookupStatus === "found"
       ? (lookedUpName || "").trim()
@@ -102,14 +116,27 @@ export default function BookPhoneClient() {
         : "";
   const needsNewName = lookupStatus === "new" || lookupStatus === "error";
   const canContinue =
-    lookupDigits.replace(/\D/g, "").length >= 10 &&
+    isInternationalPhoneReady(internationalDigits) &&
     lookupStatus !== "loading" &&
     lookupStatus !== "idle" &&
     resolvedName.length >= 2;
 
+  const filteredCountries = useMemo(() => {
+    const q = countryQuery.trim().toLowerCase();
+    if (!q) return BOOK_PHONE_COUNTRIES;
+    return BOOK_PHONE_COUNTRIES.filter((c) => {
+      const name = (ar ? c.nameAr : c.nameEn).toLowerCase();
+      return (
+        name.includes(q) ||
+        c.iso.toLowerCase().includes(q) ||
+        c.dial.includes(q.replace(/^\+/, ""))
+      );
+    });
+  }, [countryQuery, ar]);
+
   useEffect(() => {
-    const digits = lookupDigits.replace(/\D/g, "");
-    if (digits.length < 10) {
+    const digits = internationalDigits.replace(/\D/g, "");
+    if (!isInternationalPhoneReady(digits)) {
       setLookupStatus("idle");
       setLookedUpName(null);
       setClientId(null);
@@ -165,15 +192,23 @@ export default function BookPhoneClient() {
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [lookupDigits]);
+  }, [internationalDigits]);
+
+  const onSelectCountry = (next: BookPhoneCountry) => {
+    setCountry(next);
+    setCountryOpen(false);
+    setCountryQuery("");
+    setLookupStatus("idle");
+    setLookedUpName(null);
+    setClientId(null);
+  };
 
   const onContinue = () => {
     if (!canContinue || !draft || !branchCode) return;
-    const phone = lookupDigits.replace(/\D/g, "");
+    const phone = internationalDigits.replace(/\D/g, "");
     const name = resolvedName;
     const found = lookupStatus === "found";
 
-    // Same local persistence as homepage BookingModal after lookup / name entry.
     saveClient({
       ...(clientId != null ? { id: clientId } : {}),
       name,
@@ -217,37 +252,115 @@ export default function BookPhoneClient() {
           </h1>
           <p className="mt-3 max-w-md text-sm leading-6 text-cut-black/60">
             {ar
-              ? "هنستخدم الرقم ده عشان نلاقي حسابك عندنا ونأكد حجزك."
-              : "We'll use this to look up your profile and confirm your booking."}
+              ? "نستخدم الرقم للبحث عن حسابك وتأكيد الحجز. يمكنك اختيار دولتك."
+              : "We’ll use this number to find your profile and confirm your booking. Pick your country."}
           </p>
         </div>
 
         <div className="mt-8 px-5 sm:px-6">
-          <div className="flex items-stretch overflow-hidden rounded-xl border border-cut-black/15 bg-cut-ivory">
-            <div className="flex items-center gap-2 border-e border-cut-black/10 px-3 text-sm font-semibold text-cut-black">
-              <span aria-hidden className="text-base leading-none">
-                🇪🇬
-              </span>
-              <span>EG</span>
-              <ChevronDown className="h-3.5 w-3.5 text-cut-black/40" strokeWidth={2} />
+          <div className="relative" ref={pickerRef}>
+            <div className="flex items-stretch overflow-hidden rounded-xl border border-cut-black/15 bg-cut-ivory focus-within:border-cut-burgundy focus-within:ring-2 focus-within:ring-cut-burgundy/15">
+              <button
+                type="button"
+                onClick={() => setCountryOpen((v) => !v)}
+                aria-expanded={countryOpen}
+                aria-haspopup="listbox"
+                className="inline-flex shrink-0 items-center gap-1.5 border-e border-cut-black/10 px-3 py-3.5 text-sm font-semibold text-cut-black transition hover:bg-cut-warm-paper/70"
+              >
+                <span aria-hidden className="text-base leading-none">
+                  {country.flag}
+                </span>
+                <span className="tabular-nums text-cut-black/80">+{country.dial}</span>
+                <ChevronDown
+                  className={`h-3.5 w-3.5 text-cut-black/40 transition ${countryOpen ? "rotate-180" : ""}`}
+                  strokeWidth={2}
+                />
+              </button>
+
+              <input
+                type="tel"
+                inputMode="numeric"
+                autoComplete="tel-national"
+                value={localPhone}
+                onChange={(e) => {
+                  const next = e.target.value
+                    .replace(/[^\d\s]/g, "")
+                    .replace(/\s/g, "")
+                    .slice(0, country.maxNational);
+                  setLocalPhone(next);
+                }}
+                placeholder={country.placeholder}
+                className="min-w-0 flex-1 bg-transparent px-3 py-3.5 text-base text-cut-black outline-none placeholder:text-cut-black/35"
+                aria-label={ar ? "رقم الموبايل" : "Mobile number"}
+                dir="ltr"
+              />
             </div>
-            <div className="flex items-center gap-2 px-3 text-sm font-semibold text-cut-black/70">
-              +20
-            </div>
-            <input
-              type="tel"
-              inputMode="numeric"
-              autoComplete="tel-national"
-              value={localPhone}
-              onChange={(e) => {
-                const next = e.target.value.replace(/[^\d\s]/g, "").slice(0, 12);
-                setLocalPhone(next.replace(/\s/g, ""));
-              }}
-              placeholder={ar ? "1xxxxxxxxx" : "1xxxxxxxxx"}
-              className="min-w-0 flex-1 bg-transparent px-2 py-3.5 text-base text-cut-black outline-none placeholder:text-cut-black/35"
-              aria-label={ar ? "رقم الموبايل" : "Mobile number"}
-            />
+
+            {countryOpen ? (
+              <div
+                className="absolute inset-x-0 top-[calc(100%+0.5rem)] z-30 overflow-hidden rounded-2xl border border-cut-black/10 bg-cut-ivory shadow-[0_16px_48px_rgba(74,0,15,0.14)]"
+                role="listbox"
+                aria-label={ar ? "اختر الدولة" : "Choose country"}
+              >
+                <div className="flex items-center gap-2 border-b border-cut-black/8 px-3 py-2.5">
+                  <Search className="h-4 w-4 text-cut-black/35" strokeWidth={2} />
+                  <input
+                    type="search"
+                    value={countryQuery}
+                    onChange={(e) => setCountryQuery(e.target.value)}
+                    placeholder={ar ? "ابحث عن دولة…" : "Search country…"}
+                    className="min-w-0 flex-1 bg-transparent text-sm text-cut-black outline-none placeholder:text-cut-black/40"
+                    autoFocus
+                  />
+                </div>
+                <ul className="max-h-64 overflow-y-auto py-1">
+                  {filteredCountries.map((c) => {
+                    const selected = c.iso === country.iso;
+                    return (
+                      <li key={`${c.iso}-${c.dial}`}>
+                        <button
+                          type="button"
+                          role="option"
+                          aria-selected={selected}
+                          onClick={() => onSelectCountry(c)}
+                          className={`flex w-full items-center gap-3 px-3 py-2.5 text-start transition ${
+                            selected
+                              ? "bg-cut-burgundy/10 text-cut-burgundy"
+                              : "text-cut-black hover:bg-cut-warm-paper/80"
+                          }`}
+                        >
+                          <span className="text-lg leading-none" aria-hidden>
+                            {c.flag}
+                          </span>
+                          <span className="min-w-0 flex-1 truncate text-sm font-semibold">
+                            {ar ? c.nameAr : c.nameEn}
+                          </span>
+                          <span className="shrink-0 tabular-nums text-sm text-cut-black/55">
+                            +{c.dial}
+                          </span>
+                          {selected ? (
+                            <Check className="h-4 w-4 shrink-0 text-cut-burgundy" strokeWidth={2.25} />
+                          ) : (
+                            <span className="w-4" />
+                          )}
+                        </button>
+                      </li>
+                    );
+                  })}
+                  {filteredCountries.length === 0 ? (
+                    <li className="px-3 py-4 text-center text-sm text-cut-black/45">
+                      {ar ? "لا توجد نتائج" : "No results"}
+                    </li>
+                  ) : null}
+                </ul>
+              </div>
+            ) : null}
           </div>
+
+          <p className="mt-2 text-[12px] text-cut-black/45" dir="ltr">
+            +{country.dial}
+            {localPhone ? ` ${localPhone}` : ""}
+          </p>
 
           <div className="mt-3 min-h-6 text-sm">
             {lookupStatus === "loading" ? (
@@ -264,8 +377,8 @@ export default function BookPhoneClient() {
             {needsNewName ? (
               <p className="text-cut-black/55">
                 {ar
-                  ? "رقم جديد — اكتب اسمك عشان نكمّل الحجز."
-                  : "New number — enter your name to continue."}
+                  ? "رقم جديد — يرجى إدخال اسمك للمتابعة."
+                  : "New number — please enter your name to continue."}
               </p>
             ) : null}
           </div>
@@ -276,7 +389,7 @@ export default function BookPhoneClient() {
                 htmlFor="book-phone-name"
                 className="mb-2 block text-[13px] font-semibold text-cut-black"
               >
-                {ar ? "اسمك" : "Your name"}
+                {ar ? "الاسم" : "Name"}
               </label>
               <input
                 id="book-phone-name"
@@ -307,8 +420,8 @@ export default function BookPhoneClient() {
           </button>
           <p className="mt-3 text-center text-[11px] leading-5 text-cut-black/45">
             {ar
-              ? "بالمتابعة، أنت موافق على سياسة الخصوصية وشروط الاستخدام الخاصة بـ Cut Salon."
-              : "By continuing you agree to Cut Salon's Privacy Policy and Terms of Use."}
+              ? "بالمتابعة، أنت توافق على سياسة الخصوصية وشروط الاستخدام الخاصة بـ Cut Salon."
+              : "By continuing you agree to Cut Salon’s Privacy Policy and Terms of Use."}
           </p>
         </div>
       </section>
