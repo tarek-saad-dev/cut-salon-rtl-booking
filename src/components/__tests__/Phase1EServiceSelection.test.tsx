@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, cleanup } from "@testing-library/react";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import BookingServiceStep from "@/components/booking-services/BookingServiceStep";
 import { LanguageProvider } from "@/context/LanguageContext";
 import type { BookingService } from "@/lib/booking-api";
@@ -271,6 +271,7 @@ describe("Phase 1E BookingServiceStep", () => {
     expect(cart).toBeTruthy();
     expect(cart?.getAttribute("data-cart-expanded")).toBe("false");
     expect(document.querySelector("[data-cart-continue]")).toBeTruthy();
+    expect(document.querySelector("[data-cart-added-toast]")).toBeNull();
 
     fireEvent.click(screen.getByRole("button", { name: /View cart|عرض السلة/i }));
     expect(cart?.getAttribute("data-cart-expanded")).toBe("true");
@@ -282,6 +283,39 @@ describe("Phase 1E BookingServiceStep", () => {
     const remove = screen.getByRole("button", { name: /Remove service from cart/i });
     fireEvent.click(remove);
     expect(onToggle).toHaveBeenCalledWith(9);
+  });
+
+  it("shows green added-to-cart toast when a service is newly selected", () => {
+    function Harness() {
+      const [ids, setIds] = useState<number[]>([]);
+      return (
+        <BookingServiceStep
+          services={catalog}
+          categories={categories}
+          selectedIds={ids}
+          onCoreSelect={(id) => setIds([id])}
+          onToggleService={(id) =>
+            setIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
+          }
+          selectedCount={ids.length}
+          totalPrice={ids.length * 200}
+          totalDuration={ids.length * 30}
+          onContinue={() => undefined}
+        />
+      );
+    }
+
+    render(wrap(<Harness />));
+    expect(document.querySelector("[data-service-cart]")).toBeNull();
+
+    const cards = screen.getAllByRole("radio");
+    expect(cards.length).toBeGreaterThan(0);
+    fireEvent.click(cards[0]!);
+
+    const toast = document.querySelector("[data-cart-added-toast]");
+    expect(toast).toBeTruthy();
+    expect(toast?.textContent).toMatch(/Added .+ to cart|تم إضافة .+ للسلة|Added to cart|تم الإضافة للسلة/);
+    expect(document.querySelector('[data-cart-pulse="true"]')).toBeTruthy();
   });
 
   it("loading skeletons match featured + compact layouts", () => {

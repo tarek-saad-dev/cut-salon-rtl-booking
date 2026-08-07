@@ -48,6 +48,8 @@ export interface BookingServiceStepProps {
   /** Restore previously active category filter when returning to this step. */
   initialFilter?: ServiceCategoryFilterId | null;
   onFilterChange?: (filter: ServiceCategoryFilterId) => void;
+  /** Hide title/subtitle when the parent already shows them (e.g. book-flow hero). */
+  hideIntro?: boolean;
 }
 
 const BADGE_I18N: Record<ServiceBadgeKey, string> = {
@@ -61,12 +63,12 @@ const BADGE_I18N: Record<ServiceBadgeKey, string> = {
 
 function FeaturedSkeleton() {
   return (
-    <div className="rounded-2xl border border-[var(--booking-border-subtle)] overflow-hidden animate-pulse">
-      <div className="aspect-[16/10] bg-[var(--booking-surface)]" />
-      <div className="p-4 space-y-2">
+    <div className="flex min-h-[5.75rem] overflow-hidden rounded-2xl border border-[var(--booking-border-subtle)] animate-pulse">
+      <div className="w-[6.75rem] shrink-0 self-stretch bg-[var(--booking-surface)] sm:w-[7.75rem]" />
+      <div className="flex flex-1 flex-col justify-center gap-2 px-3.5 py-3">
         <div className="h-4 w-2/3 rounded bg-[var(--booking-surface)]" />
         <div className="h-3 w-full rounded bg-[var(--booking-surface)]" />
-        <div className="h-3 w-1/2 rounded bg-[var(--booking-surface)]" />
+        <div className="h-3 w-1/3 rounded bg-[var(--booking-surface)]" />
       </div>
     </div>
   );
@@ -74,9 +76,9 @@ function FeaturedSkeleton() {
 
 function CompactSkeleton() {
   return (
-    <div className="rounded-2xl border border-[var(--booking-border-subtle)] p-3.5 animate-pulse flex gap-3">
-      <div className="w-10 h-10 rounded-xl bg-[var(--booking-surface)]" />
-      <div className="flex-1 space-y-2">
+    <div className="flex min-h-[5.25rem] overflow-hidden rounded-2xl border border-[var(--booking-border-subtle)] animate-pulse">
+      <div className="w-[5.75rem] shrink-0 self-stretch bg-[var(--booking-surface)] sm:w-[6.5rem]" />
+      <div className="flex flex-1 flex-col justify-center gap-2 px-3 py-2.5">
         <div className="h-4 w-1/2 rounded bg-[var(--booking-surface)]" />
         <div className="h-3 w-full rounded bg-[var(--booking-surface)]" />
         <div className="h-3 w-1/3 rounded bg-[var(--booking-surface)]" />
@@ -155,7 +157,7 @@ function ServiceGrid({
           {featuredHeading ? (
             <h5 className="sr-only">{featuredHeading}</h5>
           ) : null}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3" role="radiogroup">
+          <div className="grid grid-cols-1 gap-2.5" role="radiogroup">
             {featuredInView.map((s, i) => (
               <BookingFeaturedServiceCard
                 key={`featured-${s.id}`}
@@ -179,7 +181,7 @@ function ServiceGrid({
               {compactHeading}
             </h5>
           ) : null}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+          <div className="grid grid-cols-1 gap-2.5">
             {compactInView.map((s) => (
               <BookingCompactServiceCard
                 key={`compact-${s.id}`}
@@ -214,8 +216,13 @@ export default function BookingServiceStep({
   onContinue,
   initialFilter = null,
   onFilterChange,
+  hideIntro = false,
 }: BookingServiceStepProps) {
   const { t, lang, dir } = useBookingTranslations();
+  const [addedSignal, setAddedSignal] = useState<{ serviceId: number; nonce: number } | null>(
+    null,
+  );
+  const addedNonceRef = useRef(0);
   const visible = useMemo(() => services.filter(isServiceVisible), [services]);
   const visibleIds = useMemo(() => new Set(visible.map((s) => s.id)), [visible]);
 
@@ -339,12 +346,25 @@ export default function BookingServiceStep({
     return key ? t(BADGE_I18N[key]) : null;
   };
 
+  const signalAdded = (serviceId: number) => {
+    addedNonceRef.current += 1;
+    setAddedSignal({ serviceId, nonce: addedNonceRef.current });
+  };
+
   const selectService = (service: BookingService) => {
     if (isCoreService(service)) {
+      const already = selectedIds.includes(service.id);
       onCoreSelect(service.id);
+      if (!already) signalAdded(service.id);
       return;
     }
+    const already = selectedIds.includes(service.id);
     onToggleService(service.id);
+    if (!already) signalAdded(service.id);
+  };
+
+  const removeOrToggleService = (serviceId: number) => {
+    onToggleService(serviceId);
   };
 
   const selectionTypeFor = (service: BookingService): "radio" | "checkbox" =>
@@ -354,15 +374,17 @@ export default function BookingServiceStep({
     return (
       <div className="flex flex-col min-h-0 flex-1" dir={dir} aria-busy="true" data-service-step="loading">
         <div className="flex-1 overflow-y-auto p-5 md:p-6 space-y-4">
-          <div>
-            <div className="h-6 w-48 rounded bg-[var(--booking-surface)] animate-pulse mb-2" />
-            <div className="h-3 w-64 rounded bg-[var(--booking-surface)] animate-pulse" />
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {!hideIntro ? (
+            <div>
+              <div className="h-6 w-48 rounded bg-[var(--booking-surface)] animate-pulse mb-2" />
+              <div className="h-3 w-64 rounded bg-[var(--booking-surface)] animate-pulse" />
+            </div>
+          ) : null}
+          <div className="grid grid-cols-1 gap-2.5">
             <FeaturedSkeleton />
             <FeaturedSkeleton />
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+          <div className="grid grid-cols-1 gap-2.5">
             <CompactSkeleton />
             <CompactSkeleton />
             <CompactSkeleton />
@@ -411,12 +433,14 @@ export default function BookingServiceStep({
         className="flex-1 overflow-y-auto p-5 md:p-6 pb-4 space-y-5"
         data-services-scroll
       >
-        <div>
-          <h3 className="text-lg md:text-xl font-heading font-bold text-[var(--booking-text)] mb-0.5">
-            {t("service.title")}
-          </h3>
-          <p className="text-[var(--booking-text-secondary)] text-sm">{t("service.subtitle")}</p>
-        </div>
+        {!hideIntro ? (
+          <div>
+            <h3 className="text-lg md:text-xl font-heading font-bold text-[var(--booking-text)] mb-0.5">
+              {t("service.title")}
+            </h3>
+            <p className="text-[var(--booking-text-secondary)] text-sm">{t("service.subtitle")}</p>
+          </div>
+        ) : null}
 
         <BookingServiceFilters
           filters={filterOptions}
@@ -495,7 +519,7 @@ export default function BookingServiceStep({
             <p className="text-[13px] text-[var(--booking-text-secondary)] mb-3">
               {t("service.addonsHint")}
             </p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+            <div className="grid grid-cols-1 gap-2.5">
               {addons.map((s) => (
                 <BookingCompactServiceCard
                   key={`addon-${s.id}`}
@@ -503,7 +527,7 @@ export default function BookingServiceStep({
                   presentation={getServicePresentation(s, lang)}
                   selected={selectedIds.includes(s.id)}
                   selectionType="checkbox"
-                  onSelect={() => onToggleService(s.id)}
+                  onSelect={() => selectService(s)}
                   badgeLabel={t("service.badgeCommonlyAdded")}
                 />
               ))}
@@ -516,10 +540,11 @@ export default function BookingServiceStep({
         selectedServices={selectedServices}
         totalPrice={totalPrice}
         totalDuration={totalDuration}
-        onRemove={onToggleService}
+        onRemove={removeOrToggleService}
         onBrowseServices={browseServicesFromCart}
         onContinue={onContinue}
         continueDisabled={selectedCount === 0}
+        addedSignal={addedSignal}
       />
     </div>
   );

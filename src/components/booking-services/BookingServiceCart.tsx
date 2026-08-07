@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
-import { ChevronDown, ChevronUp, Plus, ShoppingBag, X } from "lucide-react";
+import { Check, ChevronDown, ChevronUp, Plus, ShoppingBag, X } from "lucide-react";
 import type { BookingService } from "@/lib/booking-api";
 import { getServicePresentation } from "@/lib/booking/service-presentation";
 import { getServiceVisual } from "@/lib/booking/service-visuals";
@@ -17,7 +17,14 @@ interface BookingServiceCartProps {
   onBrowseServices?: () => void;
   onContinue?: () => void;
   continueDisabled?: boolean;
+  /**
+   * Bumps whenever a service is newly added (parent-driven).
+   * Prefer this over counting so the first add (cart mount) still toasts.
+   */
+  addedSignal?: { serviceId: number; nonce: number } | null;
 }
+
+const TOAST_MS = 1650;
 
 export default function BookingServiceCart({
   selectedServices,
@@ -27,30 +34,43 @@ export default function BookingServiceCart({
   onBrowseServices,
   onContinue,
   continueDisabled = false,
+  addedSignal = null,
 }: BookingServiceCartProps) {
   const { t, format, lang, dir } = useBookingTranslations();
   const panelId = useId();
   const [expanded, setExpanded] = useState(false);
   const [pulse, setPulse] = useState(false);
-  const prevCount = useRef(0);
+  const [addedToast, setAddedToast] = useState<string | null>(null);
+  const lastNonceRef = useRef<number | null>(null);
 
   const count = selectedServices.length;
 
   useEffect(() => {
     if (count === 0) {
       setExpanded(false);
-      prevCount.current = 0;
-      return;
+      setAddedToast(null);
+      setPulse(false);
     }
-    if (count > prevCount.current) {
-      // Stay collapsed — pulse so the guest sees something was added; expand only on tap.
-      setPulse(true);
-      const timer = window.setTimeout(() => setPulse(false), 700);
-      prevCount.current = count;
-      return () => window.clearTimeout(timer);
-    }
-    prevCount.current = count;
   }, [count]);
+
+  useEffect(() => {
+    if (!addedSignal) return;
+    if (lastNonceRef.current === addedSignal.nonce) return;
+    lastNonceRef.current = addedSignal.nonce;
+
+    const added =
+      selectedServices.find((s) => s.id === addedSignal.serviceId) ?? null;
+    const name = added
+      ? getServicePresentation(added, lang).name || added.name || ""
+      : "";
+    setAddedToast(name.trim() || null);
+    setPulse(true);
+    const timer = window.setTimeout(() => {
+      setPulse(false);
+      setAddedToast(null);
+    }, TOAST_MS);
+    return () => window.clearTimeout(timer);
+  }, [addedSignal, selectedServices, lang]);
 
   const countLabel = useMemo(() => {
     if (count === 1) return `1 ${t("service.countOne")}`;
@@ -58,10 +78,16 @@ export default function BookingServiceCart({
     return `${format.number(count)} ${t("service.countMany")}`;
   }, [count, dir, format, t]);
 
+  const toastLabel = useMemo(() => {
+    if (!addedToast) return t("service.cartAddedToastShort");
+    return t("service.cartAddedToast", { name: addedToast });
+  }, [addedToast, t]);
+
   if (count <= 0) return null;
 
   const preview = selectedServices.slice(0, 3);
   const overflow = count - preview.length;
+  const showToast = pulse;
 
   const handleBrowseServices = () => {
     setExpanded(false);
@@ -71,16 +97,44 @@ export default function BookingServiceCart({
   return (
     <div
       className={`
-        flex-shrink-0 sticky bottom-0 z-20 border-t border-[var(--booking-border)]
+        relative flex-shrink-0 sticky bottom-0 z-20 border-t border-[var(--booking-border)]
         bg-[var(--booking-bg)] shadow-[0_-8px_28px_rgba(15,23,42,0.08)]
         transition-[box-shadow] duration-300
-        ${pulse ? "ring-2 ring-[var(--booking-accent)]" : ""}
+        ${pulse ? "booking-cart-success-flash" : ""}
       `}
       data-service-cart
       data-service-summary
       data-cart-expanded={expanded ? "true" : "false"}
+      data-cart-pulse={pulse ? "true" : "false"}
       dir={dir}
     >
+      {showToast ? (
+        <div
+          role="status"
+          aria-live="polite"
+          className="pointer-events-none absolute inset-x-3 bottom-full z-30 mb-2 flex justify-center sm:inset-x-4"
+          data-cart-added-toast
+        >
+          <div
+            className="
+              booking-cart-added-toast inline-flex max-w-full items-center gap-2 rounded-full
+              border border-[color-mix(in_srgb,var(--booking-success)_28%,transparent)]
+              bg-[var(--booking-success-soft)] px-3.5 py-2
+              text-[13px] font-bold text-[var(--booking-success)]
+              shadow-[0_10px_28px_rgba(21,115,71,0.18)]
+            "
+          >
+            <span
+              className="inline-flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-[var(--booking-success)] text-white"
+              aria-hidden
+            >
+              <Check className="h-3 w-3" strokeWidth={3} />
+            </span>
+            <span className="min-w-0 truncate">{toastLabel}</span>
+          </div>
+        </div>
+      ) : null}
+
       <div
         id={panelId}
         role="region"
@@ -93,7 +147,10 @@ export default function BookingServiceCart({
       >
         <div className="px-4 md:px-5 pt-3 pb-2 border-b border-[var(--booking-border-subtle)] flex items-center justify-between gap-3">
           <div className="flex items-center gap-2 min-w-0">
-            <ShoppingBag className="w-4 h-4 text-[var(--booking-accent)] flex-shrink-0" aria-hidden />
+            <ShoppingBag
+              className={`w-4 h-4 flex-shrink-0 ${pulse ? "text-[var(--booking-success)] booking-cart-bag-pop" : "text-[var(--booking-accent)]"}`}
+              aria-hidden
+            />
             <h4 className="font-heading font-bold text-[var(--booking-text)] text-sm truncate">
               {t("service.cartTitle")}
             </h4>
@@ -200,6 +257,21 @@ export default function BookingServiceCart({
           "
           data-cart-toggle
         >
+          <div
+            className={`
+              relative flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full
+              ${pulse
+                ? "bg-[var(--booking-success-soft)] text-[var(--booking-success)] booking-cart-bag-pop"
+                : "bg-[var(--booking-accent-soft)] text-[var(--booking-accent)]"}
+            `}
+            aria-hidden
+          >
+            {pulse ? (
+              <Check className="h-4 w-4" strokeWidth={2.75} />
+            ) : (
+              <ShoppingBag className="h-4 w-4" />
+            )}
+          </div>
           <div className="flex -space-x-2 rtl:space-x-reverse flex-shrink-0" aria-hidden>
             {preview.map((service, i) => {
               const visual = getServiceVisual({ service });
@@ -225,12 +297,18 @@ export default function BookingServiceCart({
             ) : null}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-bold text-[var(--booking-text)] truncate">
-              {countLabel}
-              <span className="text-[var(--booking-text-muted)] font-medium"> · </span>
-              <span className="text-[var(--booking-text-secondary)] font-medium">
-                {format.duration(totalDuration)}
-              </span>
+            <p
+              className={`text-sm font-bold truncate ${pulse ? "text-[var(--booking-success)]" : "text-[var(--booking-text)]"}`}
+            >
+              {pulse ? toastLabel : countLabel}
+              {!pulse ? (
+                <>
+                  <span className="text-[var(--booking-text-muted)] font-medium"> · </span>
+                  <span className="text-[var(--booking-text-secondary)] font-medium">
+                    {format.duration(totalDuration)}
+                  </span>
+                </>
+              ) : null}
             </p>
             <p className="text-[12px] text-[var(--booking-text-secondary)] flex items-center gap-1">
               {expanded ? t("service.cartHide") : t("service.cartView")}

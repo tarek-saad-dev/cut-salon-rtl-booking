@@ -177,6 +177,8 @@ export const bookingCatalog = {
     },
     cartAddAnother: { ar: "ضيف خدمة كمان", en: "Add another service" },
     cartAdd: { ar: "إضافة", en: "Add" },
+    cartAddedToast: { ar: "تم إضافة {name} للسلة", en: "Added {name} to cart" },
+    cartAddedToastShort: { ar: "تم الإضافة للسلة", en: "Added to cart" },
     cartContinue: { ar: "متابعة الحجز", en: "Continue booking" },
     cartItemsAria: { ar: "الخدمات المختارة", en: "Selected services" },
     filtersAria: { ar: "تصفية الخدمات", en: "Filter services" },

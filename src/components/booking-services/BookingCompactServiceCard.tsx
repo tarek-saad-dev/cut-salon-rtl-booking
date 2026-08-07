@@ -1,10 +1,11 @@
 "use client";
 
-import { Check, Scissors, Droplets, Sparkles, Paintbrush, HandHelping } from "lucide-react";
+import { Check } from "lucide-react";
 import type { BookingService } from "@/lib/booking-api";
 import { getServiceVisual } from "@/lib/booking/service-visuals";
 import type { ServicePresentation } from "@/lib/booking/service-presentation";
 import { useBookingTranslations } from "@/hooks/useBookingTranslations";
+import BookingServiceImage from "./BookingServiceImage";
 
 interface BookingCompactServiceCardProps {
   service: BookingService;
@@ -25,16 +26,6 @@ export default function BookingCompactServiceCard({
 }: BookingCompactServiceCardProps) {
   const { t, format, dir } = useBookingTranslations();
   const visual = getServiceVisual({ service });
-  const Icon =
-    visual.iconHint === "skincare" || visual.iconHint === "masks"
-      ? Droplets
-      : visual.iconHint === "hairCare"
-        ? Paintbrush
-        : visual.iconHint === "comfort"
-          ? HandHelping
-          : visual.iconHint === "groom"
-            ? Sparkles
-            : Scissors;
 
   return (
     <button
@@ -50,11 +41,11 @@ export default function BookingCompactServiceCard({
       aria-checked={selected}
       role={selectionType === "radio" ? "radio" : "checkbox"}
       className={`
-        w-full min-h-[44px] rounded-2xl border bg-[var(--booking-bg)] p-3.5 text-start transition-all
+        flex w-full min-h-[5.25rem] overflow-hidden rounded-2xl border bg-[var(--booking-bg)] text-start transition-all
         focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--booking-accent)] focus-visible:ring-offset-2
         ${
           selected
-            ? "border-[var(--booking-slot-selected-outline)] ring-2 ring-[var(--booking-slot-selected-outline)] bg-[var(--booking-accent-soft)]"
+            ? "border-[var(--booking-slot-selected-outline)] bg-[var(--booking-accent-soft)] ring-2 ring-[var(--booking-slot-selected-outline)]"
             : "border-[var(--booking-border)] hover:bg-[var(--booking-surface-hover)]"
         }
       `}
@@ -62,55 +53,60 @@ export default function BookingCompactServiceCard({
       data-service-card="compact"
       data-selected={selected ? "true" : "false"}
     >
-      <div className="flex items-start gap-3">
-        <div
-          className="w-10 h-10 rounded-xl border border-[var(--booking-border-subtle)] bg-[var(--booking-surface)] flex items-center justify-center flex-shrink-0"
-          aria-hidden
-        >
-          <Icon className="w-4.5 h-4.5 text-[var(--booking-accent)]" />
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-start justify-between gap-2">
-            <div className="min-w-0">
-              {badgeLabel ? (
-                <span className="inline-flex mb-1 text-[11px] font-bold text-[var(--booking-text-secondary)]">
-                  {badgeLabel}
-                </span>
-              ) : null}
-              <h4 className="font-heading font-bold text-base text-[var(--booking-text)] leading-snug">
-                {presentation.displayName}
-              </h4>
-            </div>
-            <span
-              className={`mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full border-2 ${
-                selected
-                  ? "border-[var(--booking-slot-selected-outline)] bg-[var(--booking-bg)]"
-                  : "border-[var(--booking-border)]"
-              }`}
-              aria-hidden
-            >
-              {selected ? (
-                <Check className="w-3 h-3 text-[var(--booking-text)]" strokeWidth={3} />
-              ) : null}
-            </span>
+      <div className="relative w-[5.75rem] shrink-0 self-stretch sm:w-[6.5rem]">
+        <BookingServiceImage
+          visual={visual}
+          alt={presentation.displayName || ""}
+          fillContainer
+          sizes="104px"
+          className="rounded-none"
+        />
+      </div>
+
+      <div className="flex min-w-0 flex-1 flex-col justify-center gap-1 px-3 py-2.5 sm:px-3.5">
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            {badgeLabel ? (
+              <span className="mb-0.5 inline-flex text-[10px] font-bold text-[var(--booking-text-secondary)]">
+                {badgeLabel}
+              </span>
+            ) : null}
+            <h4 className="font-heading text-[14px] font-bold leading-snug text-[var(--booking-text)] sm:text-[15px]">
+              {presentation.displayName}
+            </h4>
           </div>
-          <p className="mt-1 text-[13px] text-[var(--booking-text-secondary)] leading-snug line-clamp-2">
-            {presentation.description}
+          <span
+            className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 ${
+              selected
+                ? "border-[var(--booking-slot-selected-outline)] bg-[var(--booking-bg)]"
+                : "border-[var(--booking-border)]"
+            }`}
+            aria-hidden
+          >
+            {selected ? (
+              <Check className="h-3 w-3 text-[var(--booking-text)]" strokeWidth={3} />
+            ) : null}
+          </span>
+        </div>
+
+        <p className="line-clamp-1 text-[12px] leading-snug text-[var(--booking-text-secondary)]">
+          {presentation.description}
+        </p>
+
+        <div className="flex items-center justify-between gap-2 text-[12px] sm:text-[13px]">
+          <span className="text-[var(--booking-text-muted)]">
+            {format.duration(service.durationMinutes)}
+          </span>
+          <span className="font-bold tabular-nums text-[var(--booking-text)]">
+            {format.price(service.price)}
+          </span>
+        </div>
+
+        {selected ? (
+          <p className="text-[11px] font-bold text-[var(--booking-text)]">
+            {t("service.selectedLabel")}
           </p>
-          <div className="mt-2 flex items-center justify-between gap-2 text-[13px]">
-            <span className="text-[var(--booking-text-muted)]">
-              {format.duration(service.durationMinutes)}
-            </span>
-            <span className="font-bold text-[var(--booking-text)] tabular-nums">
-              {format.price(service.price)}
-            </span>
-          </div>
-          {selected ? (
-            <p className="mt-1.5 text-[12px] font-bold text-[var(--booking-text)]">
-              {t("service.selectedLabel")}
-            </p>
-          ) : null}
-        </div>
+        ) : null}
       </div>
     </button>
   );

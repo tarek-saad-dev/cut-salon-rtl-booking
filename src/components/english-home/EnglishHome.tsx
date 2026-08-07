@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { ArrowRight, ChevronRight, Clock3, MapPin, Scissors, Sparkles, UserCheck, Zap, type LucideIcon } from "lucide-react";
 import { useBranch } from "@/context/BranchContext";
 import { getBookingStatus } from "@/lib/publicBookingApi";
@@ -210,12 +211,12 @@ export default function EnglishHome() {
               {copy.hero.body}
             </p>
             <div className="mt-5 flex flex-col gap-3 sm:mt-10 sm:flex-row sm:flex-wrap">
-              <button
-                onClick={() => document.getElementById("english-barbers")?.scrollIntoView({ behavior: "smooth" })}
+              <Link
+                href="/book"
                 className="inline-flex min-h-12 items-center justify-center gap-2 bg-cut-ivory px-6 font-bold text-cut-black transition hover:bg-cut-warm-beige"
               >
                 Book Now <ArrowRight className="h-4 w-4" />
-              </button>
+              </Link>
               <button
                 onClick={() => openBookingFlow(nearestBarber, "nearest")}
                 className="hidden min-h-12 items-center justify-center gap-2 border border-cut-bronze/55 bg-cut-black/40 px-6 font-bold backdrop-blur-sm transition hover:bg-cut-burgundy/40 sm:inline-flex"

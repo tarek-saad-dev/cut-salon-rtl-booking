@@ -30,6 +30,21 @@ export type OpenBookingIntent = {
   initialAvailabilityScope?: BarberAvailabilityScope | null;
   /** Optional lightweight profile seed (branches / serviceIds). */
   profileSeed?: BarberProfileSeed | null;
+  /** Prefill customer details from book-flow phone lookup. */
+  initialCustomerPhone?: string;
+  initialCustomerName?: string;
+  /** Prefill date + slot from book-flow time step; opens on details. */
+  initialAppointment?: {
+    date: string;
+    time: string;
+    empId?: number | null;
+    dayOffset?: number | null;
+    branchCode?: string | null;
+    branchName?: string | null;
+    barberName?: string | null;
+  };
+  /** After create success, redirect to /book/confirmed instead of modal success. */
+  fromBookFlow?: boolean;
 };
 
 type BookingControllerValue = {
@@ -63,6 +78,12 @@ export function BookingControllerProvider({ children }: { children: ReactNode })
   const [initialAvailabilityScope, setInitialAvailabilityScope] =
     useState<BarberAvailabilityScope | null>(null);
   const [profileSeed, setProfileSeed] = useState<BarberProfileSeed | null>(null);
+  const [initialCustomerPhone, setInitialCustomerPhone] = useState<string | undefined>();
+  const [initialCustomerName, setInitialCustomerName] = useState<string | undefined>();
+  const [initialAppointment, setInitialAppointment] = useState<
+    OpenBookingIntent["initialAppointment"] | undefined
+  >();
+  const [fromBookFlow, setFromBookFlow] = useState(false);
 
   const closeBooking = useCallback(() => {
     setOpen(false);
@@ -112,6 +133,10 @@ export function BookingControllerProvider({ children }: { children: ReactNode })
     setExplicitEntryBranchCode(intent.explicitEntryBranchCode ?? null);
     setInitialAvailabilityScope(intent.initialAvailabilityScope ?? null);
     setProfileSeed(seed);
+    setInitialCustomerPhone(intent.initialCustomerPhone);
+    setInitialCustomerName(intent.initialCustomerName);
+    setInitialAppointment(intent.initialAppointment);
+    setFromBookFlow(Boolean(intent.fromBookFlow));
     setSessionKey((k) => k + 1);
     setOpen(true);
   }, []);
@@ -139,6 +164,10 @@ export function BookingControllerProvider({ children }: { children: ReactNode })
         explicitEntryBranchCode={explicitEntryBranchCode}
         initialAvailabilityScope={initialAvailabilityScope}
         profileSeed={profileSeed}
+        initialCustomerPhone={initialCustomerPhone}
+        initialCustomerName={initialCustomerName}
+        initialAppointment={initialAppointment}
+        fromBookFlow={fromBookFlow}
       />
     </BookingControllerContext.Provider>
   );

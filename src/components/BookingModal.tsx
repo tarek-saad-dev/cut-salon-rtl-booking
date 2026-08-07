@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { format as formatDateFns } from "date-fns";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import {
@@ -35,6 +37,8 @@ import { useBookingFlow, type BookingUiStep } from "@/hooks/useBookingFlow";
 import { useBookingTranslations } from "@/hooks/useBookingTranslations";
 import { saveClient } from "@/lib/clientStorage";
 import { getBranchAccent } from "@/lib/branchTheme";
+import { saveBookFlowConfirmation } from "@/lib/book-flow-confirmation";
+import { clearBookFlowDraft } from "@/lib/book-flow-draft";
 import {
   resolveBarberDisplayName,
   serviceNameAr,
@@ -155,6 +159,21 @@ interface BookingModalProps {
   initialAvailabilityScope?: BarberAvailabilityScope | null;
   /** Lightweight profile seed from discovery / prefetch. */
   profileSeed?: BarberProfileSeed | null;
+  /** Prefill from /book/phone lookup. */
+  initialCustomerPhone?: string;
+  initialCustomerName?: string;
+  /** Prefill date + slot from /book/time; jumps to details. */
+  initialAppointment?: {
+    date: string;
+    time: string;
+    empId?: number | null;
+    dayOffset?: number | null;
+    branchCode?: string | null;
+    branchName?: string | null;
+    barberName?: string | null;
+  };
+  /** Redirect to /book/confirmed after successful create. */
+  fromBookFlow?: boolean;
 }
 
 function stepForHeader(step: BookingUiStep): string {
@@ -178,8 +197,13 @@ const BookingModal = ({
   explicitEntryBranchCode = null,
   initialAvailabilityScope = null,
   profileSeed = null,
+  initialCustomerPhone,
+  initialCustomerName,
+  initialAppointment,
+  fromBookFlow = false,
 }: BookingModalProps) => {
   const { lang, dir, t, format } = useBookingTranslations();
+  const router = useRouter();
   const BackIcon = dir === "rtl" ? ArrowRight : ArrowLeft;
 
   const resolveError = (msg?: string | null, code?: string | null) => {
@@ -489,11 +513,52 @@ const BookingModal = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, flow.customerPhone]);
 
-  // Celebrate once when create lands on success.
+  // Celebrate once when create lands on success (standalone modal path).
   useEffect(() => {
     if (!open || flow.step !== "success") return;
+    if (fromBookFlow) return;
     setConfettiTrigger((p) => p + 1);
-  }, [open, flow.step]);
+  }, [open, flow.step, fromBookFlow]);
+
+  // Book-flow path: persist confirmation and open dedicated success page.
+  useEffect(() => {
+    if (!open || !fromBookFlow || flow.step !== "success" || !flow.created) return;
+
+    const booking = flow.created;
+    const date =
+      (booking.date || "").trim() ||
+      (flow.selectedDate ? formatDateFns(flow.selectedDate, "yyyy-MM-dd") : "");
+    const time = (booking.time || "").trim() || flow.selectedSlot?.time || "";
+    const branchName =
+      (booking.branchName || "").trim() ||
+      (flow.bookingBranchName || "").trim() ||
+      (selectedBranch?.shortName || selectedBranch?.branchName || "").trim() ||
+      "";
+
+    if (!date || !time || !branchName) return;
+
+    saveBookFlowConfirmation({
+      customerName: (flow.customerName || "").trim(),
+      date,
+      time,
+      branchName,
+      branchCode: booking.branchCode || flow.bookingBranchCode || selectedBranch?.branchCode || null,
+      barberName:
+        (booking.barberName || "").trim() ||
+        (flow.selectedSlot?.barberName || "").trim() ||
+        null,
+      bookingCode: booking.bookingCode || null,
+    });
+    clearBookFlowDraft();
+
+    const timer = window.setTimeout(() => {
+      onOpenChange(false);
+      router.push("/book/confirmed");
+    }, 280);
+
+    return () => window.clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, fromBookFlow, flow.step, flow.created]);
 
   // Barber-first: auto-resolve only single-branch barbers (never preferred/multi).
   useEffect(() => {
@@ -533,6 +598,7 @@ const BookingModal = ({
 
   // Optional groom service preselect: exact serviceId matches take priority, with
   // fuzzy name matching as a fallback for services without a known ID.
+  // When initialAppointment is set (book-flow time step), skip date/time UI.
   useEffect(() => {
     if (!open || flow.services.length === 0) return;
     if (!initialServiceIds?.length && !initialServiceMatches?.length) return;
@@ -552,12 +618,44 @@ const BookingModal = ({
           .map((s) => s.id)
       : [];
     const matched = [...new Set([...idMatched, ...nameMatched])];
-    if (matched.length) {
-      flow.selectServices(matched);
+    if (!matched.length) return;
+
+    flow.selectServices(matched);
+
+    const appt = initialAppointment;
+    if (appt?.date && appt?.time) {
+      const [y, m, d] = appt.date.split("-").map(Number);
+      const date = new Date(y, (m || 1) - 1, d || 1, 12, 0, 0, 0);
+      flow.selectDate(date);
+      flow.selectSlot({
+        time: appt.time,
+        available: true,
+        empId: appt.empId ?? null,
+        dayOffset: appt.dayOffset ?? 0,
+        branchCode: appt.branchCode ?? null,
+        branchName: appt.branchName ?? null,
+        barberName: appt.barberName ?? null,
+        date: appt.date,
+      });
+    } else {
       flow.setStep("date");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, initialServiceIds, initialServiceMatches, flow.services]);
+  }, [open, initialServiceIds, initialServiceMatches, initialAppointment, flow.services]);
+
+  // Prefill customer from book-flow phone step.
+  useEffect(() => {
+    if (!open) return;
+    const phone = (initialCustomerPhone ?? "").replace(/\D/g, "");
+    if (phone.length >= 8 && !flow.customerPhone) {
+      flow.setCustomerPhone(phone);
+    }
+    const name = (initialCustomerName ?? "").trim();
+    if (name && !flow.customerName.trim()) {
+      flow.setCustomerName(name);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, initialCustomerPhone, initialCustomerName]);
 
   // Enter after branch when draft is valid and still on branch step (single / non-multi).
   useEffect(() => {
@@ -1623,6 +1721,14 @@ const BookingModal = ({
       }
 
       case "success": {
+        if (fromBookFlow) {
+          return (
+            <div className="flex flex-col items-center justify-center gap-3 px-5 py-16 text-sm text-[var(--booking-text-secondary)]">
+              <Loader2 className="h-5 w-5 animate-spin text-[var(--booking-success)]" />
+              {lang === "ar" ? "جاري تأكيد حجزك…" : "Confirming your booking…"}
+            </div>
+          );
+        }
         const booking = flow.created;
         const confirmedBranch =
           (booking?.branchName || "").trim() || displayBranchName || "";

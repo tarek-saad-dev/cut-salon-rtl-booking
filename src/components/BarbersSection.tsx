@@ -1,8 +1,7 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
-import useEmblaCarousel from "embla-carousel-react";
-import { ChevronLeft, ChevronRight, Scissors, Clock, Loader2, Zap } from "lucide-react";
+import { useState, useCallback, useEffect, useRef } from "react";
+import { ChevronLeft, ChevronRight, Scissors, Clock, Zap } from "lucide-react";
 import { type BarberBookingInfo } from "./BookingModal";
 import BarberPhoto from "./BarberPhoto";
 import { getBookingStatus } from "@/lib/publicBookingApi";
@@ -40,15 +39,17 @@ function apiToDisplay(b: PublicBarber): DisplayBarber {
   };
 }
 
+const CARD_SCROLL_PX = 288;
+
 const SkeletonCard = ({ className }: { className?: string }) => (
   <div
-    className={`rounded-2xl border border-cut-gold/10 bg-cut-surface overflow-hidden animate-pulse ${className ?? ""}`}
+    className={`overflow-hidden rounded-2xl border border-cut-warm-beige/20 bg-cut-wine-black/80 animate-pulse ${className ?? ""}`}
   >
-    <div className="aspect-[3/4] bg-cut-surface-elevated" />
-    <div className="p-5 space-y-3">
-      <div className="h-5 bg-cut-surface-elevated rounded w-1/2 mx-auto" />
-      <div className="h-3 bg-cut-surface-elevated rounded w-1/3 mx-auto" />
-      <div className="h-10 bg-cut-surface-elevated rounded-xl" />
+    <div className="aspect-[3/4] bg-cut-burgundy-dark/50" />
+    <div className="space-y-3 p-5">
+      <div className="mx-auto h-5 w-1/2 rounded bg-cut-warm-beige/15" />
+      <div className="mx-auto h-3 w-1/3 rounded bg-cut-warm-beige/10" />
+      <div className="h-10 rounded-xl bg-cut-warm-beige/15" />
     </div>
   </div>
 );
@@ -82,42 +83,41 @@ const BarberCard = ({
       onPointerEnter={prefetchHandlers.onPointerEnter}
       onFocus={prefetchHandlers.onFocus}
       onTouchStart={prefetchHandlers.onTouchStart}
-      className={`rounded-2xl border overflow-hidden group transition-all duration-300
-      ${
+      className={`group overflow-hidden rounded-2xl border bg-[linear-gradient(160deg,rgba(244,235,221,0.07),rgba(74,0,15,0.35)_45%,rgba(5,5,5,0.95))] transition-all duration-300 ${
         isActive
-          ? "border-cut-gold/50 shadow-cut-glow scale-[1.02]"
-          : "border-cut-gold/15 hover:border-cut-gold/35 hover:-translate-y-1 hover:shadow-cut-glow"
-      } bg-gradient-to-br from-cut-black via-cut-burgundy-dark/30 to-cut-black`}
+          ? "border-cut-warm-beige/55 shadow-[0_0_36px_rgba(74,0,15,0.55)] scale-[1.02]"
+          : "border-cut-warm-beige/20 hover:border-cut-warm-beige/45 hover:-translate-y-1 hover:shadow-[0_0_28px_rgba(74,0,15,0.4)]"
+      }`}
     >
-      <div className="aspect-[3/4] overflow-hidden relative">
+      <div className="relative aspect-[3/4] overflow-hidden">
         <BarberPhoto
           src={barber.image}
           name={barber.name}
-          imgClassName="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+          imgClassName="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
         />
-        <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-cut-surface to-transparent" />
+        <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-cut-wine-black via-cut-wine-black/70 to-transparent" />
+        <div className="pointer-events-none absolute inset-0 shadow-[inset_0_0_40px_rgba(74,0,15,0.25)]" />
       </div>
-      <div className="p-4 md:p-5 text-center -mt-2 relative z-10">
-        <h3 className="cut-ar-ui-title font-heading text-lg md:text-xl font-bold text-cut-ivory mb-0.5">
+      <div className="relative z-10 -mt-2 p-4 text-center md:p-5">
+        <h3 className="cut-ar-ui-title mb-0.5 font-heading text-lg font-bold text-cut-soft-ivory md:text-xl">
           {barber.name}
         </h3>
-        <div className="flex items-center justify-center gap-1.5 mb-3">
-          <Scissors className="w-3 h-3 text-cut-gold" />
-          <p className="cut-ar-meta text-cut-gold/70 text-xs font-medium">{barber.role}</p>
+        <div className="mb-3 flex items-center justify-center gap-1.5">
+          <Scissors className="h-3 w-3 text-cut-warm-beige" />
+          <p className="cut-ar-meta text-xs font-medium text-cut-warm-beige/80">{barber.role}</p>
         </div>
         {canBook ? (
           <button
             type="button"
             onClick={onSelect}
-            className="w-full py-2.5 rounded-xl font-heading font-bold text-sm text-cut-black transition-all
-            bg-gradient-to-l from-cut-gold to-cut-gold
-            shadow-[0_4px_20px_rgba(229,188,134,0.2)]
-            hover:shadow-[0_6px_28px_rgba(229,188,134,0.35)] hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+            className="w-full cursor-pointer rounded-xl bg-cut-soft-ivory py-2.5 font-heading text-sm font-bold text-cut-burgundy shadow-[0_4px_22px_rgba(210,183,163,0.22)] transition-all hover:bg-cut-warm-paper hover:shadow-[0_6px_28px_rgba(74,0,15,0.35)] hover:scale-[1.02] active:scale-[0.98]"
           >
             {barber.buttonText}
           </button>
         ) : (
-          <p className="w-full py-2.5 text-cut-ivory/45 text-xs">الحجز الإلكتروني غير متاح لهذا الحلاق</p>
+          <p className="w-full py-2.5 text-xs text-cut-soft-ivory/45">
+            الحجز الإلكتروني غير متاح لهذا الحلاق
+          </p>
         )}
       </div>
     </div>
@@ -137,7 +137,6 @@ type BookingGate =
   | { status: "unavailable"; message: string }
   | { status: "error"; message: string };
 
-/** Nearest mode is branch_first — no empId required. */
 const NEAREST_PLACEHOLDER_BARBER: DisplayBarber = {
   name: "أقرب حلاق متاح",
   image: null,
@@ -155,6 +154,11 @@ const BarbersSection = () => {
   const [barbersReload, setBarbersReload] = useState(0);
   const { openBooking } = useBookingController();
   const { isLoadingBranches, selectedBranch, branches } = useBranch();
+
+  const railRef = useRef<HTMLDivElement>(null);
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  const [canScrollPrev, setCanScrollPrev] = useState(false);
+  const [canScrollNext, setCanScrollNext] = useState(false);
 
   const openBarberFirst = (barber: DisplayBarber) => {
     if (!hasEmpId(barber)) return;
@@ -247,7 +251,6 @@ const BarbersSection = () => {
     };
   }, [barbers]);
 
-  // Live public barbers only — no fallback identities on the booking path
   useEffect(() => {
     let cancelled = false;
     setIsLoadingBarbers(true);
@@ -277,40 +280,44 @@ const BarbersSection = () => {
     };
   }, [barbersReload, branches]);
 
-  const [emblaRef, emblaApi] = useEmblaCarousel({
-    direction: "rtl",
-    align: "start",
-    loop: false,
-    skipSnaps: false,
-    dragFree: false,
-  });
-
-  const [selectedIndex, setSelectedIndex] = useState(0);
-  const [scrollSnaps, setScrollSnaps] = useState<number[]>([]);
-
-  const scrollTo = useCallback(
-    (index: number) => emblaApi && emblaApi.scrollTo(index),
-    [emblaApi],
-  );
-
-  const onSelect = useCallback(() => {
-    if (!emblaApi) return;
-    setSelectedIndex(emblaApi.selectedScrollSnap());
-  }, [emblaApi]);
+  const updateRailState = useCallback(() => {
+    const el = railRef.current;
+    if (!el) return;
+    const maxScroll = Math.max(0, el.scrollWidth - el.clientWidth);
+    const left = Math.abs(el.scrollLeft);
+    // LTR rail: scrollLeft 0 = start
+    setCanScrollPrev(el.scrollLeft > 4);
+    setCanScrollNext(el.scrollLeft < maxScroll - 4);
+    const idx = Math.round(left / CARD_SCROLL_PX);
+    const count = isLoadingBarbers ? 3 : Math.max(barbers.length, 1);
+    setSelectedIndex(Math.min(Math.max(idx, 0), count - 1));
+  }, [barbers.length, isLoadingBarbers]);
 
   useEffect(() => {
-    if (!emblaApi) return;
-    setScrollSnaps(emblaApi.scrollSnapList());
-    emblaApi.on("select", onSelect);
-    onSelect();
-  }, [emblaApi, onSelect]);
+    const el = railRef.current;
+    if (!el) return;
+    updateRailState();
+    el.addEventListener("scroll", updateRailState, { passive: true });
+    window.addEventListener("resize", updateRailState);
+    return () => {
+      el.removeEventListener("scroll", updateRailState);
+      window.removeEventListener("resize", updateRailState);
+    };
+  }, [updateRailState, barbers, isLoadingBarbers]);
 
-  const scrollPrev = useCallback(() => {
-    emblaApi?.scrollPrev();
-  }, [emblaApi]);
-  const scrollNext = useCallback(() => {
-    emblaApi?.scrollNext();
-  }, [emblaApi]);
+  const scrollRail = (dir: -1 | 1) => {
+    const el = railRef.current;
+    if (!el) return;
+    el.scrollBy({ left: dir * CARD_SCROLL_PX, behavior: "smooth" });
+  };
+
+  const scrollToIndex = (index: number) => {
+    const el = railRef.current;
+    if (!el) return;
+    el.scrollTo({ left: index * CARD_SCROLL_PX, behavior: "smooth" });
+  };
+
+  const dotCount = isLoadingBarbers ? 3 : barbers.length;
 
   if (bookingGate.status === "unavailable" || bookingGate.status === "error") {
     const message = bookingGate.message;
@@ -370,118 +377,147 @@ const BarbersSection = () => {
   }
 
   return (
-    <section id="barbers" className="relative py-20 md:py-28 bg-cut-black overflow-hidden">
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[600px] rounded-full bg-[radial-gradient(circle,rgba(229,188,134,0.06),transparent_60%)] pointer-events-none" />
+    <section id="barbers" dir="rtl" className="relative overflow-hidden bg-cut-black py-20 md:py-28">
+      <div className="pointer-events-none absolute left-1/2 top-0 h-[620px] w-[620px] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(74,0,15,0.45),transparent_62%)]" />
+      <div className="pointer-events-none absolute inset-x-0 top-24 h-40 bg-[radial-gradient(ellipse_at_center,rgba(210,183,163,0.08),transparent_70%)]" />
 
-      <div className="container px-4 relative z-10">
-        <div className="text-center mb-10 md:mb-14">
-          <p className="cut-editorial-label text-cut-gold font-heading font-bold text-sm tracking-widest mb-3">
+      <div className="container relative z-10 px-4">
+        <div className="mb-0 text-center">
+          <p className="cut-editorial-label mb-3 font-heading text-sm font-bold tracking-widest text-cut-bronze">
             فريقنا
           </p>
-          <h2 className="cut-ar-section-heading font-heading text-3xl md:text-4xl lg:text-5xl font-black text-cut-ivory">
-            اختَر <span className="text-gold-gradient">حلاقك المفضل</span>
+          <h2 className="cut-ar-section-heading relative mx-auto max-w-3xl text-3xl md:text-4xl lg:text-5xl">
+            <span className="relative inline-block">
+              <span
+                aria-hidden
+                className="pointer-events-none absolute -inset-x-8 -inset-y-4 rounded-full bg-[radial-gradient(ellipse_at_center,rgba(74,0,15,0.4),transparent_70%)] blur-xl"
+              />
+              <span className="relative text-cut-ivory/95">اختَر </span>
+              <span className="relative bg-[linear-gradient(115deg,#FCF9ED_0%,#F4EBDD_35%,#EFE4D2_65%,#FCF9ED_100%)] bg-[length:200%_100%] bg-clip-text text-transparent [animation:cut-barber-title-shine_5s_ease-in-out_infinite]">
+                حلاقك المفضل
+              </span>
+            </span>
           </h2>
         </div>
 
-        <div className="max-w-2xl mx-auto mb-8">
-          <button
-            type="button"
-            onClick={openNearestBooking}
-            className="w-full rounded-2xl border border-cut-gold/20 bg-gradient-to-l from-cut-gold/[0.08] to-cut-black/80 backdrop-blur-sm p-5 md:p-6 transition-all duration-300 cursor-pointer hover:border-cut-gold/40 hover:shadow-[0_0_32px_rgba(229,188,134,0.1)] group"
-          >
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl bg-cut-gold/10 flex items-center justify-center flex-shrink-0 group-hover:bg-cut-gold/20 transition-colors">
-                <Zap className="w-6 h-6 text-cut-gold" />
-              </div>
-              <div className="text-right flex-1">
-                <div className="flex items-center gap-2 mb-1">
-                  <p className="cut-ar-ui-title text-cut-ivory font-heading font-bold text-sm md:text-base">
-                    مش فارق معاك مين؟ احجز أقرب ميعاد
-                  </p>
-                  <span className="cut-ar-meta text-[9px] font-bold px-1.5 py-0.5 rounded bg-cut-gold/15 text-cut-gold border border-cut-gold/20">
-                    أسرع
-                  </span>
-                </div>
-                <p className="cut-ar-meta text-cut-ivory/65 text-xs md:text-sm">
-                  النظام يختارلك أقرب حلاق متاح وأقرب وقت
-                </p>
-              </div>
-              <div className="hidden sm:flex items-center gap-1 px-4 py-2 rounded-xl bg-cut-gold/10 border border-cut-gold/20 group-hover:bg-cut-gold/20 transition-colors flex-shrink-0">
-                <span className="cut-ar-ui-title text-cut-gold font-bold text-xs">احجز الآن</span>
-              </div>
-            </div>
-          </button>
+        {/* Button exactly centered between the two lines */}
+        <div className="mx-auto mt-8 flex max-w-md flex-col items-center">
+          <div className="h-px w-24 bg-gradient-to-l from-transparent via-cut-soft-ivory/55 to-transparent" />
+          <div className="flex w-full items-center justify-center py-8">
+            <button
+              type="button"
+              onClick={openNearestBooking}
+              className="group relative flex min-h-14 w-full cursor-pointer items-center justify-center gap-2.5 overflow-hidden rounded-full bg-cut-soft-ivory px-6 text-cut-burgundy shadow-[0_8px_28px_rgba(244,235,221,0.22),0_0_0_1px_rgba(244,235,221,0.35)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-cut-ivory hover:shadow-[0_14px_36px_rgba(244,235,221,0.32),0_0_40px_rgba(74,0,15,0.45)] active:translate-y-0 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cut-soft-ivory focus-visible:ring-offset-2 focus-visible:ring-offset-cut-black"
+            >
+              <span
+                aria-hidden
+                className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_30%_0%,rgba(74,0,15,0.12),transparent_55%)] opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+              />
+              <Zap className="relative h-5 w-5 shrink-0 text-cut-burgundy transition-transform duration-300 group-hover:scale-110" />
+              <span className="cut-ar-ui-title relative font-heading text-[15px] font-bold tracking-wide md:text-base">
+                اختار أقرب ميعاد
+              </span>
+              <span className="relative rounded-full bg-cut-burgundy px-2.5 py-1 text-[10px] font-bold text-cut-soft-ivory shadow-sm">
+                أسرع
+              </span>
+            </button>
+          </div>
+          <div className="h-px w-24 bg-gradient-to-l from-transparent via-cut-soft-ivory/70 to-transparent" />
+        </div>
+
+        {/* Caption exactly centered between bottom line and barber cards */}
+        <div className="flex items-center justify-center py-8">
+          <p className="text-center text-[13px] text-cut-soft-ivory/55">
+            أو تصفّح مواعيد الحلاقين المتاحة
+          </p>
         </div>
 
         {barbersError && !isLoadingBarbers && (
           <div
-            className="max-w-2xl mx-auto mb-8 rounded-2xl border border-red-400/30 bg-red-950/40 p-5 text-center"
+            className="mx-auto mb-8 max-w-2xl rounded-2xl border border-red-400/30 bg-red-950/40 p-5 text-center"
             role="alert"
           >
-            <p className="text-cut-ivory/90 text-sm mb-3">{barbersError}</p>
+            <p className="mb-3 text-sm text-cut-ivory/90">{barbersError}</p>
             <button
               type="button"
               onClick={() => setBarbersReload((n) => n + 1)}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-cut-gold/30 text-cut-gold text-sm font-bold hover:bg-cut-gold/10 transition-colors"
+              className="inline-flex items-center gap-2 rounded-xl border border-cut-warm-beige/30 px-4 py-2 text-sm font-bold text-cut-warm-beige transition-colors hover:bg-cut-warm-beige/10"
             >
               إعادة المحاولة
             </button>
           </div>
         )}
 
-        <div className="md:hidden relative">
-          <div className="overflow-hidden" ref={emblaRef}>
-            <div className="flex gap-4 px-2">
-              {isLoadingBarbers
-                ? [0, 1, 2].map((i) => (
-                    <div key={`skel-${i}`} className="flex-[0_0_260px] min-w-0">
-                      <SkeletonCard />
-                    </div>
-                  ))
-                : barbers.map((barber, index) => (
-                    <div key={`${barber.id}-${barber.name}`} className="flex-[0_0_260px] min-w-0">
-                      <BarberCard
-                        barber={barber}
-                        onSelect={() => openBarberFirst(barber)}
-                        isActive={index === selectedIndex}
-                      />
-                    </div>
-                  ))}
-            </div>
+        {/* Mobile: native snap rail (LTR track = reliable touch scroll) */}
+        <div className="relative md:hidden">
+          <div
+            ref={railRef}
+            dir="ltr"
+            className="flex snap-x snap-mandatory gap-4 overflow-x-auto px-2 pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            style={{ WebkitOverflowScrolling: "touch" }}
+          >
+            {isLoadingBarbers
+              ? [0, 1, 2].map((i) => (
+                  <div
+                    key={`skel-${i}`}
+                    className="w-[min(78vw,280px)] flex-none snap-center"
+                  >
+                    <SkeletonCard />
+                  </div>
+                ))
+              : barbers.map((barber, index) => (
+                  <div
+                    key={`${barber.id}-${barber.name}`}
+                    className="w-[min(78vw,280px)] flex-none snap-center"
+                    dir="rtl"
+                  >
+                    <BarberCard
+                      barber={barber}
+                      onSelect={() => openBarberFirst(barber)}
+                      isActive={index === selectedIndex}
+                    />
+                  </div>
+                ))}
           </div>
 
-          <div className="flex items-center justify-center gap-4 mt-6">
+          <div className="mt-6 flex items-center justify-center gap-4">
             <button
               type="button"
-              onClick={scrollPrev}
-              disabled={selectedIndex === 0}
-              className="w-9 h-9 rounded-full border border-cut-gold/30 bg-cut-black flex items-center justify-center disabled:opacity-20 transition-all active:scale-95"
+              onClick={() => scrollRail(-1)}
+              disabled={!canScrollPrev}
+              aria-label="السابق"
+              className="flex h-9 w-9 items-center justify-center rounded-full border border-cut-warm-beige/35 bg-cut-wine-black transition-all active:scale-95 disabled:opacity-25"
             >
-              <ChevronRight className="w-4 h-4 text-cut-gold" />
+              <ChevronLeft className="h-4 w-4 text-cut-warm-beige" />
             </button>
             <div className="flex gap-1.5">
-              {scrollSnaps.map((_, idx) => (
+              {Array.from({ length: dotCount }).map((_, idx) => (
                 <button
                   key={idx}
                   type="button"
-                  onClick={() => scrollTo(idx)}
-                  className={`h-1.5 rounded-full transition-all duration-300 ${idx === selectedIndex ? "bg-cut-gold w-5" : "bg-white/15 w-1.5 hover:bg-white/30"}`}
-                  aria-label={`Go to barber ${idx + 1}`}
+                  onClick={() => scrollToIndex(idx)}
+                  className={`h-1.5 rounded-full transition-all duration-300 ${
+                    idx === selectedIndex
+                      ? "w-5 bg-cut-warm-beige shadow-[0_0_10px_rgba(210,183,163,0.55)]"
+                      : "w-1.5 bg-cut-soft-ivory/20 hover:bg-cut-soft-ivory/40"
+                  }`}
+                  aria-label={`الحلاق ${idx + 1}`}
                 />
               ))}
             </div>
             <button
               type="button"
-              onClick={scrollNext}
-              disabled={selectedIndex === Math.max(barbers.length - 1, 0)}
-              className="w-9 h-9 rounded-full border border-cut-gold/30 bg-cut-black flex items-center justify-center disabled:opacity-20 transition-all active:scale-95"
+              onClick={() => scrollRail(1)}
+              disabled={!canScrollNext}
+              aria-label="التالي"
+              className="flex h-9 w-9 items-center justify-center rounded-full border border-cut-warm-beige/35 bg-cut-wine-black transition-all active:scale-95 disabled:opacity-25"
             >
-              <ChevronLeft className="w-4 h-4 text-cut-gold" />
+              <ChevronRight className="h-4 w-4 text-cut-warm-beige" />
             </button>
           </div>
         </div>
 
-        <div className="hidden md:grid md:grid-cols-2 lg:grid-cols-4 gap-5 max-w-5xl mx-auto">
+        <div className="mx-auto hidden max-w-5xl gap-5 md:grid md:grid-cols-2 lg:grid-cols-4">
           {isLoadingBarbers
             ? [0, 1, 2, 3].map((i) => <SkeletonCard key={`skel-d-${i}`} />)
             : barbers.map((barber) => (

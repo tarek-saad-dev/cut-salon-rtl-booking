@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { motion } from "framer-motion";
 import { Calendar, Zap, Shield, Gem, Clock } from "lucide-react";
 // Temporarily hidden per request: import CustomerUpcomingBookings from "./CustomerUpcomingBookings";
@@ -107,13 +108,13 @@ const HeroSection = () => {
 
               <motion.div custom={3} variants={fadeUp} initial="hidden" animate="visible"
                 className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3 w-full sm:w-auto mt-1">
-                <button
-                  onClick={() => document.getElementById("barbers")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+                <Link
+                  href="/book"
                   aria-label="احجز الآن"
                   className="group relative inline-flex items-center justify-center gap-2.5 w-full sm:w-auto px-8 py-3.5 rounded-xl font-heading font-bold text-cut-black text-base bg-cut-ivory hover:bg-cut-warm-beige shadow-cut-glow-strong hover:scale-[1.02] active:scale-[0.97] transition-all duration-300 cursor-pointer">
                   <Calendar className="w-4 h-4" />
                   احجز الآن
-                </button>
+                </Link>
                 <button
                   onClick={() => window.dispatchEvent(new CustomEvent("cut:book-nearest"))}
                   aria-label="أقرب ميعاد متاح"
