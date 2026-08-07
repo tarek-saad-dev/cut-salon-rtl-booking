@@ -8,8 +8,12 @@ import {
   ChevronLeft,
   ChevronRight,
   ExternalLink,
+  Gift,
+  Languages,
   Menu,
   Phone,
+  Sparkles,
+  User,
   X,
 } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
@@ -74,11 +78,11 @@ export function BookFlowChrome({
             aria-label={label("openMenu")}
             aria-expanded={menuOpen}
             aria-controls="book-side-navigation"
-            className={`absolute top-1/2 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center text-cut-ivory transition hover:text-cut-warm-beige focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cut-warm-beige ${
+            className={`absolute top-1/2 z-10 inline-flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-xl border border-cut-warm-beige/45 bg-cut-ivory/10 text-cut-ivory shadow-[0_0_0_1px_rgba(252,249,237,0.08)] transition hover:border-cut-warm-beige hover:bg-cut-ivory/15 hover:text-cut-warm-beige focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cut-warm-beige ${
               ar ? "right-3" : "left-3"
             }`}
           >
-            <Menu className="h-5 w-5" strokeWidth={1.6} />
+            <Menu className="h-6 w-6" strokeWidth={2.35} />
           </button>
 
           <Link
@@ -177,34 +181,91 @@ export function BookFlowChrome({
                   <Link
                     href="/client/loyalty"
                     onClick={closeMenu}
-                    className="flex min-h-[3.25rem] w-full items-center border-b border-cut-bronze py-3.5 text-start text-[1.05rem] font-bold tracking-wide text-cut-gold transition hover:text-cut-warm-beige"
+                    className="relative mt-4 mb-1 block overflow-hidden rounded-2xl border border-cut-burgundy/20 bg-gradient-to-br from-cut-ivory via-cut-soft-ivory to-cut-warm-paper p-4 shadow-[0_12px_32px_rgba(74,0,15,0.1)] ring-1 ring-cut-burgundy/5 transition hover:border-cut-burgundy/35 hover:shadow-[0_14px_36px_rgba(74,0,15,0.14)]"
                   >
-                    {label("loyaltyCta")}
+                    <span
+                      aria-hidden
+                      className="pointer-events-none absolute -end-6 -top-8 h-24 w-24 rounded-full bg-cut-burgundy/10 blur-2xl"
+                    />
+                    <span className="relative flex items-start gap-3">
+                      <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-cut-burgundy/20 bg-cut-burgundy/10 text-cut-burgundy">
+                        <Gift className="h-5 w-5" strokeWidth={2} />
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.18em] text-cut-burgundy">
+                          <Sparkles className="h-3.5 w-3.5" strokeWidth={2.25} />
+                          {label("loyaltyCtaTitle")}
+                        </span>
+                        <span className="mt-1 block text-[1.05rem] font-black tracking-wide text-cut-black">
+                          {label("loyaltyCtaJoin")}
+                        </span>
+                        <span className="mt-1.5 block text-[12px] font-medium leading-5 text-cut-burgundy/80">
+                          {label("loyaltyCtaHint")}
+                        </span>
+                      </span>
+                    </span>
                   </Link>
                 </nav>
 
-                <div className="mt-10 space-y-4">
-                  <Link
-                    href="/client"
-                    onClick={closeMenu}
-                    className="block text-[1.05rem] font-medium text-cut-ivory transition hover:text-cut-warm-beige"
-                  >
-                    {label("account")}
-                  </Link>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setLang(lang === "ar" ? "en" : "ar");
-                      closeMenu();
-                    }}
-                    className="block text-[1.05rem] font-medium text-cut-ivory transition hover:text-cut-warm-beige"
-                  >
-                    {label("language")}
-                  </button>
-                </div>
+                <div className="mt-auto flex flex-col pt-10">
+                  <div className="border-t border-cut-bronze/80" />
+                  <div className="space-y-3 py-5">
+                    <Link
+                      href="/client"
+                      onClick={closeMenu}
+                      className="flex min-h-12 w-full items-center gap-3 rounded-xl border border-cut-bronze/25 bg-cut-black/35 px-4 text-[1.02rem] font-semibold text-cut-ivory transition hover:border-cut-warm-beige/40 hover:bg-cut-black/55"
+                    >
+                      <User className="h-4 w-4 text-cut-warm-beige" strokeWidth={1.9} />
+                      {label("account")}
+                    </Link>
 
-                <div className="mt-auto flex flex-col pt-12">
-                  <div className="border-t border-cut-bronze" />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setLang(lang === "ar" ? "en" : "ar");
+                        closeMenu();
+                      }}
+                      aria-label={
+                        ar ? "التبديل إلى الإنجليزية" : "Switch to Arabic"
+                      }
+                      className="flex w-full flex-col gap-2 rounded-xl border border-cut-warm-beige/35 bg-gradient-to-l from-cut-burgundy/40 to-cut-black/50 px-4 py-3 text-start transition hover:border-cut-warm-beige/60 hover:from-cut-burgundy/55"
+                    >
+                      <span className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-cut-warm-beige/90">
+                        <Languages className="h-3.5 w-3.5" strokeWidth={2} />
+                        {ar ? "اللغة" : "Language"}
+                      </span>
+                      <span className="flex items-center justify-between gap-3">
+                        <span className="text-sm font-bold text-cut-ivory">
+                          {ar ? "التبديل إلى English" : "Switch to العربية"}
+                        </span>
+                        <span
+                          className="inline-flex overflow-hidden rounded-full border border-cut-bronze/40 bg-cut-black/60 p-0.5 text-[11px] font-black tracking-wide"
+                          aria-hidden
+                        >
+                          <span
+                            className={`rounded-full px-2.5 py-1 transition ${
+                              ar
+                                ? "bg-cut-warm-beige text-cut-black"
+                                : "text-cut-ivory/45"
+                            }`}
+                          >
+                            AR
+                          </span>
+                          <span
+                            className={`rounded-full px-2.5 py-1 transition ${
+                              !ar
+                                ? "bg-cut-warm-beige text-cut-black"
+                                : "text-cut-ivory/45"
+                            }`}
+                          >
+                            EN
+                          </span>
+                        </span>
+                      </span>
+                    </button>
+                  </div>
+
+                  <div className="border-t border-cut-bronze/80" />
                   <div className="flex items-center justify-center gap-8 py-7">
                     <a
                       href={WHATSAPP_URL}

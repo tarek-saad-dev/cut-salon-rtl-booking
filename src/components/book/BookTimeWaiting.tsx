@@ -40,41 +40,56 @@ function StraightRazor({ className }: { className?: string }) {
   );
 }
 
-function CutMark({ small }: { small?: boolean }) {
+function StickyMan({ className }: { className?: string }) {
   return (
-    <div className="select-none text-center">
-      <div className="flex items-center justify-center gap-0.5">
-        <span className={`${small ? "text-xs" : "text-sm"} font-black tracking-widest text-cut-bronze`}>
-          —
-        </span>
-        <div>
-          <p
-            className={`font-brand font-black leading-none tracking-[0.18em] text-cut-black ${
-              small ? "text-base" : "text-lg"
-            }`}
-          >
-            CUT
-          </p>
-          <p
-            className={`-mt-0.5 font-semibold tracking-[0.4em] text-cut-burgundy ${
-              small ? "text-[6px]" : "text-[7px]"
-            }`}
-          >
-            SALON
-          </p>
-        </div>
-        <span className={`${small ? "text-xs" : "text-sm"} font-black tracking-widest text-cut-bronze`}>
-          —
-        </span>
-      </div>
-    </div>
+    <svg viewBox="0 0 48 64" fill="none" className={className} aria-hidden>
+      {/* head */}
+      <circle cx="24" cy="10" r="7" stroke="currentColor" strokeWidth="2.4" />
+      {/* body */}
+      <path d="M24 17v20" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" />
+      {/* arms — flailing */}
+      <motion.path
+        d="M24 26c-7-2-11 2-14 8"
+        stroke="currentColor"
+        strokeWidth="2.4"
+        strokeLinecap="round"
+        animate={{ d: ["M24 26c-7-2-11 2-14 8", "M24 26c-8 1-12-4-13-10", "M24 26c-7-2-11 2-14 8"] }}
+        transition={{ duration: 0.35, repeat: Infinity, ease: "easeInOut" }}
+      />
+      <motion.path
+        d="M24 26c7-2 11 2 14 8"
+        stroke="currentColor"
+        strokeWidth="2.4"
+        strokeLinecap="round"
+        animate={{ d: ["M24 26c7-2 11 2 14 8", "M24 26c8 1 12-4 13-10", "M24 26c7-2 11 2 14 8"] }}
+        transition={{ duration: 0.35, repeat: Infinity, ease: "easeInOut", delay: 0.08 }}
+      />
+      {/* legs — running */}
+      <motion.path
+        d="M24 37c-5 6-7 14-6 20"
+        stroke="currentColor"
+        strokeWidth="2.4"
+        strokeLinecap="round"
+        animate={{ d: ["M24 37c-5 6-7 14-6 20", "M24 37c-2 8 2 14 8 18", "M24 37c-5 6-7 14-6 20"] }}
+        transition={{ duration: 0.28, repeat: Infinity, ease: "easeInOut" }}
+      />
+      <motion.path
+        d="M24 37c5 6 7 14 6 20"
+        stroke="currentColor"
+        strokeWidth="2.4"
+        strokeLinecap="round"
+        animate={{ d: ["M24 37c5 6 7 14 6 20", "M24 37c2 8-2 14-8 18", "M24 37c5 6 7 14 6 20"] }}
+        transition={{ duration: 0.28, repeat: Infinity, ease: "easeInOut", delay: 0.14 }}
+      />
+    </svg>
   );
 }
 
-/** Mouse path — zip around the playground. */
-const MOUSE_X = ["8%", "72%", "58%", "12%", "78%", "40%", "8%"];
-const MOUSE_Y = ["12%", "18%", "62%", "58%", "42%", "8%", "12%"];
-const MOUSE_ROT = [0, 18, -12, 8, -20, 10, 0];
+/** Sticky Man flees — zip around the playground. */
+const STICKY_X = ["8%", "72%", "58%", "12%", "78%", "40%", "8%"];
+const STICKY_Y = ["12%", "18%", "62%", "58%", "42%", "8%", "12%"];
+const STICKY_ROT = [0, 12, -10, 8, -16, 10, 0];
+const STICKY_FLIP = [1, 1, -1, -1, 1, 1, 1];
 
 /** Cat 1 (scissors) — same route, always a beat behind. */
 const CAT1_X = ["8%", "8%", "72%", "58%", "12%", "78%", "40%", "8%"];
@@ -89,12 +104,16 @@ const QUIPS_AR = [
   "ثواني… بشوفلك ميعاد حلو.",
   "استنى… بندورلك على أحلى سلات في اليوم.",
   "مش هتطول… بس خلينا نرتب الكرسي الأول.",
-  "دقيقة واحدة… المقص لسه بيلحق اللوجو.",
+  "دقيقة واحدة… Sticky Man بيجري والمقص وراه!",
   "هوه… لقيتلك حاجة، ثواني أكد.",
   "والله بنحاول، بس السيستم بيقلع زي الزبون المتأخر.",
   "قربنا… متقلقش، مش هنفوتك الميعاد.",
-  "بس لحظة… بنشوف مين فاضي ومين بيعمل ستايل.",
+  "بس لحظة… Sticky Man لفّ من عند المراية وفاتهم.",
   "كمان ثواني… ونجيبلك المواعيد على طبق من ذهب.",
+  "ثواني… Sticky Man بيهرب من المقص والموسى دلوقتي.",
+  "استنى شوية… Sticky Man بيعدّي العمود واللي وراه بيلحقوه.",
+  "والله دقيقة… Sticky Man قال «مش هتلحقوني!» وكمّل جري.",
+  "قربنا… Sticky Man لسه سابقهم بملي متر.",
 ];
 
 const QUIPS_EN = [
@@ -102,30 +121,40 @@ const QUIPS_EN = [
   "Hang on… hunting you a sweet time slot.",
   "Almost there… lining up the nicest openings.",
   "Won’t be long… just fixing the chair first.",
-  "One minute… scissors are still chasing the logo.",
+  "One minute… Sticky Man is sprinting — scissors on his tail!",
   "Ooh, found something — confirming real quick.",
   "Trying hard… the system’s slower than a late client.",
   "Nearly done — we won’t let the good slot slip.",
-  "One moment… checking who’s free and who’s styling.",
+  "One moment… Sticky Man spun by the mirror and escaped.",
   "Just a sec… serving your times on a silver tray.",
+  "One sec… Sticky Man’s fleeing the scissors and razor.",
+  "Hang on… Sticky Man just dashed past the pole — chase is on.",
+  "Wallahi a minute… Sticky Man yelled “you won’t catch me!” and kept running.",
+  "Almost… Sticky Man’s still ahead by a whisker.",
 ];
 
 const QUIPS_CONFIRM_AR = [
   "والله دقيقة وبأكدلك الحجز… بس دقيقة بس والله.",
   "ثواني… بنقفللك الميعاد قبل ما حد يسبقه.",
   "استنى… بنكتب اسمك في الكرسي الذهبي.",
-  "قربنا… المقص لسه بيلاحق اللوجو وأحنا بنأكد.",
+  "قربنا… Sticky Man بيجري والمقص بيلاحقه وإحنا بنأكد.",
   "هوه… الحجز على وشك يتثبت، ثواني.",
   "مش هتطول… بنسلّم الحجز للموسى عشان يمضيه.",
+  "ثواني… Sticky Man بيهرب وهم وراه لحد ما الحجز يتأكد.",
+  "استنى… Sticky Man لفّ لفة وفات الموسى بهاربين.",
+  "قربنا… Sticky Man لسه بيعدّي والسيرفر بيلحق.",
 ];
 
 const QUIPS_CONFIRM_EN = [
   "One sec — locking in your booking, wallahi.",
   "Hang on… sealing the slot before anyone snags it.",
   "Almost… writing your name on the golden chair.",
-  "Nearly there… scissors chase the logo while we confirm.",
+  "Nearly there… Sticky Man runs while scissors chase — we confirm.",
   "Ooh — booking’s about to stick. One moment.",
   "Won’t be long… handing it to the razor for a stamp.",
+  "One sec… Sticky Man’s fleeing them until your booking locks.",
+  "Hang on… Sticky Man just outran the razor.",
+  "Almost… Sticky Man’s still ahead while we confirm.",
 ];
 
 export function BookTimeWaiting({
@@ -152,6 +181,7 @@ export function BookTimeWaiting({
   }, [quips.length]);
 
   const icon = compact ? "h-8 w-8" : "h-9 w-9";
+  const stickySize = compact ? "h-11 w-8" : "h-14 w-10";
   const stageClass = useMemo(
     () =>
       compact
@@ -229,14 +259,14 @@ export function BookTimeWaiting({
           <StraightRazor className={icon} />
         </motion.div>
 
-        {/* MOUSE: logo fleeing */}
+        {/* Sticky Man fleeing the scissors & razor */}
         <motion.div
-          className="absolute z-20"
+          className="absolute z-20 text-cut-burgundy"
           animate={{
-            left: MOUSE_X,
-            top: MOUSE_Y,
-            rotate: MOUSE_ROT,
-            scale: [1, 0.96, 1.04, 0.98, 1.05, 0.97, 1],
+            left: STICKY_X,
+            top: STICKY_Y,
+            rotate: STICKY_ROT,
+            scaleX: STICKY_FLIP,
           }}
           transition={{
             duration: 4.4,
@@ -244,23 +274,25 @@ export function BookTimeWaiting({
             ease: "easeInOut",
             times: [0, 0.16, 0.34, 0.5, 0.68, 0.84, 1],
           }}
-          style={{ left: MOUSE_X[0], top: MOUSE_Y[0] }}
+          style={{ left: STICKY_X[0], top: STICKY_Y[0] }}
         >
           <motion.div
-            className="rounded-xl border border-cut-black/10 bg-cut-ivory px-2.5 py-1.5 shadow-[0_6px_18px_rgba(74,0,15,0.14)]"
-            animate={{ y: [0, -3, 0, -2, 0] }}
-            transition={{ duration: 0.55, repeat: Infinity, ease: "easeInOut" }}
+            className="relative"
+            animate={{ y: [0, -4, 0, -3, 0] }}
+            transition={{ duration: 0.4, repeat: Infinity, ease: "easeInOut" }}
           >
-            <CutMark small={compact} />
+            <StickyMan className={stickySize} />
+            <span className="absolute -end-1 -top-1 rounded border border-cut-black/15 bg-cut-ivory px-1 py-px text-[7px] font-black tracking-wider text-cut-black shadow-sm">
+              CUT
+            </span>
+            <motion.span
+              className="absolute -start-0.5 top-1 text-[11px] text-cut-burgundy"
+              animate={{ opacity: [0, 1, 0], y: [0, 8, 14], x: [-2, -4, -2] }}
+              transition={{ duration: 1.1, repeat: Infinity, delay: 0.5 }}
+            >
+              •
+            </motion.span>
           </motion.div>
-          {/* sweat drop when "almost caught" */}
-          <motion.span
-            className="absolute -end-1 -top-1 text-[10px] text-cut-burgundy"
-            animate={{ opacity: [0, 1, 0], y: [0, 6, 10] }}
-            transition={{ duration: 1.2, repeat: Infinity, delay: 0.8 }}
-          >
-            •
-          </motion.span>
         </motion.div>
       </div>
 

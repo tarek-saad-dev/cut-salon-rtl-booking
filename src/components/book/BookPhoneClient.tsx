@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ChevronDown, Loader2 } from "lucide-react";
 import { BookFlowChrome } from "@/components/book/BookFlowChrome";
+import { BookDelayedWaitingOverlay } from "@/components/book/BookDelayedWaitingOverlay";
 import { useBranch } from "@/context/BranchContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { normalizeBranchCode } from "@/lib/booking-api/branch-code";
@@ -61,6 +62,12 @@ export default function BookPhoneClient() {
   const [lookedUpName, setLookedUpName] = useState<string | null>(
     draft?.customer?.name ?? null,
   );
+  const [newCustomerName, setNewCustomerName] = useState(
+    () =>
+      draft?.customer?.found === false
+        ? (draft.customer.name || "").trim()
+        : "",
+  );
   const [clientId, setClientId] = useState<number | null>(
     draft?.customer?.clientId ?? null,
   );
@@ -87,7 +94,18 @@ export default function BookPhoneClient() {
   }, [draft, router, cartHref]);
 
   const lookupDigits = toLookupDigits(localPhone);
-  const canContinue = lookupDigits.replace(/\D/g, "").length >= 10;
+  const resolvedName =
+    lookupStatus === "found"
+      ? (lookedUpName || "").trim()
+      : lookupStatus === "new" || lookupStatus === "error"
+        ? newCustomerName.trim()
+        : "";
+  const needsNewName = lookupStatus === "new" || lookupStatus === "error";
+  const canContinue =
+    lookupDigits.replace(/\D/g, "").length >= 10 &&
+    lookupStatus !== "loading" &&
+    lookupStatus !== "idle" &&
+    resolvedName.length >= 2;
 
   useEffect(() => {
     const digits = lookupDigits.replace(/\D/g, "");
@@ -95,6 +113,7 @@ export default function BookPhoneClient() {
       setLookupStatus("idle");
       setLookedUpName(null);
       setClientId(null);
+      setNewCustomerName("");
       return;
     }
 
@@ -151,15 +170,25 @@ export default function BookPhoneClient() {
   const onContinue = () => {
     if (!canContinue || !draft || !branchCode) return;
     const phone = lookupDigits.replace(/\D/g, "");
+    const name = resolvedName;
+    const found = lookupStatus === "found";
+
+    // Same local persistence as homepage BookingModal after lookup / name entry.
+    saveClient({
+      ...(clientId != null ? { id: clientId } : {}),
+      name,
+      phone,
+    });
+
     const nextDraft: BookFlowDraft = {
       ...draft,
       branchCode,
       visit: visitKind,
       customer: {
         phone,
-        name: lookedUpName,
+        name,
         clientId,
-        found: lookupStatus === "found",
+        found,
       },
       appointment: null,
     };
@@ -176,6 +205,12 @@ export default function BookPhoneClient() {
       footer={false}
     >
       <section className="relative -mt-4 min-h-[55svh] rounded-t-[1.75rem] bg-cut-soft-ivory pb-36 shadow-[0_-12px_40px_rgba(0,0,0,0.18)]">
+        <BookDelayedWaitingOverlay
+          busy={lookupStatus === "loading"}
+          delayMs={600}
+          lang={lang}
+          label={ar ? "جاري التحقق من الرقم…" : "Looking up your number…"}
+        />
         <div className="px-5 pt-6 sm:px-6">
           <h1 className="text-[13px] font-black uppercase tracking-[0.14em] text-cut-black">
             {ar ? "أدخل رقم موبايلك" : "Enter your mobile number"}
@@ -226,17 +261,39 @@ export default function BookPhoneClient() {
                 {ar ? `مرحبًا ${lookedUpName}` : `Welcome back, ${lookedUpName}`}
               </p>
             ) : null}
-            {lookupStatus === "new" ? (
+            {needsNewName ? (
               <p className="text-cut-black/55">
-                {ar ? "رقم جديد — هنكمل بياناتك في الخطوات التالية." : "New number — we'll collect your details next."}
-              </p>
-            ) : null}
-            {lookupStatus === "error" ? (
-              <p className="text-red-700">
-                {ar ? "تعذر البحث الآن. تقدر تكمّل عادي." : "Lookup failed. You can still continue."}
+                {ar
+                  ? "رقم جديد — اكتب اسمك عشان نكمّل الحجز."
+                  : "New number — enter your name to continue."}
               </p>
             ) : null}
           </div>
+
+          {needsNewName ? (
+            <div className="mt-5">
+              <label
+                htmlFor="book-phone-name"
+                className="mb-2 block text-[13px] font-semibold text-cut-black"
+              >
+                {ar ? "اسمك" : "Your name"}
+              </label>
+              <input
+                id="book-phone-name"
+                type="text"
+                value={newCustomerName}
+                onChange={(e) => setNewCustomerName(e.target.value.slice(0, 80))}
+                placeholder={ar ? "اكتب اسمك هنا" : "Enter your name"}
+                className="min-h-11 w-full rounded-xl border border-cut-black/15 bg-cut-ivory px-3 text-sm text-cut-black outline-none placeholder:text-cut-black/35 focus:border-cut-burgundy focus:ring-2 focus:ring-cut-burgundy/15"
+                autoComplete="name"
+              />
+              {newCustomerName.trim().length > 0 && newCustomerName.trim().length < 2 ? (
+                <p className="mt-2 text-[12px] text-cut-black/50">
+                  {ar ? "الاسم قصير جدًا." : "Name is too short."}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
         </div>
 
         <div className="fixed inset-x-0 bottom-0 z-20 border-t border-cut-black/10 bg-cut-soft-ivory/95 px-5 py-4 backdrop-blur-sm sm:px-6">

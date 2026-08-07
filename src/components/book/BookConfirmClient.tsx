@@ -6,6 +6,7 @@ import { format, parseISO } from "date-fns";
 import { arEG, enUS } from "date-fns/locale";
 import { Loader2, Pencil } from "lucide-react";
 import { BookFlowChrome } from "@/components/book/BookFlowChrome";
+import { BookDelayedWaitingOverlay } from "@/components/book/BookDelayedWaitingOverlay";
 import { BookTimeWaiting } from "@/components/book/BookTimeWaiting";
 import { useBranch } from "@/context/BranchContext";
 import { useLanguage } from "@/context/LanguageContext";
@@ -103,20 +104,21 @@ export default function BookConfirmClient() {
   const timeHref = branchCode
     ? `/book/time?branch=${encodeURIComponent(branchCode)}&visit=${visitKind}`
     : "/book";
+  const phoneHref = branchCode
+    ? `/book/phone?branch=${encodeURIComponent(branchCode)}&visit=${visitKind}`
+    : "/book";
   const locationHref = "/book";
 
   const [catalog, setCatalog] = useState<BookingService[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
-  const [customerName, setCustomerName] = useState(
-    () => (draft?.customer?.name || "").trim(),
-  );
+  const customerName = (draft?.customer?.name || "").trim();
   const [promoInput, setPromoInput] = useState(draft?.promoCode ?? "");
   const [appliedPromo, setAppliedPromo] = useState<string | null>(draft?.promoCode ?? null);
   const [submitState, setSubmitState] = useState<SubmitState>("idle");
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  const needsName = customerName.trim().length < 2;
+  const needsName = customerName.length < 2;
 
   useEffect(() => {
     if (isLoadingBranches) return;
@@ -142,8 +144,12 @@ export default function BookConfirmClient() {
       !draft.appointment?.time
     ) {
       router.replace(timeHref);
+      return;
     }
-  }, [draft, router, timeHref]);
+    if (!(draft.customer.name || "").trim()) {
+      router.replace(phoneHref);
+    }
+  }, [draft, router, timeHref, phoneHref]);
 
   useEffect(() => {
     if (!branchCode) return;
@@ -206,7 +212,7 @@ export default function BookConfirmClient() {
   const submitting = submitState !== "idle";
   const canConfirm =
     Boolean(branchCode && appointment && selectedServices.length && professional && phoneReady) &&
-    customerName.trim().length >= 2 &&
+    customerName.length >= 2 &&
     !submitting &&
     !loading &&
     !error;
@@ -225,6 +231,7 @@ export default function BookConfirmClient() {
     if (!normalizedPhone || name.length < 2) return;
 
     setSubmitError(null);
+
     const nextDraft = {
       ...draft,
       branchCode,
@@ -384,6 +391,12 @@ export default function BookConfirmClient() {
         }`}
         aria-hidden={submitting || undefined}
       >
+        <BookDelayedWaitingOverlay
+          busy={loading && !submitting}
+          delayMs={800}
+          lang={lang}
+          label={ar ? "جاري تحميل تفاصيل الحجز…" : "Loading booking details…"}
+        />
         <div className="border-b border-cut-black/10 px-5 py-5 sm:px-6">
           <h1 className="text-[13px] font-black uppercase tracking-[0.14em] text-cut-black">
             {ar ? "تأكيد الحجز" : "Confirm your booking"}
@@ -513,26 +526,15 @@ export default function BookConfirmClient() {
               </div>
 
               <div>
-                <label
-                  htmlFor="book-confirm-name"
-                  className="mb-2 block text-[13px] font-semibold text-cut-black"
-                >
+                <p className="mb-1 text-[13px] font-semibold text-cut-black">
                   {ar ? "الاسم" : "Name"}
-                </label>
-                <input
-                  id="book-confirm-name"
-                  type="text"
-                  value={customerName}
-                  onChange={(e) => setCustomerName(e.target.value.slice(0, 80))}
-                  placeholder={ar ? "اسمك" : "Your name"}
-                  className="min-h-11 w-full rounded-lg border border-cut-black/20 bg-cut-ivory px-3 text-sm text-cut-black outline-none placeholder:text-cut-black/35 focus:border-cut-burgundy"
-                  autoComplete="name"
-                />
+                </p>
+                <p className="text-[15px] font-semibold text-cut-black">{customerName}</p>
                 {needsName ? (
                   <p className="mt-2 text-[12px] text-cut-black/50">
                     {ar
-                      ? "الاسم مطلوب لتأكيد الحجز."
-                      : "Name is required to confirm your booking."}
+                      ? "الاسم ناقص — رجّع لخطوة الموبايل."
+                      : "Name is missing — go back to the phone step."}
                   </p>
                 ) : null}
               </div>

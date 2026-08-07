@@ -20,6 +20,8 @@ import {
   MAX_CANCEL_REASON_LENGTH,
   normalizeEgyptianPhone,
 } from "@/lib/booking-management/display";
+import type { BookingMgmtSurface } from "@/lib/booking-management/surface";
+import { BookDelayedWaitingOverlay } from "@/components/book/BookDelayedWaitingOverlay";
 
 export type CancelUiState =
   | { kind: "idle" }
@@ -39,6 +41,7 @@ interface CancelBookingDialogProps {
   booking: PublicBooking;
   /** Phone ownership fallback when no access token */
   phone?: string | null;
+  surface?: BookingMgmtSurface;
   onClose: () => void;
   onCancelled: (updated: PublicBooking) => void;
 }
@@ -46,6 +49,7 @@ interface CancelBookingDialogProps {
 export default function CancelBookingDialog({
   booking,
   phone,
+  surface = "dark",
   onClose,
   onCancelled,
 }: CancelBookingDialogProps) {
@@ -203,6 +207,7 @@ export default function CancelBookingDialog({
 
   const overnight = formatOvernightHint(booking);
   const services = getServiceNames(booking.services).join(" + ");
+  const brand = surface === "brand";
 
   return (
     <div
@@ -214,52 +219,83 @@ export default function CancelBookingDialog({
       aria-describedby="cancel-booking-desc"
     >
       <div
-        className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+        className={`absolute inset-0 backdrop-blur-sm ${
+          brand ? "bg-cut-burgundy/25" : "bg-black/70"
+        }`}
         onClick={handleEscapeClose}
       />
-      <div className="relative w-full max-w-sm rounded-2xl bg-[#0f0f0f] border border-white/10 p-6 shadow-2xl max-h-[90vh] overflow-y-auto pb-[max(1.5rem,env(safe-area-inset-bottom))]">
+      <div
+        className={`relative max-h-[90vh] w-full max-w-sm overflow-y-auto rounded-2xl p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] shadow-2xl ${
+          brand
+            ? "border border-cut-burgundy/15 bg-cut-soft-ivory text-cut-black"
+            : "border border-white/10 bg-[#0f0f0f]"
+        }`}
+      >
+        <BookDelayedWaitingOverlay
+          busy={ui.kind === "cancelling" || ui.kind === "unknown"}
+          delayMs={500}
+          lang="ar"
+          tone="confirm"
+          label="جاري إلغاء الحجز…"
+        />
         <button
           type="button"
           onClick={handleEscapeClose}
           disabled={ui.kind === "cancelling"}
-          className="absolute left-4 top-4 text-cut-ivory/30 hover:text-cut-ivory/60 transition-colors disabled:opacity-40"
+          className={`absolute left-4 top-4 transition-colors disabled:opacity-40 ${
+            brand
+              ? "text-cut-black/35 hover:text-cut-burgundy"
+              : "text-cut-ivory/30 hover:text-cut-ivory/60"
+          }`}
           aria-label="إغلاق"
         >
-          <X className="w-4 h-4" />
+          <X className="h-4 w-4" />
         </button>
 
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 rounded-xl bg-red-500/10 flex items-center justify-center flex-shrink-0">
-            <AlertCircle className="w-5 h-5 text-red-400" />
+        <div className="mb-4 flex items-center gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-red-500/10">
+            <AlertCircle className="h-5 w-5 text-red-500" />
           </div>
           <div>
             <h3
               id="cancel-booking-title"
               ref={titleRef}
               tabIndex={-1}
-              className="text-cut-ivory font-bold text-base outline-none"
+              className={`text-base font-bold outline-none ${
+                brand ? "text-cut-black" : "text-cut-ivory"
+              }`}
             >
               تأكيد إلغاء الحجز
             </h3>
-            <p className="text-gray-500 text-xs" dir="ltr">
+            <p className={`text-xs ${brand ? "text-cut-black/45" : "text-gray-500"}`} dir="ltr">
               {booking.bookingCode}
             </p>
           </div>
         </div>
 
-        <div id="cancel-booking-desc" className="text-gray-400 text-sm mb-4 space-y-1">
-          {booking.branchName && <p>الفرع: {booking.branchName}</p>}
-          {services && <p>الخدمات: {services}</p>}
+        <div
+          id="cancel-booking-desc"
+          className={`mb-4 space-y-1 text-sm ${brand ? "text-cut-black/65" : "text-gray-400"}`}
+        >
+          {booking.branchName ? <p>الفرع: {booking.branchName}</p> : null}
+          {services ? <p>الخدمات: {services}</p> : null}
           <p>
             {formatWorkDateAr(booking.date)} — {formatBookingTimeAr(booking.time)}
           </p>
-          {overnight && <p className="text-cut-gold/80 text-xs">{overnight}</p>}
+          {overnight ? (
+            <p className={`text-xs ${brand ? "text-cut-burgundy/80" : "text-cut-gold/80"}`}>
+              {overnight}
+            </p>
+          ) : null}
           <p className="pt-2">هل أنت متأكد من إلغاء هذا الحجز؟ لا يمكن التراجع عن هذا الإجراء.</p>
         </div>
 
-        {ui.kind !== "success" && (
+        {ui.kind !== "success" ? (
           <div className="mb-4 space-y-2">
-            <label className="block text-xs text-cut-ivory/50" htmlFor="cancel-reason">
+            <label
+              className={`block text-xs ${brand ? "text-cut-black/55" : "text-cut-ivory/50"}`}
+              htmlFor="cancel-reason"
+            >
               سبب الإلغاء (اختياري)
             </label>
             <select
@@ -267,7 +303,11 @@ export default function CancelBookingDialog({
               value={reasonCode}
               onChange={(e) => setReasonCode(e.target.value)}
               disabled={busy}
-              className="w-full rounded-xl bg-white/5 border border-white/10 text-cut-ivory text-sm px-3 py-2"
+              className={`w-full rounded-xl border px-3 py-2 text-sm ${
+                brand
+                  ? "border-cut-black/15 bg-cut-ivory text-cut-black"
+                  : "border-white/10 bg-white/5 text-cut-ivory"
+              }`}
             >
               <option value="">بدون تحديد</option>
               {REASON_OPTIONS.map((o) => (
@@ -276,7 +316,7 @@ export default function CancelBookingDialog({
                 </option>
               ))}
             </select>
-            {reasonCode === "other" && (
+            {reasonCode === "other" ? (
               <textarea
                 value={reasonText}
                 onChange={(e) =>
@@ -284,70 +324,92 @@ export default function CancelBookingDialog({
                 }
                 disabled={busy}
                 rows={2}
-                className="w-full rounded-xl bg-white/5 border border-white/10 text-cut-ivory text-sm px-3 py-2"
+                className={`w-full rounded-xl border px-3 py-2 text-sm ${
+                  brand
+                    ? "border-cut-black/15 bg-cut-ivory text-cut-black"
+                    : "border-white/10 bg-white/5 text-cut-ivory"
+                }`}
                 placeholder="اكتب السبب"
                 aria-label="نص سبب الإلغاء"
               />
-            )}
+            ) : null}
           </div>
-        )}
+        ) : null}
 
         <div aria-live="polite" className="mb-4">
-          {ui.kind === "cancelling" && (
-            <div className="px-3 py-2 rounded-xl bg-cut-gold/10 border border-cut-gold/20 text-cut-ivory text-xs text-center flex items-center justify-center gap-2">
-              <Loader2 className="w-4 h-4 animate-spin" />
+          {ui.kind === "cancelling" ? (
+            <div
+              className={`flex items-center justify-center gap-2 rounded-xl border px-3 py-2 text-center text-xs ${
+                brand
+                  ? "border-cut-burgundy/20 bg-cut-burgundy/10 text-cut-burgundy"
+                  : "border-cut-gold/20 bg-cut-gold/10 text-cut-ivory"
+              }`}
+            >
+              <Loader2 className="h-4 w-4 animate-spin" />
               جاري إلغاء الحجز...
             </div>
-          )}
-          {ui.kind === "rate_limited" && (
-            <div className="px-3 py-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-200 text-xs text-center">
+          ) : null}
+          {ui.kind === "rate_limited" ? (
+            <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-center text-xs text-amber-800">
               {ui.message}
               <p className="mt-1 font-bold tabular-nums">
                 حاول مرة أخرى بعد {ui.remaining} ثانية
               </p>
             </div>
-          )}
-          {ui.kind === "unknown" && (
-            <div className="px-3 py-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-100 text-xs text-center space-y-2">
+          ) : null}
+          {ui.kind === "unknown" ? (
+            <div className="space-y-2 rounded-xl border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-center text-xs text-amber-900">
               <p className="font-bold">تعذر التأكد من نتيجة طلب الإلغاء</p>
               <p>{ui.message}</p>
-              <div className="flex gap-2 justify-center flex-wrap">
+              <div className="flex flex-wrap justify-center gap-2">
                 <button
                   type="button"
                   onClick={() => void verifyThenRetry()}
-                  className="px-3 py-1.5 rounded-lg bg-cut-gold text-black text-xs font-bold"
+                  className={`rounded-lg px-3 py-1.5 text-xs font-bold ${
+                    brand
+                      ? "bg-cut-burgundy text-cut-ivory"
+                      : "bg-cut-gold text-black"
+                  }`}
                 >
                   التحقق من حالة الحجز
                 </button>
                 <button
                   type="button"
                   onClick={() => void runCancel()}
-                  className="px-3 py-1.5 rounded-lg border border-cut-gold/30 text-cut-gold text-xs font-bold"
+                  className={`rounded-lg border px-3 py-1.5 text-xs font-bold ${
+                    brand
+                      ? "border-cut-burgundy/30 text-cut-burgundy"
+                      : "border-cut-gold/30 text-cut-gold"
+                  }`}
                 >
                   إعادة المحاولة الآمنة
                 </button>
               </div>
-              {ui.requestId && (
-                <p className="text-[10px] text-cut-ivory/30">رقم مرجع الخطأ: {ui.requestId}</p>
-              )}
+              {ui.requestId ? (
+                <p className={`text-[10px] ${brand ? "text-cut-black/40" : "text-cut-ivory/30"}`}>
+                  رقم مرجع الخطأ: {ui.requestId}
+                </p>
+              ) : null}
             </div>
-          )}
-          {ui.kind === "error" && (
-            <div className="px-3 py-2 rounded-xl bg-red-500/10 border border-red-500/20 text-red-300 text-xs text-center space-y-1">
+          ) : null}
+          {ui.kind === "error" ? (
+            <div className="space-y-1 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-center text-xs text-red-800">
               <p>{ui.message}</p>
-              {isStaffRequiredCode(ui.code) && (
+              {isStaffRequiredCode(ui.code) ? (
                 <p>لم يتم إصدار أي استرداد تلقائي. يرجى التواصل مع الفرع عند الحاجة.</p>
-              )}
-              {ui.requestId && (
-                <p className="text-[10px] text-cut-ivory/30">رقم مرجع الخطأ: {ui.requestId}</p>
-              )}
+              ) : null}
+              {ui.requestId ? (
+                <p className={`text-[10px] ${brand ? "text-cut-black/40" : "text-cut-ivory/30"}`}>
+                  رقم مرجع الخطأ: {ui.requestId}
+                </p>
+              ) : null}
             </div>
-          )}
-          {ui.kind === "success" && (
-            <div className="px-3 py-2 rounded-xl bg-green-500/10 border border-green-500/20 text-green-300 text-xs text-center">
+          ) : null}
+          {ui.kind === "success" ? (
+            <div className="rounded-xl border border-green-200 bg-green-50 px-3 py-2 text-center text-xs text-green-800">
               {ui.message}
             </div>
-          )}
+          ) : null}
         </div>
 
         <div className="flex gap-2">
@@ -355,24 +417,28 @@ export default function CancelBookingDialog({
             type="button"
             onClick={handleEscapeClose}
             disabled={ui.kind === "cancelling"}
-            className="flex-1 py-2.5 rounded-xl border border-white/10 text-cut-ivory/60 text-sm hover:border-white/20 disabled:opacity-40"
+            className={`flex-1 rounded-xl border py-2.5 text-sm disabled:opacity-40 ${
+              brand
+                ? "border-cut-black/15 text-cut-black/65 hover:border-cut-burgundy/30"
+                : "border-white/10 text-cut-ivory/60 hover:border-white/20"
+            }`}
           >
             رجوع
           </button>
-          {ui.kind !== "success" && (
+          {ui.kind !== "success" ? (
             <button
               type="button"
               onClick={() => void runCancel()}
               disabled={busy}
-              className="flex-1 py-2.5 rounded-xl bg-red-500 text-cut-ivory text-sm font-bold hover:bg-red-600 disabled:opacity-60 flex items-center justify-center gap-1.5"
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-red-500 py-2.5 text-sm font-bold text-cut-ivory hover:bg-red-600 disabled:opacity-60"
             >
               {ui.kind === "cancelling" ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
                 "تأكيد إلغاء الحجز"
               )}
             </button>
-          )}
+          ) : null}
         </div>
       </div>
     </div>

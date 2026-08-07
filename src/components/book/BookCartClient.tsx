@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { BookFlowChrome } from "@/components/book/BookFlowChrome";
+import { BookDelayedWaitingOverlay } from "@/components/book/BookDelayedWaitingOverlay";
 import { useBranch } from "@/context/BranchContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { getServices, type BookingService } from "@/lib/booking-api";
@@ -147,6 +148,12 @@ export default function BookCartClient() {
       footer={false}
     >
       <section className="relative -mt-4 min-h-[55svh] rounded-t-[1.75rem] bg-cut-soft-ivory pb-36 shadow-[0_-12px_40px_rgba(0,0,0,0.18)]">
+        <BookDelayedWaitingOverlay
+          busy={loading}
+          delayMs={800}
+          lang={lang}
+          label={ar ? "جاري تحميل السلة…" : "Loading cart…"}
+        />
         <div className="px-5 pt-6 sm:px-6">
           <h1 className="text-[13px] font-black uppercase tracking-[0.16em] text-cut-black">
             {ar ? "سلتك" : "Your cart"}

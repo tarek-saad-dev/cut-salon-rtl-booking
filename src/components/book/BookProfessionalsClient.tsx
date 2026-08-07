@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2, Star, User } from "lucide-react";
 import { BookFlowChrome } from "@/components/book/BookFlowChrome";
+import { BookDelayedWaitingOverlay } from "@/components/book/BookDelayedWaitingOverlay";
 import BarberPhoto from "@/components/BarberPhoto";
 import { useBranch } from "@/context/BranchContext";
 import { useLanguage } from "@/context/LanguageContext";
@@ -159,6 +160,12 @@ export default function BookProfessionalsClient() {
       footer={false}
     >
       <section className="relative -mt-4 rounded-t-[1.75rem] bg-cut-soft-ivory pb-28 shadow-[0_-12px_40px_rgba(0,0,0,0.18)]">
+        <BookDelayedWaitingOverlay
+          busy={loading}
+          delayMs={800}
+          lang={lang}
+          label={ar ? "جاري تحميل الحلاقين…" : "Loading professionals…"}
+        />
         <div className="border-b border-cut-black/10 px-5 py-5 sm:px-6">
           <h1 className="text-[13px] font-black uppercase tracking-[0.16em] text-cut-black">
             {ar ? "اختر الحلاق" : "Select a professional"}

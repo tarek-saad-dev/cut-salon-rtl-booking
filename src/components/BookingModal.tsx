@@ -31,6 +31,7 @@ import BookingSuccessStep from "./BookingSuccessStep";
 import BranchPicker from "./BranchPicker";
 import CrossBranchSlotsPanel from "@/components/CrossBranchSlotsPanel";
 import BarberPhoto from "./BarberPhoto";
+import { BookDelayedWaitingOverlay } from "@/components/book/BookDelayedWaitingOverlay";
 import { useBranch } from "@/context/BranchContext";
 import { getCoreServiceIdSet } from "@/lib/bookingServiceGroups";
 import { useBookingFlow, type BookingUiStep } from "@/hooks/useBookingFlow";
@@ -1789,16 +1790,59 @@ const BookingModal = ({
   const activeStepId = stepForHeader(flow.step);
   const headerSteps = steps;
 
+  const mutationBusy =
+    flow.mutationUi.kind === "planning" || flow.mutationUi.kind === "creating";
+  const dataBusy =
+    flow.catalogLoading ||
+    flow.daysLoading ||
+    flow.slotsLoading ||
+    flow.crossSlotsLoading ||
+    flow.barberProfileStatus === "loading" ||
+    flow.barberProfileStatus === "slow_loading" ||
+    lookupStatus === "loading";
+  const waitingBusy = mutationBusy || dataBusy;
+  const waitingDelayMs = mutationBusy ? 280 : 800;
+  const waitingTone = mutationBusy ? "confirm" : "slots";
+  const waitingLabel = mutationBusy
+    ? flow.mutationUi.kind === "planning"
+      ? t("loading.planning")
+      : t("loading.creating")
+    : flow.catalogLoading
+      ? t("loading.catalog")
+      : flow.crossSlotsLoading
+        ? t("loading.crossBranchSlots")
+        : lookupStatus === "loading"
+          ? lang === "ar"
+            ? "جاري التحقق من بياناتك…"
+            : "Looking up your profile…"
+          : flow.barberProfileStatus === "loading" ||
+              flow.barberProfileStatus === "slow_loading"
+            ? t("branch.loadingShort")
+            : flow.daysLoading
+              ? t("date.loading")
+              : lang === "ar"
+                ? "جاري تحميل المواعيد…"
+                : "Loading times…";
+
   return (
     <>
       <ConfettiBurst trigger={confettiTrigger} particleCount={55} />
       <Dialog open={open} onOpenChange={(next) => { if (!next) handleClose(); }}>
         <DialogContent
           hideDefaultClose
-          className="max-w-4xl w-[95vw] max-h-[92vh] p-0 bg-[var(--booking-bg)] border border-[var(--booking-border)] overflow-hidden gap-0 rounded-2xl shadow-2xl booking-modal-shell flex flex-col"
+          className="relative max-w-4xl w-[95vw] max-h-[92vh] p-0 bg-[var(--booking-bg)] border border-[var(--booking-border)] overflow-hidden gap-0 rounded-2xl shadow-2xl booking-modal-shell flex flex-col"
           dir={dir}
           lang={lang}
         >
+          <BookDelayedWaitingOverlay
+            busy={waitingBusy}
+            delayMs={waitingDelayMs}
+            lang={lang}
+            tone={waitingTone}
+            label={waitingLabel}
+            variant="absolute"
+          />
+
           <VisuallyHidden>
             <DialogTitle>
               {isNearestMode

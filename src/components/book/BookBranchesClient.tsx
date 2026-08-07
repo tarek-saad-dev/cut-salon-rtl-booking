@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { BookFlowChrome } from "@/components/book/BookFlowChrome";
+import { BookDelayedWaitingOverlay } from "@/components/book/BookDelayedWaitingOverlay";
 import { useBranch } from "@/context/BranchContext";
 import { useLanguage } from "@/context/LanguageContext";
 import type { PublicBranch } from "@/lib/booking-api";
@@ -35,7 +36,13 @@ export default function BookBranchesClient() {
 
   return (
     <BookFlowChrome>
-      <section className="bg-cut-soft-ivory">
+      <section className="relative bg-cut-soft-ivory">
+        <BookDelayedWaitingOverlay
+          busy={isLoadingBranches}
+          delayMs={800}
+          lang={lang}
+          label={ar ? "جاري تحميل الفروع…" : "Loading locations…"}
+        />
         <div className="border-b border-cut-black/10 px-5 py-5 sm:px-8">
           <h1 className="text-[13px] font-black uppercase tracking-[0.18em] text-cut-black">
             {ar ? "اختر فرع الخدمة" : "Select service location"}

@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Calendar, Menu, Minus, Phone, Plus, User, X } from "lucide-react";
+import { Calendar, Gift, Languages, Menu, Phone, Sparkles, User, X } from "lucide-react";
 import ClientProfileWidget from "./ClientProfileWidget";
 // Temporarily hidden per request: import BranchBadge from "./BranchBadge";
 import { useLanguage } from "@/context/LanguageContext";
@@ -22,8 +22,6 @@ const DESKTOP_NAV_LINKS: {
   { label: "account", href: "/client" },
   { label: "loyalty", href: "/client/loyalty", isClub: true },
 ];
-
-type AccordionId = "book" | null;
 
 const WHATSAPP_URL = "https://wa.me/201012126899";
 
@@ -53,7 +51,6 @@ function WhatsAppIcon({ className = "" }: { className?: string }) {
 
 export default function MainNav() {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [openAccordion, setOpenAccordion] = useState<AccordionId>("book");
   const menuTriggerRef = useRef<HTMLButtonElement>(null);
   const wasMobileOpenRef = useRef(false);
   const pathname = usePathname();
@@ -79,7 +76,6 @@ export default function MainNav() {
     document.body.style.overflow = mobileOpen ? "hidden" : "";
     if (!mobileOpen && wasMobileOpenRef.current) menuTriggerRef.current?.focus();
     wasMobileOpenRef.current = mobileOpen;
-    if (mobileOpen) setOpenAccordion("book");
     return () => {
       document.body.style.overflow = "";
     };
@@ -96,15 +92,8 @@ export default function MainNav() {
   // Dedicated booking entry has its own header chrome.
   if (pathname?.startsWith("/book")) return null;
 
-  const toggleAccordion = (id: AccordionId) => {
-    setOpenAccordion((current) => (current === id ? null : id));
-  };
-
   const primaryItemClass =
     "flex min-h-[3.25rem] w-full items-center justify-between border-b border-cut-bronze py-3.5 text-start text-[1.05rem] font-semibold tracking-wide text-cut-ivory transition hover:text-cut-warm-beige focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-cut-warm-beige";
-
-  const subItemClass =
-    "block py-2.5 text-[0.95rem] font-normal text-cut-ivory/75 transition hover:text-cut-ivory focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cut-warm-beige";
 
   const LogoMark = () => (
     <a
@@ -182,26 +171,13 @@ export default function MainNav() {
           </div>
         </div>
 
-        {/* Mobile header — centered logo + centered actions under it (Fellow Barber layout) */}
+        {/* Mobile header — logo centered; Book Now + hamburger under it */}
         <div className="lg:hidden" data-mobile-header>
-          <div className="flex flex-col items-center gap-3 px-4 pb-3 pt-3.5">
+          <div className="flex flex-col items-center px-4 pb-3 pt-3.5">
             <LogoMark />
-            <div className="flex items-center justify-center gap-3">
-              <button
-                type="button"
-                onClick={goToBook}
-                aria-label={label("booking")}
-                className="font-ui inline-flex min-h-10 items-center justify-center bg-cut-ivory px-5 text-[11px] font-bold uppercase tracking-[0.22em] text-cut-black transition hover:bg-cut-warm-beige focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cut-warm-beige"
-              >
-                {label("booking")}
-              </button>
-              <a
-                href="/client"
-                aria-label={label("account")}
-                className="inline-flex h-10 w-10 items-center justify-center text-cut-ivory transition hover:text-cut-warm-beige focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cut-warm-beige"
-              >
-                <User className="h-5 w-5" strokeWidth={1.6} />
-              </a>
+
+            <div className="mt-3 flex items-center justify-center gap-2.5">
+              {/* DOM order + dir: AR → hamburger right of CTA; EN → hamburger left of CTA */}
               <button
                 ref={menuTriggerRef}
                 type="button"
@@ -209,9 +185,22 @@ export default function MainNav() {
                 aria-label={mobileOpen ? label("closeMenu") : label("openMenu")}
                 aria-expanded={mobileOpen}
                 aria-controls="mobile-navigation"
-                className="inline-flex h-10 w-10 items-center justify-center text-cut-ivory transition hover:text-cut-warm-beige focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cut-warm-beige"
+                className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-cut-warm-beige/45 bg-cut-ivory/10 text-cut-ivory shadow-[0_0_0_1px_rgba(252,249,237,0.08)] transition hover:border-cut-warm-beige hover:bg-cut-ivory/15 hover:text-cut-warm-beige focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cut-warm-beige"
               >
-                {mobileOpen ? <X className="h-5 w-5" strokeWidth={1.6} /> : <Menu className="h-5 w-5" strokeWidth={1.6} />}
+                {mobileOpen ? (
+                  <X className="h-6 w-6" strokeWidth={2.35} />
+                ) : (
+                  <Menu className="h-6 w-6" strokeWidth={2.35} />
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={goToBook}
+                aria-label={label("booking")}
+                className="font-ui inline-flex min-h-11 items-center justify-center bg-cut-ivory px-5 text-[11px] font-bold uppercase tracking-[0.22em] text-cut-black transition hover:bg-cut-warm-beige focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cut-warm-beige"
+              >
+                {label("booking")}
               </button>
             </div>
           </div>
@@ -258,53 +247,14 @@ export default function MainNav() {
               <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-7 pb-6 pt-2">
                 {/* Primary nav */}
                 <nav aria-label={lang === "ar" ? "روابط الموقع" : "Site links"}>
-                  {/* Book accordion */}
-                  <div className="border-b border-cut-bronze">
-                    <button
-                      type="button"
-                      onClick={() => toggleAccordion("book")}
-                      aria-expanded={openAccordion === "book"}
-                      className={`${primaryItemClass} border-b-0`}
-                    >
-                      <span>{label("bookMenu")}</span>
-                      {openAccordion === "book" ? (
-                        <Minus className="h-4 w-4 shrink-0 text-cut-ivory" strokeWidth={2} />
-                      ) : (
-                        <Plus className="h-4 w-4 shrink-0 text-cut-ivory" strokeWidth={2} />
-                      )}
-                    </button>
-                    <AnimatePresence initial={false}>
-                      {openAccordion === "book" && (
-                        <motion.ul
-                          initial={{ height: 0, opacity: 0 }}
-                          animate={{ height: "auto", opacity: 1 }}
-                          exit={{ height: 0, opacity: 0 }}
-                          transition={{ duration: 0.22, ease: "easeOut" }}
-                          className="overflow-hidden ps-4"
-                        >
-                          <li>
-                            <a href={barberHref} onClick={closeMobileMenu} className={subItemClass}>
-                              {label("barbers")}
-                            </a>
-                          </li>
-                          <li>
-                            <a href="/#branches" onClick={closeMobileMenu} className={subItemClass}>
-                              {label("branches")}
-                            </a>
-                          </li>
-                          <li className="pb-3">
-                            <button
-                              type="button"
-                              onClick={goToBook}
-                              className={`${subItemClass} w-full text-start`}
-                            >
-                              {label("booking")}
-                            </button>
-                          </li>
-                        </motion.ul>
-                      )}
-                    </AnimatePresence>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={goToBook}
+                    className="mb-5 mt-1 flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-l from-cut-burgundy via-[#5c0a18] to-cut-burgundy-dark px-4 py-4 text-[1.1rem] font-black tracking-wide text-cut-ivory shadow-[0_12px_36px_rgba(74,0,15,0.55),inset_0_1px_0_rgba(252,249,237,0.12)] ring-1 ring-cut-warm-beige/30 transition hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cut-warm-beige active:scale-[0.98]"
+                  >
+                    <Calendar className="h-5 w-5 text-cut-warm-beige" strokeWidth={2.25} />
+                    {label("booking")}
+                  </button>
 
                   {/* Direct links */}
                   <a href="/" onClick={closeMobileMenu} className={primaryItemClass}>
@@ -321,36 +271,96 @@ export default function MainNav() {
                   <a
                     href="/client/loyalty"
                     onClick={closeMobileMenu}
-                    className="flex min-h-[3.25rem] w-full items-center border-b border-cut-bronze py-3.5 text-start text-[1.05rem] font-bold tracking-wide text-cut-gold transition hover:text-cut-warm-beige focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-cut-warm-beige"
+                    className="relative mt-4 mb-1 block overflow-hidden rounded-2xl border border-cut-burgundy/20 bg-gradient-to-br from-cut-ivory via-cut-soft-ivory to-cut-warm-paper p-4 shadow-[0_12px_32px_rgba(74,0,15,0.1)] ring-1 ring-cut-burgundy/5 transition hover:border-cut-burgundy/35 hover:shadow-[0_14px_36px_rgba(74,0,15,0.14)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cut-burgundy"
                   >
-                    {label("loyaltyCta")}
+                    <span
+                      aria-hidden
+                      className="pointer-events-none absolute -end-6 -top-8 h-24 w-24 rounded-full bg-cut-burgundy/10 blur-2xl"
+                    />
+                    <span
+                      aria-hidden
+                      className="pointer-events-none absolute -start-4 bottom-0 h-16 w-16 rounded-full bg-cut-warm-beige/50 blur-xl"
+                    />
+                    <span className="relative flex items-start gap-3">
+                      <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-cut-burgundy/20 bg-cut-burgundy/10 text-cut-burgundy">
+                        <Gift className="h-5 w-5" strokeWidth={2} />
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.18em] text-cut-burgundy">
+                          <Sparkles className="h-3.5 w-3.5" strokeWidth={2.25} />
+                          {label("loyaltyCtaTitle")}
+                        </span>
+                        <span className="mt-1 block text-[1.05rem] font-black tracking-wide text-cut-black">
+                          {label("loyaltyCtaJoin")}
+                        </span>
+                        <span className="mt-1.5 block text-[12px] font-medium leading-5 text-cut-burgundy/80">
+                          {label("loyaltyCtaHint")}
+                        </span>
+                      </span>
+                    </span>
                   </a>
                 </nav>
 
-                {/* Secondary links */}
-                <div className="mt-10 space-y-4">
-                  <a
-                    href="/client"
-                    onClick={closeMobileMenu}
-                    className="block text-[1.05rem] font-medium text-cut-ivory transition hover:text-cut-warm-beige focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cut-warm-beige"
-                  >
-                    {label("account")}
-                  </a>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setLang(lang === "ar" ? "en" : "ar");
-                      closeMobileMenu();
-                    }}
-                    className="block text-[1.05rem] font-medium text-cut-ivory transition hover:text-cut-warm-beige focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cut-warm-beige"
-                  >
-                    {label("language")}
-                  </button>
-                </div>
+                {/* Account + language pinned to bottom */}
+                <div className="mt-auto flex flex-col pt-10">
+                  <div className="border-t border-cut-bronze/80" />
+                  <div className="space-y-3 py-5">
+                    <a
+                      href="/client"
+                      onClick={closeMobileMenu}
+                      className="flex min-h-12 w-full items-center gap-3 rounded-xl border border-cut-bronze/25 bg-cut-black/35 px-4 text-[1.02rem] font-semibold text-cut-ivory transition hover:border-cut-warm-beige/40 hover:bg-cut-black/55 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cut-warm-beige"
+                    >
+                      <User className="h-4 w-4 text-cut-warm-beige" strokeWidth={1.9} />
+                      {label("account")}
+                    </a>
 
-                {/* Footer social */}
-                <div className="mt-auto flex flex-col pt-12">
-                  <div className="border-t border-cut-bronze" />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setLang(lang === "ar" ? "en" : "ar");
+                        closeMobileMenu();
+                      }}
+                      aria-label={
+                        lang === "ar" ? "التبديل إلى الإنجليزية" : "Switch to Arabic"
+                      }
+                      className="flex w-full flex-col gap-2 rounded-xl border border-cut-warm-beige/35 bg-gradient-to-l from-cut-burgundy/40 to-cut-black/50 px-4 py-3 text-start transition hover:border-cut-warm-beige/60 hover:from-cut-burgundy/55 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cut-warm-beige"
+                    >
+                      <span className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-cut-warm-beige/90">
+                        <Languages className="h-3.5 w-3.5" strokeWidth={2} />
+                        {lang === "ar" ? "اللغة" : "Language"}
+                      </span>
+                      <span className="flex items-center justify-between gap-3">
+                        <span className="text-sm font-bold text-cut-ivory">
+                          {lang === "ar" ? "التبديل إلى English" : "Switch to العربية"}
+                        </span>
+                        <span
+                          className="inline-flex overflow-hidden rounded-full border border-cut-bronze/40 bg-cut-black/60 p-0.5 text-[11px] font-black tracking-wide"
+                          aria-hidden
+                        >
+                          <span
+                            className={`rounded-full px-2.5 py-1 transition ${
+                              lang === "ar"
+                                ? "bg-cut-warm-beige text-cut-black"
+                                : "text-cut-ivory/45"
+                            }`}
+                          >
+                            AR
+                          </span>
+                          <span
+                            className={`rounded-full px-2.5 py-1 transition ${
+                              lang === "en"
+                                ? "bg-cut-warm-beige text-cut-black"
+                                : "text-cut-ivory/45"
+                            }`}
+                          >
+                            EN
+                          </span>
+                        </span>
+                      </span>
+                    </button>
+                  </div>
+
+                  <div className="border-t border-cut-bronze/80" />
                   <div className="flex items-center justify-center gap-8 py-7">
                     <a
                       href={WHATSAPP_URL}

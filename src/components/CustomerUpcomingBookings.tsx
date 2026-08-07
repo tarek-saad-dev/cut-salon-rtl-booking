@@ -10,6 +10,11 @@ import {
   type PublicBooking,
 } from "@/lib/booking-api";
 import { normalizeEgyptianPhone } from "@/lib/booking-management/display";
+import {
+  bookingMgmtSurface,
+  type BookingMgmtSurface,
+} from "@/lib/booking-management/surface";
+import { BookDelayedWaitingOverlay } from "@/components/book/BookDelayedWaitingOverlay";
 import BookingManagementCard from "@/components/booking-management/BookingManagementCard";
 
 interface CustomerUpcomingBookingsProps {
@@ -18,15 +23,17 @@ interface CustomerUpcomingBookingsProps {
   onCancelled?: () => void;
   /** compact = hero/modal CTA strip; form = phone entry + list; embedded = list only when phone provided */
   variant?: "compact" | "form" | "embedded";
+  surface?: BookingMgmtSurface;
 }
 
-function BookingSkeleton() {
+function BookingSkeleton({ surface }: { surface: BookingMgmtSurface }) {
+  const s = bookingMgmtSurface[surface];
   return (
-    <div className="rounded-xl bg-[#0f0f0f] border border-white/5 overflow-hidden animate-pulse">
-      <div className="px-4 py-2 bg-white/5 border-b border-white/5 h-8" />
-      <div className="px-4 py-3 space-y-2">
-        <div className="h-4 bg-white/5 rounded w-3/4" />
-        <div className="h-3 bg-white/5 rounded w-1/2" />
+    <div className={s.skeleton}>
+      <div className={`h-8 border-b border-cut-burgundy/5 px-4 py-2 ${s.skeletonBar}`} />
+      <div className="space-y-2 px-4 py-3">
+        <div className={`h-4 w-3/4 rounded ${s.skeletonBar}`} />
+        <div className={`h-3 w-1/2 rounded ${s.skeletonBar}`} />
       </div>
     </div>
   );
@@ -36,7 +43,9 @@ export default function CustomerUpcomingBookings({
   phone: phoneProp,
   onCancelled,
   variant = "compact",
+  surface = "dark",
 }: CustomerUpcomingBookingsProps) {
+  const s = bookingMgmtSurface[surface];
   const [phoneInput, setPhoneInput] = useState("");
   const [activePhone, setActivePhone] = useState<string | null>(
     phoneProp?.trim() ? phoneProp.trim() : null,
@@ -111,34 +120,36 @@ export default function CustomerUpcomingBookings({
 
   const handleUpdated = (updated: PublicBooking) => {
     setBookings((prev) =>
-      prev.map((b) =>
-        b.bookingCode === updated.bookingCode ? updated : b,
-      ),
+      prev.map((b) => (b.bookingCode === updated.bookingCode ? updated : b)),
     );
     onCancelled?.();
   };
 
   if (variant === "compact" && !phoneProp) {
     return (
-      <div className="px-6 pt-4 pb-2" dir="rtl">
-        <Link
-          href="/booking"
-          className="flex items-center justify-between gap-3 rounded-xl border border-cut-gold/20 bg-cut-gold/[0.06] px-4 py-3 text-sm text-cut-ivory/80 hover:border-cut-gold/40 transition-colors"
-        >
+      <div className="px-6 pb-2 pt-4" dir="rtl">
+        <Link href="/booking" className={s.compactLink}>
           <span className="font-medium">إدارة حجوزاتك أو البحث بكود الحجز</span>
-          <Search className="w-4 h-4 text-cut-gold flex-shrink-0" />
+          <Search className={`h-4 w-4 shrink-0 ${s.compactIcon}`} />
         </Link>
       </div>
     );
   }
 
   const showForm = variant === "form" || (variant === "embedded" && !phoneProp);
+  const pad = surface === "brand" && variant === "form" ? "px-0" : "px-6";
 
   return (
-    <div className="px-6 pt-4 pb-2" dir="rtl">
-      {showForm && (
+    <div className={`relative ${pad} pb-2 pt-4`} dir="rtl">
+      <BookDelayedWaitingOverlay
+        busy={loading}
+        delayMs={700}
+        lang="ar"
+        label="جاري تحميل الحجوزات…"
+      />
+      {showForm ? (
         <form onSubmit={handleSubmitPhone} className="mb-4 space-y-2">
-          <label htmlFor="upcoming-phone" className="block text-xs text-cut-ivory/50">
+          <label htmlFor="upcoming-phone" className={`block text-xs ${s.label}`}>
             أدخل رقم هاتفك لعرض الحجوزات القادمة
           </label>
           <div className="flex gap-2">
@@ -150,73 +161,65 @@ export default function CustomerUpcomingBookings({
               value={phoneInput}
               onChange={(e) => setPhoneInput(e.target.value)}
               disabled={Boolean(rateLimitUntil && rateRemaining > 0)}
-              className="flex-1 rounded-xl bg-white/5 border border-white/10 text-cut-ivory text-sm px-3 py-2.5"
+              className={`min-w-0 flex-1 ${s.input}`}
               placeholder="01xxxxxxxxx"
               dir="ltr"
             />
             <button
               type="submit"
               disabled={loading || Boolean(rateLimitUntil && rateRemaining > 0)}
-              className="px-4 rounded-xl bg-cut-gold text-black text-sm font-bold disabled:opacity-50"
+              className={`shrink-0 ${s.primaryBtn} !py-2.5`}
             >
               عرض
             </button>
           </div>
-          <p className="text-[11px] text-cut-ivory/30">
-            لن يتم حفظ رقم الهاتف تلقائياً على هذا الجهاز.
-          </p>
+          <p className={`text-[11px] ${s.hint}`}>لن يتم حفظ رقم الهاتف تلقائياً على هذا الجهاز.</p>
         </form>
-      )}
+      ) : null}
 
-      {error && (
-        <div
-          className="mb-3 px-3 py-2 rounded-xl bg-red-500/10 border border-red-500/20 text-red-300 text-xs text-center"
-          aria-live="assertive"
-          role="alert"
-        >
+      {error ? (
+        <div className={`mb-3 ${s.errorBox}`} aria-live="assertive" role="alert">
           {error}
-          {rateRemaining > 0 && (
+          {rateRemaining > 0 ? (
             <p className="mt-1 font-bold tabular-nums">
               حاول مرة أخرى بعد {rateRemaining} ثانية
             </p>
-          )}
-          {requestId && (
-            <p className="mt-1 text-[10px] text-cut-ivory/30">رقم مرجع الخطأ: {requestId}</p>
-          )}
+          ) : null}
+          {requestId ? (
+            <p className={`mt-1 text-[10px] ${s.errorMeta}`}>رقم مرجع الخطأ: {requestId}</p>
+          ) : null}
         </div>
-      )}
+      ) : null}
 
-      {loading && <BookingSkeleton />}
+      {loading ? <BookingSkeleton surface={surface} /> : null}
 
-      {!loading && searched && !error && bookings.length === 0 && activePhone && (
-        <p className="text-center text-cut-ivory/40 text-sm py-4" aria-live="polite">
+      {!loading && searched && !error && bookings.length === 0 && activePhone ? (
+        <p className={`py-4 text-center text-sm ${s.mutedText}`} aria-live="polite">
           لا توجد حجوزات قادمة لهذا الرقم
         </p>
-      )}
+      ) : null}
 
-      {!loading && bookings.length > 0 && (
+      {!loading && bookings.length > 0 ? (
         <>
           <button
             type="button"
             onClick={() => setExpanded((v) => !v)}
-            className="flex items-center justify-between w-full mb-3 group"
+            className="group mb-3 flex w-full items-center justify-between"
           >
             <div className="flex items-center gap-2">
-              <span className="text-cut-ivory/70 text-xs font-bold">
+              <span className={s.listTitle}>
                 {bookings.length === 1 ? "تذكير بحجزك القادم" : "حجوزاتك القادمة"}
               </span>
-              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-cut-gold/15 text-cut-gold border border-cut-gold/20">
-                {bookings.length}
-              </span>
+              <span className={s.listCount}>{bookings.length}</span>
             </div>
             {expanded ? (
-              <ChevronUp className="w-3.5 h-3.5 text-cut-ivory/30" />
+              <ChevronUp className={`h-3.5 w-3.5 ${s.chevron}`} />
             ) : (
-              <ChevronDown className="w-3.5 h-3.5 text-cut-ivory/30" />
+              <ChevronDown className={`h-3.5 w-3.5 ${s.chevron}`} />
             )}
           </button>
 
-          {expanded && (
+          {expanded ? (
             <div className="space-y-3">
               {bookings.map((b, i) => (
                 <BookingManagementCard
@@ -225,19 +228,20 @@ export default function CustomerUpcomingBookings({
                   phone={activePhone}
                   onUpdated={handleUpdated}
                   isPrimary={i === 0}
+                  surface={surface}
                 />
               ))}
             </div>
-          )}
+          ) : null}
         </>
-      )}
+      ) : null}
 
-      {loading && (
+      {loading ? (
         <span className="sr-only" aria-live="polite">
           جاري تحميل الحجوزات
-          <Loader2 className="w-4 h-4" />
+          <Loader2 className="h-4 w-4" />
         </span>
-      )}
+      ) : null}
     </div>
   );
 }

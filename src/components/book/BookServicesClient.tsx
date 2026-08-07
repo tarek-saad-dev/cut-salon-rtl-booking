@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "r
 import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { BookFlowChrome } from "@/components/book/BookFlowChrome";
+import { BookDelayedWaitingOverlay } from "@/components/book/BookDelayedWaitingOverlay";
 import BookingServiceStep from "@/components/booking-services/BookingServiceStep";
 import { useBranch } from "@/context/BranchContext";
 import { useLanguage } from "@/context/LanguageContext";
@@ -171,6 +172,12 @@ export default function BookServicesClient() {
           } as CSSProperties
         }
       >
+        <BookDelayedWaitingOverlay
+          busy={loading}
+          delayMs={800}
+          lang={lang}
+          label={ar ? "جاري تحميل الخدمات…" : "Loading services…"}
+        />
         {loading && services.length === 0 ? (
           <div className="flex items-center justify-center gap-2 px-5 py-20 text-sm text-cut-black/55">
             <Loader2 className="h-4 w-4 animate-spin" />

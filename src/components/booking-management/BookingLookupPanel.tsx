@@ -17,12 +17,22 @@ import {
   normalizeEgyptianPhone,
 } from "@/lib/booking-management/display";
 import BookingManagementCard from "@/components/booking-management/BookingManagementCard";
+import { BookDelayedWaitingOverlay } from "@/components/book/BookDelayedWaitingOverlay";
+import {
+  bookingMgmtSurface,
+  type BookingMgmtSurface,
+} from "@/lib/booking-management/surface";
 
 interface BookingLookupPanelProps {
   initialCode?: string;
+  surface?: BookingMgmtSurface;
 }
 
-export default function BookingLookupPanel({ initialCode }: BookingLookupPanelProps) {
+export default function BookingLookupPanel({
+  initialCode,
+  surface = "dark",
+}: BookingLookupPanelProps) {
+  const s = bookingMgmtSurface[surface];
   const [codeInput, setCodeInput] = useState(initialCode ?? "");
   const [phoneInput, setPhoneInput] = useState("");
   const [needPhone, setNeedPhone] = useState(false);
@@ -159,7 +169,14 @@ export default function BookingLookupPanel({ initialCode }: BookingLookupPanelPr
   void queryKeyLabel; // documentation marker for safe keys (no raw token)
 
   return (
-    <div className="space-y-4" dir="rtl">
+    <div className="relative space-y-4" dir="rtl">
+      <BookDelayedWaitingOverlay
+        busy={loading}
+        delayMs={700}
+        lang="ar"
+        tone="slots"
+        label="جاري البحث عن الحجز…"
+      />
       <form
         onSubmit={(e) => {
           e.preventDefault();
@@ -168,7 +185,7 @@ export default function BookingLookupPanel({ initialCode }: BookingLookupPanelPr
         className="space-y-3"
       >
         <div>
-          <label htmlFor="lookup-code" className="block text-xs text-cut-ivory/50 mb-1.5">
+          <label htmlFor="lookup-code" className={`mb-1.5 block text-xs ${s.label}`}>
             كود الحجز
           </label>
           <input
@@ -176,7 +193,7 @@ export default function BookingLookupPanel({ initialCode }: BookingLookupPanelPr
             value={codeInput}
             onChange={(e) => setCodeInput(e.target.value)}
             disabled={loading || rateBlocked}
-            className="w-full rounded-xl bg-white/5 border border-white/10 text-cut-ivory text-sm px-3 py-2.5 font-mono tracking-wide"
+            className={`w-full font-mono tracking-wide ${s.input}`}
             placeholder="BK-XXXXXXXX"
             dir="ltr"
             autoComplete="off"
@@ -184,9 +201,9 @@ export default function BookingLookupPanel({ initialCode }: BookingLookupPanelPr
           />
         </div>
 
-        {needPhone && (
+        {needPhone ? (
           <div>
-            <label htmlFor="lookup-phone" className="block text-xs text-cut-ivory/50 mb-1.5">
+            <label htmlFor="lookup-phone" className={`mb-1.5 block text-xs ${s.label}`}>
               رقم الهاتف المستخدم في الحجز
             </label>
             <input
@@ -196,30 +213,28 @@ export default function BookingLookupPanel({ initialCode }: BookingLookupPanelPr
               value={phoneInput}
               onChange={(e) => setPhoneInput(e.target.value)}
               disabled={loading || rateBlocked}
-              className="w-full rounded-xl bg-white/5 border border-white/10 text-cut-ivory text-sm px-3 py-2.5"
+              className={`w-full ${s.input}`}
               placeholder="01xxxxxxxxx"
               dir="ltr"
               autoComplete="tel"
             />
-            <p className="text-[11px] text-cut-ivory/30 mt-1">
-              لن يتم حفظ رقم الهاتف تلقائياً.
-            </p>
+            <p className={`mt-1 text-[11px] ${s.hint}`}>لن يتم حفظ رقم الهاتف تلقائياً.</p>
           </div>
-        )}
+        ) : null}
 
         <button
           type="submit"
           disabled={loading || rateBlocked}
-          className="w-full py-3 rounded-xl bg-cut-gold text-black font-bold text-sm disabled:opacity-50 inline-flex items-center justify-center gap-2"
+          className={`inline-flex w-full items-center justify-center gap-2 ${s.primaryBtn}`}
         >
           {loading ? (
             <>
-              <Loader2 className="w-4 h-4 animate-spin" />
+              <Loader2 className="h-4 w-4 animate-spin" />
               جاري البحث...
             </>
           ) : (
             <>
-              <Search className="w-4 h-4" />
+              <Search className="h-4 w-4" />
               عرض الحجز
             </>
           )}
@@ -227,32 +242,30 @@ export default function BookingLookupPanel({ initialCode }: BookingLookupPanelPr
       </form>
 
       <div aria-live="polite">
-        {error && (
-          <div
-            className="px-3 py-2 rounded-xl bg-red-500/10 border border-red-500/20 text-red-300 text-xs text-center"
-            role="alert"
-          >
+        {error ? (
+          <div className={s.errorBox} role="alert">
             {error}
-            {rateRemaining > 0 && (
+            {rateRemaining > 0 ? (
               <p className="mt-1 font-bold tabular-nums">
                 حاول مرة أخرى بعد {rateRemaining} ثانية
               </p>
-            )}
-            {requestId && (
-              <p className="mt-1 text-[10px] text-cut-ivory/30">رقم مرجع الخطأ: {requestId}</p>
-            )}
+            ) : null}
+            {requestId ? (
+              <p className={`mt-1 text-[10px] ${s.errorMeta}`}>رقم مرجع الخطأ: {requestId}</p>
+            ) : null}
           </div>
-        )}
+        ) : null}
 
-        {booking && (
+        {booking ? (
           <BookingManagementCard
             booking={booking}
             phone={ownershipMode === "phone" ? normalizeEgyptianPhone(phoneInput) : null}
             onUpdated={setBooking}
             isPrimary
             allowCancel={!isMinimalOwnership(booking)}
+            surface={surface}
           />
-        )}
+        ) : null}
       </div>
     </div>
   );
