@@ -44,9 +44,8 @@ export default function BookServicesClient() {
   const branchCode =
     normalizeBranchCode(selectedBranch?.branchCode ?? "") || branchFromQuery;
 
-  const visitTypeHref = branchCode
-    ? `/book/visit-type?branch=${encodeURIComponent(branchCode)}`
-    : "/book";
+  const visitTypeHref = "/book";
+  const backLabel = ar ? "رجوع لاختيار الفرع" : "Back to locations";
 
   useEffect(() => {
     if (isLoadingBranches) return;
@@ -150,7 +149,7 @@ export default function BookServicesClient() {
   return (
     <BookFlowChrome
       backHref={visitTypeHref}
-      backLabel={ar ? "رجوع لنوع الزيارة" : "Back to visit type"}
+      backLabel={backLabel}
       footer={false}
       heroTitle={ar ? "اختر خدمتك الأساسية" : "Choose your core service"}
       heroMeta={

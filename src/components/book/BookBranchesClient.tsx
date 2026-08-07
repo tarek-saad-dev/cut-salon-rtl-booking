@@ -31,7 +31,9 @@ export default function BookBranchesClient() {
 
   const onSelect = (branch: PublicBranch) => {
     selectBranch(branch);
-    router.push(`/book/visit-type?branch=${encodeURIComponent(branch.branchCode)}`);
+    router.push(
+      `/book/services?branch=${encodeURIComponent(branch.branchCode)}&visit=individual`,
+    );
   };
 
   return (
