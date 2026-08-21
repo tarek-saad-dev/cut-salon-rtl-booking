@@ -38,8 +38,8 @@ export const CAMP_CAESAR_OPENING_2026: CampaignConfig = {
     ar: "احجز الآن في كامب شيزار واحصل على خصم 50% على كل الخدمات في زيارتك الأولى.",
   },
   bookCta: {
-    en: "Book now · Get 50% off",
-    ar: "احجز الآن · خصم 50%",
+    en: "Get 50% off",
+    ar: "احصل على خصم 50%",
   },
   locationUrl: "https://maps.app.goo.gl/217r3pLutcKFAW2x7",
   showModalEveryHours: 24,

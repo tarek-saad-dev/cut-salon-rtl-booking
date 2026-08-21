@@ -125,6 +125,13 @@ export default function CampCaesarCampaign() {
       setExperienceOpen(false);
       setOpeningOpen(false);
       setShowPill(false);
+      // Clear campaign history markers without history.back() racing router.push
+      if (
+        typeof window !== "undefined" &&
+        (window.history.state?.[HISTORY_OPENING] || window.history.state?.[HISTORY_EXPERIENCE])
+      ) {
+        window.history.replaceState({}, "");
+      }
       router.push(
         `/book?mode=nearest&branch=${encodeURIComponent(config.branchCode)}`,
       );
@@ -137,9 +144,6 @@ export default function CampCaesarCampaign() {
   }, [openCampBooking]);
 
   const handleOpeningBook = useCallback(() => {
-    if (window.history.state?.[HISTORY_OPENING]) {
-      window.history.back();
-    }
     openCampBooking("opening_sheet");
   }, [openCampBooking]);
 

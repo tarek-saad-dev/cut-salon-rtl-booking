@@ -202,6 +202,18 @@ export const landingCopy = {
       ar: "يسرى قمحة، فلمنج، قسم أول الرمل، الإسكندرية",
       en: "Yousry Kamha, Fleming, El Raml 1st, Alexandria",
     },
+    campBranchName: { ar: "فرع كامب شيزار", en: "Camp Caesar branch" },
+    campBranchAddress: {
+      ar: "كامب شيزار، الإسكندرية — أحدث فروع CUT",
+      en: "Camp Caesar, Alexandria — CUT’s newest home",
+    },
+    campOpeningBadge: { ar: "افتتاح جديد", en: "Grand opening" },
+    campOpeningStatus: { ar: "مفتوح الآن", en: "Now open" },
+    campOpeningOffer: {
+      ar: "خصم 50% على كل الخدمات في زيارتك الأولى",
+      en: "50% off every service on your first visit",
+    },
+    campBookCta: { ar: "احجز في كامب شيزار", en: "Book Camp Caesar" },
     mapLink: { ar: "الموقع على الخريطة", en: "View on map" },
     rights: {
       ar: "جميع الحقوق محفوظة.",
