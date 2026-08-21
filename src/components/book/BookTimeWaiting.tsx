@@ -41,46 +41,66 @@ function StraightRazor({ className }: { className?: string }) {
 }
 
 function StickyMan({ className }: { className?: string }) {
+  // Fixed SVG paths only — never morph `d` (incompatible cubic morphs flood
+  // the console with "Unexpected end of attribute" every animation frame).
   return (
     <svg viewBox="0 0 48 64" fill="none" className={className} aria-hidden>
       {/* head */}
       <circle cx="24" cy="10" r="7" stroke="currentColor" strokeWidth="2.4" />
       {/* body */}
       <path d="M24 17v20" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" />
-      {/* arms — flailing */}
-      <motion.path
-        d="M24 26c-7-2-11 2-14 8"
-        stroke="currentColor"
-        strokeWidth="2.4"
-        strokeLinecap="round"
-        animate={{ d: ["M24 26c-7-2-11 2-14 8", "M24 26c-8 1-12-4-13-10", "M24 26c-7-2-11 2-14 8"] }}
+      {/* left arm — flail via rotate, fixed path */}
+      <motion.g
+        style={{ transformOrigin: "24px 26px" }}
+        animate={{ rotate: [-28, 18, -28] }}
         transition={{ duration: 0.35, repeat: Infinity, ease: "easeInOut" }}
-      />
-      <motion.path
-        d="M24 26c7-2 11 2 14 8"
-        stroke="currentColor"
-        strokeWidth="2.4"
-        strokeLinecap="round"
-        animate={{ d: ["M24 26c7-2 11 2 14 8", "M24 26c8 1 12-4 13-10", "M24 26c7-2 11 2 14 8"] }}
+      >
+        <path
+          d="M24 26c-7-2-11 2-14 8"
+          stroke="currentColor"
+          strokeWidth="2.4"
+          strokeLinecap="round"
+        />
+      </motion.g>
+      {/* right arm */}
+      <motion.g
+        style={{ transformOrigin: "24px 26px" }}
+        animate={{ rotate: [28, -18, 28] }}
         transition={{ duration: 0.35, repeat: Infinity, ease: "easeInOut", delay: 0.08 }}
-      />
-      {/* legs — running */}
-      <motion.path
-        d="M24 37c-5 6-7 14-6 20"
-        stroke="currentColor"
-        strokeWidth="2.4"
-        strokeLinecap="round"
-        animate={{ d: ["M24 37c-5 6-7 14-6 20", "M24 37c-2 8 2 14 8 18", "M24 37c-5 6-7 14-6 20"] }}
+      >
+        <path
+          d="M24 26c7-2 11 2 14 8"
+          stroke="currentColor"
+          strokeWidth="2.4"
+          strokeLinecap="round"
+        />
+      </motion.g>
+      {/* left leg — run cycle via rotate, fixed path */}
+      <motion.g
+        style={{ transformOrigin: "24px 37px" }}
+        animate={{ rotate: [22, -26, 22] }}
         transition={{ duration: 0.28, repeat: Infinity, ease: "easeInOut" }}
-      />
-      <motion.path
-        d="M24 37c5 6 7 14 6 20"
-        stroke="currentColor"
-        strokeWidth="2.4"
-        strokeLinecap="round"
-        animate={{ d: ["M24 37c5 6 7 14 6 20", "M24 37c2 8-2 14-8 18", "M24 37c5 6 7 14 6 20"] }}
+      >
+        <path
+          d="M24 37c-5 6-7 14-6 20"
+          stroke="currentColor"
+          strokeWidth="2.4"
+          strokeLinecap="round"
+        />
+      </motion.g>
+      {/* right leg */}
+      <motion.g
+        style={{ transformOrigin: "24px 37px" }}
+        animate={{ rotate: [-22, 26, -22] }}
         transition={{ duration: 0.28, repeat: Infinity, ease: "easeInOut", delay: 0.14 }}
-      />
+      >
+        <path
+          d="M24 37c5 6 7 14 6 20"
+          stroke="currentColor"
+          strokeWidth="2.4"
+          strokeLinecap="round"
+        />
+      </motion.g>
     </svg>
   );
 }

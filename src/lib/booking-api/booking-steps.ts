@@ -31,9 +31,8 @@ export interface GetBookingStepsInput {
 /**
  * Single source of visible booking steps for desktop and mobile steppers.
  *
- * Multi-branch barber-first:
- *   appointment_scope → branch (only if specific_branch) → service → date → …
- * Single-branch / branch-first: unchanged Phase 1B sequence.
+ * Barber-first: auto all-branches (no scope/branch chooser), date before service.
+ * Branch-first: unchanged Phase 1B sequence.
  */
 export function getBookingSteps(input: GetBookingStepsInput): BookingStepId[] {
   const {
@@ -41,20 +40,23 @@ export function getBookingSteps(input: GetBookingStepsInput): BookingStepId[] {
     initialMode,
     branchResolved,
     servicePreselected = false,
-    multiBranchBarber = false,
-    availabilityScope = null,
   } = input;
 
   const steps: BookingStepId[] = [];
   const modeLocked = entryMode === "barber_first" || Boolean(initialMode);
   const isBarberFirst = entryMode === "barber_first";
 
-  if (isBarberFirst && multiBranchBarber) {
-    steps.push("appointment_scope");
-    if (availabilityScope === "specific_branch" && !branchResolved) {
-      steps.push("branch");
+  if (isBarberFirst) {
+    // Skip appointment_scope + branch — availability is always all branches.
+    if (!servicePreselected) {
+      steps.push("date", "service", "time", "details", "review");
+    } else {
+      steps.push("date", "time", "details", "review");
     }
-  } else if (!branchResolved) {
+    return steps;
+  }
+
+  if (!branchResolved) {
     steps.push("branch");
   }
 
@@ -87,16 +89,18 @@ export function recoverStepInSequence(
   currentStep: string,
   sequence: BookingStepId[],
 ): BookingStepId {
-  if (sequence.length === 0) return "service";
+  if (sequence.length === 0) return "date";
   const normalized =
     currentStep === "success"
       ? "review"
       : currentStep === "slots"
         ? "date"
-        : currentStep;
+        : currentStep === "appointment_scope" || currentStep === "branch"
+          ? sequence[0]
+          : currentStep;
   const idx = sequence.indexOf(normalized as BookingStepId);
   if (idx >= 0) return sequence[idx];
-  if (sequence.includes("appointment_scope")) return "appointment_scope";
+  if (sequence.includes("date")) return "date";
   if (sequence.includes("service")) return "service";
   return sequence[0];
 }

@@ -12,6 +12,8 @@ import { useLanguage } from "@/context/LanguageContext";
 import {
   getAvailableDays,
   getAvailableSlots,
+  getBarberAvailableDays,
+  getBarberAvailableSlots,
   type AvailableDay,
   type AvailableSlot,
 } from "@/lib/booking-api";
@@ -93,6 +95,16 @@ export default function BookTimeClient() {
   const professional = draft?.professional ?? null;
   const isNearest = !professional || professional.kind === "nearest";
   const empId = professional?.kind === "specific" ? professional.id : undefined;
+  const availabilityScope = draft?.availabilityScope ?? null;
+  const useCrossBranch =
+    availabilityScope === "all_branches" &&
+    professional?.kind === "specific" &&
+    empId != null;
+  const allowedBranchesForBarber = useMemo(() => {
+    if (!useCrossBranch) return branches;
+    // Prefer intersection of public branches; if draft only has catalog branch, use all public.
+    return branches;
+  }, [useCrossBranch, branches]);
 
   const phoneHref = branchCode
     ? `/book/phone?branch=${encodeURIComponent(branchCode)}&visit=${visitKind}`
@@ -130,25 +142,42 @@ export default function BookTimeClient() {
 
   useEffect(() => {
     if (!branchCode || !serviceIds.length) return;
+    if (useCrossBranch && empId == null) return;
     let cancelled = false;
     const controller = new AbortController();
     (async () => {
       setDaysLoading(true);
       setDaysError(false);
       try {
-        const res = await getAvailableDays(
-          {
-            branchCode,
-            serviceIds,
-            mode: isNearest ? "nearest" : "specific",
-            ...(empId != null ? { empId } : {}),
-          },
-          controller.signal,
-        );
-        if (cancelled) return;
-        const available = (res.data ?? []).filter((d) => d.available);
-        setDays(available);
-        setSelectedDate((prev) => prev ?? available[0]?.date ?? null);
+        if (useCrossBranch && empId != null) {
+          const res = await getBarberAvailableDays(
+            {
+              empId,
+              serviceIds,
+              scope: "all_branches",
+              allowedBranches: allowedBranchesForBarber,
+            },
+            controller.signal,
+          );
+          if (cancelled) return;
+          const available = (res.data?.days ?? []).filter((d) => d.available);
+          setDays(available);
+          setSelectedDate((prev) => prev ?? available[0]?.date ?? null);
+        } else {
+          const res = await getAvailableDays(
+            {
+              branchCode,
+              serviceIds,
+              mode: isNearest ? "nearest" : "specific",
+              ...(empId != null ? { empId } : {}),
+            },
+            controller.signal,
+          );
+          if (cancelled) return;
+          const available = (res.data ?? []).filter((d) => d.available);
+          setDays(available);
+          setSelectedDate((prev) => prev ?? available[0]?.date ?? null);
+        }
       } catch {
         if (!cancelled) {
           setDaysError(true);
@@ -162,28 +191,44 @@ export default function BookTimeClient() {
       cancelled = true;
       controller.abort();
     };
-  }, [branchCode, serviceIds, isNearest, empId]);
+  }, [branchCode, serviceIds, isNearest, empId, useCrossBranch, allowedBranchesForBarber]);
 
   useEffect(() => {
     if (!branchCode || !selectedDate || !serviceIds.length) return;
+    if (useCrossBranch && empId == null) return;
     let cancelled = false;
     const controller = new AbortController();
     (async () => {
       setSlotsLoading(true);
       setSlotsError(false);
       try {
-        const res = await getAvailableSlots(
-          {
-            branchCode,
-            date: selectedDate,
-            serviceIds,
-            mode: isNearest ? "nearest" : "specific",
-            ...(empId != null ? { empId } : {}),
-          },
-          controller.signal,
-        );
-        if (cancelled) return;
-        setSlots((res.data ?? []).filter((s) => s.available !== false));
+        if (useCrossBranch && empId != null) {
+          const res = await getBarberAvailableSlots(
+            {
+              empId,
+              serviceIds,
+              date: selectedDate,
+              scope: "all_branches",
+              allowedBranches: allowedBranchesForBarber,
+            },
+            controller.signal,
+          );
+          if (cancelled) return;
+          setSlots((res.data?.slots ?? []).filter((s) => s.available !== false));
+        } else {
+          const res = await getAvailableSlots(
+            {
+              branchCode,
+              date: selectedDate,
+              serviceIds,
+              mode: isNearest ? "nearest" : "specific",
+              ...(empId != null ? { empId } : {}),
+            },
+            controller.signal,
+          );
+          if (cancelled) return;
+          setSlots((res.data ?? []).filter((s) => s.available !== false));
+        }
       } catch {
         if (!cancelled) {
           setSlotsError(true);
@@ -197,31 +242,36 @@ export default function BookTimeClient() {
       cancelled = true;
       controller.abort();
     };
-  }, [branchCode, selectedDate, serviceIds, isNearest, empId]);
+  }, [branchCode, selectedDate, serviceIds, isNearest, empId, useCrossBranch, allowedBranchesForBarber]);
 
   const today = startOfDay(new Date());
   const visibleDays = days.slice(dayWindowStart, dayWindowStart + 5);
   const periods = groupByPeriod(slots, ar);
 
   const onPickSlot = (slot: AvailableSlot) => {
-    if (!draft || !branchCode || !selectedDate) return;
+    if (!draft || !selectedDate) return;
+    const slotBranch =
+      normalizeBranchCode(slot.branchCode ?? "") ||
+      branchCode;
+    if (!slotBranch) return;
     const nextDraft = {
       ...draft,
-      branchCode,
+      branchCode: slotBranch,
       visit: visitKind as "individual" | "group",
+      availabilityScope: draft.availabilityScope ?? null,
       appointment: {
         date: selectedDate,
         time: slot.time,
         empId: slot.empId ?? empId ?? null,
         dayOffset: slot.dayOffset ?? 0,
-        branchCode: slot.branchCode ?? branchCode,
-        branchName: slot.branchName ?? selectedBranch?.branchName ?? branchCode,
+        branchCode: slotBranch,
+        branchName: slot.branchName ?? selectedBranch?.branchName ?? slotBranch,
         barberName: slot.barberName ?? null,
       },
     };
     saveBookFlowDraft(nextDraft);
     router.push(
-      `/book/confirm?branch=${encodeURIComponent(branchCode)}&visit=${visitKind}`,
+      `/book/confirm?branch=${encodeURIComponent(slotBranch)}&visit=${visitKind}`,
     );
   };
 
@@ -331,12 +381,19 @@ export default function BookTimeClient() {
                       <div className="flex flex-wrap gap-2.5">
                         {period.slots.map((slot) => (
                           <button
-                            key={`${slot.time}-${slot.empId ?? "x"}-${slot.dayOffset ?? 0}`}
+                            key={`${slot.time}-${slot.empId ?? "x"}-${slot.branchCode ?? "b"}-${slot.dayOffset ?? 0}`}
                             type="button"
                             onClick={() => onPickSlot(slot)}
                             className="min-h-11 min-w-[5.5rem] rounded-full border border-cut-black bg-cut-ivory px-4 text-sm font-semibold tabular-nums text-cut-black transition hover:bg-cut-warm-paper"
                           >
-                            {slot.label ?? formatSlotLabel(slot.time, lang)}
+                            <span className="block">
+                              {slot.label ?? formatSlotLabel(slot.time, lang)}
+                            </span>
+                            {useCrossBranch && slot.branchName ? (
+                              <span className="mt-0.5 block text-[10px] font-medium text-cut-black/45">
+                                {slot.branchName}
+                              </span>
+                            ) : null}
                           </button>
                         ))}
                       </div>

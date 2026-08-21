@@ -6,6 +6,13 @@ import {
   prioritizeBarberProfilePrefetch,
 } from "@/lib/booking-api/barber-profile-prefetch";
 import type { BarberProfileSeed } from "@/lib/booking-api/barber-profile-cache";
+import {
+  ensureBookingV2Bootstrap,
+  loadV2Matrix,
+  resolveV2Scope,
+} from "@/hooks/bookingFlowV2Support";
+import { findBootstrapBarber } from "@/lib/bookingV2/catalogMap";
+import { isBookingV2ClientEnabled } from "@/lib/bookingV2/feature";
 
 type UseBarberProfilePrefetchOptions = {
   empId?: number | null;
@@ -14,8 +21,31 @@ type UseBarberProfilePrefetchOptions = {
   observeViewport?: boolean;
 };
 
+function warmMatrixForEmp(empId: number) {
+  if (!isBookingV2ClientEnabled()) return;
+  void (async () => {
+    try {
+      const boot = await ensureBookingV2Bootstrap();
+      const barber = findBootstrapBarber(boot, empId);
+      const scope = resolveV2Scope({
+        mode: "specific",
+        empId,
+        barber,
+        selectedBranchCode: null,
+        allBranchCodes: boot.branches.map((b) => b.branchCode),
+        availabilityScope: "all_branches",
+        specificBranchCode: null,
+      });
+      await loadV2Matrix(scope, 14);
+    } catch {
+      /* best-effort */
+    }
+  })();
+}
+
 /**
  * Prefetch hooks for discovery cards: pointer enter, focus, touch, viewport.
+ * Also warms V2 availability matrix for that employee (intent only — not every card on load).
  */
 export function useBarberCardPrefetch({
   empId,
@@ -43,6 +73,7 @@ export function useBarberCardPrefetch({
   const prefetchNow = () => {
     if (empId == null || empId <= 0) return;
     prioritizeBarberProfilePrefetch(empId, seed ?? undefined);
+    warmMatrixForEmp(empId);
   };
 
   return {

@@ -32,3 +32,4 @@ dist-ssr
 
 # Booking redesign evidence screenshots
 docs/booking-redesign/**/screenshots/
+.vercel

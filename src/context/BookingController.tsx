@@ -8,14 +8,9 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import BookingModal, {
-  type BarberBookingInfo,
-  type BookingMode,
-} from "@/components/BookingModal";
+import type { BarberBookingInfo, BookingMode } from "@/components/BookingModal";
 import type { BarberAvailabilityScope, BookingEntryMode } from "@/lib/booking-api";
 import type { BarberProfileSeed } from "@/lib/booking-api/barber-profile-cache";
-import { seedBarberProfileCache } from "@/lib/booking-api/barber-profile-cache";
-import { bookingPerfMark } from "@/lib/booking-api/booking-perf";
 
 export type OpenBookingIntent = {
   barber: BarberBookingInfo;
@@ -24,16 +19,11 @@ export type OpenBookingIntent = {
   initialServiceMatches?: string[];
   initialServiceIds?: number[];
   bookingNote?: string;
-  /** Explicit branch from a branch-specific CTA (not browsing persistence). */
   explicitEntryBranchCode?: string | null;
-  /** Preselect scope when entry CTA is branch-specific. */
   initialAvailabilityScope?: BarberAvailabilityScope | null;
-  /** Optional lightweight profile seed (branches / serviceIds). */
   profileSeed?: BarberProfileSeed | null;
-  /** Prefill customer details from book-flow phone lookup. */
   initialCustomerPhone?: string;
   initialCustomerName?: string;
-  /** Prefill date + slot from book-flow time step; opens on details. */
   initialAppointment?: {
     date: string;
     time: string;
@@ -43,7 +33,6 @@ export type OpenBookingIntent = {
     branchName?: string | null;
     barberName?: string | null;
   };
-  /** After create success, redirect to /book/confirmed instead of modal success. */
   fromBookFlow?: boolean;
 };
 
@@ -55,90 +44,29 @@ type BookingControllerValue = {
 
 const BookingControllerContext = createContext<BookingControllerValue | null>(null);
 
-const DEFAULT_BARBER: BarberBookingInfo = {
-  name: "",
-  image: null,
-};
-
 /**
- * Hosts a single BookingModal above language-specific homepage trees so
- * switching language does not unmount an in-progress booking.
+ * Live CTAs must use /book (O2). openBooking redirects to /book for accidental callers.
+ * BookingModal is not mounted.
  */
 export function BookingControllerProvider({ children }: { children: ReactNode }) {
-  const [open, setOpen] = useState(false);
-  /** Bumped on each open so BookingModal remounts with a clean draft for the new intent. */
-  const [sessionKey, setSessionKey] = useState(0);
-  const [barber, setBarber] = useState<BarberBookingInfo>(DEFAULT_BARBER);
-  const [entryMode, setEntryMode] = useState<BookingEntryMode>("branch_first");
-  const [initialMode, setInitialMode] = useState<BookingMode | undefined>();
-  const [initialServiceMatches, setInitialServiceMatches] = useState<string[] | undefined>();
-  const [initialServiceIds, setInitialServiceIds] = useState<number[] | undefined>();
-  const [bookingNote, setBookingNote] = useState<string | undefined>();
-  const [explicitEntryBranchCode, setExplicitEntryBranchCode] = useState<string | null>(null);
-  const [initialAvailabilityScope, setInitialAvailabilityScope] =
-    useState<BarberAvailabilityScope | null>(null);
-  const [profileSeed, setProfileSeed] = useState<BarberProfileSeed | null>(null);
-  const [initialCustomerPhone, setInitialCustomerPhone] = useState<string | undefined>();
-  const [initialCustomerName, setInitialCustomerName] = useState<string | undefined>();
-  const [initialAppointment, setInitialAppointment] = useState<
-    OpenBookingIntent["initialAppointment"] | undefined
-  >();
-  const [fromBookFlow, setFromBookFlow] = useState(false);
+  const [open] = useState(false);
 
-  const closeBooking = useCallback(() => {
-    setOpen(false);
-  }, []);
+  const closeBooking = useCallback(() => {}, []);
 
   const openBooking = useCallback((intent: OpenBookingIntent) => {
-    const mode = intent.initialMode;
-    const nextEntry =
-      intent.entryMode ??
-      (mode === "specific" && intent.barber.id != null ? "barber_first" : "branch_first");
-
-    if (
-      nextEntry === "barber_first" &&
-      (intent.barber.id == null ||
-        !Number.isFinite(intent.barber.id) ||
-        intent.barber.id <= 0)
-    ) {
-      return;
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams();
+    if (intent.entryMode === "barber_first" && intent.barber.id) {
+      params.set("mode", "barber");
+      params.set("empId", String(intent.barber.id));
+    } else if (intent.initialMode === "nearest") {
+      params.set("mode", "nearest");
     }
-
-    bookingPerfMark("barber_card_click", {
-      empId: intent.barber.id,
-    });
-
-    const seed: BarberProfileSeed | null =
-      intent.profileSeed ??
-      (intent.barber.id != null && intent.barber.publicBranches
-        ? {
-            empId: intent.barber.id,
-            displayName: intent.barber.name,
-            image: intent.barber.image,
-            publicBranches: intent.barber.publicBranches,
-            serviceIds: intent.barber.serviceIds,
-          }
-        : null);
-
-    if (seed) {
-      seedBarberProfileCache(seed);
+    if (intent.explicitEntryBranchCode) {
+      params.set("branch", intent.explicitEntryBranchCode);
     }
-
-    setBarber(intent.barber);
-    setEntryMode(nextEntry);
-    setInitialMode(intent.initialMode);
-    setInitialServiceMatches(intent.initialServiceMatches);
-    setInitialServiceIds(intent.initialServiceIds);
-    setBookingNote(intent.bookingNote);
-    setExplicitEntryBranchCode(intent.explicitEntryBranchCode ?? null);
-    setInitialAvailabilityScope(intent.initialAvailabilityScope ?? null);
-    setProfileSeed(seed);
-    setInitialCustomerPhone(intent.initialCustomerPhone);
-    setInitialCustomerName(intent.initialCustomerName);
-    setInitialAppointment(intent.initialAppointment);
-    setFromBookFlow(Boolean(intent.fromBookFlow));
-    setSessionKey((k) => k + 1);
-    setOpen(true);
+    const q = params.toString();
+    window.location.assign(q ? `/book?${q}` : "/book");
   }, []);
 
   const value = useMemo(
@@ -149,26 +77,6 @@ export function BookingControllerProvider({ children }: { children: ReactNode })
   return (
     <BookingControllerContext.Provider value={value}>
       {children}
-      <BookingModal
-        key={sessionKey}
-        open={open}
-        onOpenChange={(next) => {
-          if (!next) closeBooking();
-        }}
-        barber={barber}
-        entryMode={entryMode}
-        initialMode={initialMode}
-        initialServiceMatches={initialServiceMatches}
-        initialServiceIds={initialServiceIds}
-        bookingNote={bookingNote}
-        explicitEntryBranchCode={explicitEntryBranchCode}
-        initialAvailabilityScope={initialAvailabilityScope}
-        profileSeed={profileSeed}
-        initialCustomerPhone={initialCustomerPhone}
-        initialCustomerName={initialCustomerName}
-        initialAppointment={initialAppointment}
-        fromBookFlow={fromBookFlow}
-      />
     </BookingControllerContext.Provider>
   );
 }

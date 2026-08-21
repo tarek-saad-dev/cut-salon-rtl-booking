@@ -45,6 +45,8 @@ export interface BookingServiceStepProps {
   totalDuration?: number;
   selectedCount?: number;
   onContinue?: () => void;
+  onBack?: () => void;
+  backLabel?: string;
   /** Restore previously active category filter when returning to this step. */
   initialFilter?: ServiceCategoryFilterId | null;
   onFilterChange?: (filter: ServiceCategoryFilterId) => void;
@@ -214,6 +216,8 @@ export default function BookingServiceStep({
   totalDuration = 0,
   selectedCount = 0,
   onContinue,
+  onBack,
+  backLabel,
   initialFilter = null,
   onFilterChange,
   hideIntro = false,
@@ -544,6 +548,8 @@ export default function BookingServiceStep({
         onBrowseServices={browseServicesFromCart}
         onContinue={onContinue}
         continueDisabled={selectedCount === 0}
+        onBack={onBack}
+        backLabel={backLabel}
         addedSignal={addedSignal}
       />
     </div>

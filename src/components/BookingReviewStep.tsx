@@ -51,7 +51,7 @@ export interface BookingReviewStepProps {
   customerName: string;
   customerPhone: string;
   totalDurationLabel: string;
-  totalPriceLabel: string;
+  totalPriceLabel: ReactNode;
   mutationBanner?: ReactNode;
   onEditBranch?: () => void;
   onEditBarber?: () => void;

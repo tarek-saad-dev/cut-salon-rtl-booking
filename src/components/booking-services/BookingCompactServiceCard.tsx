@@ -6,6 +6,7 @@ import { getServiceVisual } from "@/lib/booking/service-visuals";
 import type { ServicePresentation } from "@/lib/booking/service-presentation";
 import { useBookingTranslations } from "@/hooks/useBookingTranslations";
 import BookingServiceImage from "./BookingServiceImage";
+import BookingPromoPrice from "@/components/booking/BookingPromoPrice";
 
 interface BookingCompactServiceCardProps {
   service: BookingService;
@@ -98,7 +99,7 @@ export default function BookingCompactServiceCard({
             {format.duration(service.durationMinutes)}
           </span>
           <span className="font-bold tabular-nums text-[var(--booking-text)]">
-            {format.price(service.price)}
+            <BookingPromoPrice amount={service.price} formatPrice={format.price} />
           </span>
         </div>
 

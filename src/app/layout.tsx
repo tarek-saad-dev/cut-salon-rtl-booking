@@ -1,10 +1,15 @@
 import type { Metadata } from "next";
+import type { CSSProperties } from "react";
 import { Alexandria } from "next/font/google";
 import localFont from "next/font/local";
 import "./globals.css";
 import { Providers } from "@/components/providers";
 import MainNav from "@/components/MainNav";
 import CampCaesarCampaign from "@/components/campaign/CampCaesarCampaign";
+import {
+  CAMPAIGN_ANNOUNCEMENT_BAR_HEIGHT_PX,
+  getActiveCampaign,
+} from "@/config/campaigns";
 
 const alexandria = Alexandria({
   variable: "--font-alexandria-loaded",
@@ -73,7 +78,7 @@ export const metadata: Metadata = {
         alt: "Cut Salon - Premium Barber Salon in Alexandria",
       },
     ],
-    locale: "en_US",
+    locale: "ar_EG",
     type: "website",
   },
 
@@ -91,8 +96,22 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const campaignActive = Boolean(getActiveCampaign());
+  const campaignBarHeight = campaignActive
+    ? `${CAMPAIGN_ANNOUNCEMENT_BAR_HEIGHT_PX}px`
+    : "0px";
+
   return (
-    <html lang="en" dir="ltr" suppressHydrationWarning>
+    <html
+      lang="ar"
+      dir="rtl"
+      suppressHydrationWarning
+      style={
+        {
+          ["--cut-campaign-bar-height"]: campaignBarHeight,
+        } as CSSProperties
+      }
+    >
       <body className={`${alexandria.variable} ${laxr.variable} antialiased`}>
         <Providers>
           <CampCaesarCampaign />

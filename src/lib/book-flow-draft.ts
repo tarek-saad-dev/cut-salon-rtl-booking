@@ -37,6 +37,8 @@ export type BookFlowDraft = {
   appointment?: BookFlowAppointment | null;
   /** Promo / referral code from review step (UI; passed as booking note). */
   promoCode?: string | null;
+  /** Barber-first multi-branch scope (mirrors BookingModal). */
+  availabilityScope?: "all_branches" | "specific_branch" | null;
 };
 
 export function saveBookFlowDraft(draft: BookFlowDraft) {
@@ -61,6 +63,11 @@ export function readBookFlowDraft(): BookFlowDraft | null {
       customer: normalizeCustomer(parsed.customer),
       appointment: normalizeAppointment(parsed.appointment),
       promoCode: normalizePromoCode(parsed.promoCode),
+      availabilityScope:
+        parsed.availabilityScope === "all_branches" ||
+        parsed.availabilityScope === "specific_branch"
+          ? parsed.availabilityScope
+          : null,
     };
   } catch {
     return null;

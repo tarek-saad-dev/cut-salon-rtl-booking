@@ -17,6 +17,7 @@ import {
 import { normalizeBranchCode } from "@/lib/booking-api/branch-code";
 import { getCoreServiceIdSet, isCoreService } from "@/lib/bookingServiceGroups";
 import { readBookFlowDraft, saveBookFlowDraft } from "@/lib/book-flow-draft";
+import { clearBookEntryBarber, readBookEntryBarber } from "@/lib/book-flow-entry";
 
 type VisitKind = "individual" | "group";
 
@@ -32,6 +33,17 @@ export default function BookServicesClient() {
   const branchFromQuery = normalizeBranchCode(searchParams.get("branch") ?? "");
   const visitParam = searchParams.get("visit");
   const visitKind: VisitKind = visitParam === "group" ? "group" : "individual";
+  const barberFromQuery = Number(searchParams.get("barber") || 0);
+  const lockedBarberId =
+    Number.isFinite(barberFromQuery) && barberFromQuery > 0 ? barberFromQuery : null;
+  const scopeFromQuery = searchParams.get("scope");
+  const entryBarber = lockedBarberId ? readBookEntryBarber() : null;
+  const barberFirst =
+    lockedBarberId != null && entryBarber != null && entryBarber.id === lockedBarberId;
+  const availabilityScope =
+    scopeFromQuery === "all_branches" || scopeFromQuery === "specific_branch"
+      ? scopeFromQuery
+      : entryBarber?.availabilityScope ?? null;
 
   const [services, setServices] = useState<BookingService[]>([]);
   const [categories, setCategories] = useState<BookingServiceCategory[]>([]);
@@ -44,8 +56,30 @@ export default function BookServicesClient() {
   const branchCode =
     normalizeBranchCode(selectedBranch?.branchCode ?? "") || branchFromQuery;
 
-  const visitTypeHref = "/book";
-  const backLabel = ar ? "رجوع لاختيار الفرع" : "Back to locations";
+  const multiBranchBarber = Boolean(barberFirst && (entryBarber?.branchCodes.length ?? 0) > 1);
+
+  const backHref = barberFirst
+    ? multiBranchBarber
+      ? availabilityScope === "specific_branch"
+        ? `/book?mode=location&barber=${lockedBarberId}`
+        : `/book?mode=scope&barber=${lockedBarberId}`
+      : "/book?mode=barber"
+    : "/book?mode=location";
+  const backLabel = barberFirst
+    ? multiBranchBarber
+      ? availabilityScope === "specific_branch"
+        ? ar
+          ? "رجوع لاختيار الفرع"
+          : "Back to locations"
+        : ar
+          ? "رجوع لخيارات المواعيد"
+          : "Back to appointment options"
+      : ar
+        ? "رجوع لاختيار الحلاق"
+        : "Back to barbers"
+    : ar
+      ? "رجوع لاختيار الفرع"
+      : "Back to locations";
 
   useEffect(() => {
     if (isLoadingBranches) return;
@@ -135,27 +169,57 @@ export default function BookServicesClient() {
   const onContinue = () => {
     if (!branchCode || selectedIds.length === 0) return;
     const existing = readBookFlowDraft();
+    const entry = readBookEntryBarber();
+    const professional =
+      lockedBarberId && entry?.id === lockedBarberId
+        ? {
+            kind: "specific" as const,
+            id: entry.id,
+            name: entry.name,
+            image: entry.image,
+            role: entry.role,
+            serviceIds: entry.serviceIds,
+          }
+        : (existing?.professional ?? null);
+
+    const scope =
+      availabilityScope ??
+      entry?.availabilityScope ??
+      (professional?.kind === "specific" ? "specific_branch" : null);
+
     saveBookFlowDraft({
       branchCode,
       visit: visitKind,
       serviceIds: selectedIds,
-      professional: existing?.professional ?? null,
+      professional,
+      availabilityScope: scope,
     });
+
     const code = encodeURIComponent(branchCode);
+    if (professional?.kind === "specific") {
+      clearBookEntryBarber();
+      router.push(`/book/cart?branch=${code}&visit=${visitKind}`);
+      return;
+    }
+
     const services = selectedIds.join(",");
     router.push(`/book/professionals?branch=${code}&visit=${visitKind}&services=${services}`);
   };
 
   return (
     <BookFlowChrome
-      backHref={visitTypeHref}
+      backHref={backHref}
       backLabel={backLabel}
       footer={false}
       heroTitle={ar ? "اختر خدمتك الأساسية" : "Choose your core service"}
       heroMeta={
-        ar
-          ? "ابدأ بالخدمة الرئيسية المناسبة لك"
-          : "Start with the main service that suits you"
+        barberFirst
+          ? ar
+            ? `الحجز مع ${entryBarber.name} — ابدأ بالخدمة الرئيسية`
+            : `Booking with ${entryBarber.name} — start with your main service`
+          : ar
+            ? "ابدأ بالخدمة الرئيسية المناسبة لك"
+            : "Start with the main service that suits you"
       }
     >
       <div

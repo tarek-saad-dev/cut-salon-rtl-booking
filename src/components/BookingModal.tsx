@@ -62,6 +62,8 @@ import {
   type BarberAvailableSlot,
   type BarberProfileSeed,
 } from "@/lib/booking-api";
+import { BookingPricePromoProvider } from "@/context/BookingPricePromoContext";
+import BookingPromoPrice from "@/components/booking/BookingPromoPrice";
 
 type ClientLookupStatus = "idle" | "loading" | "found" | "new";
 
@@ -175,6 +177,11 @@ interface BookingModalProps {
   };
   /** Redirect to /book/confirmed after successful create. */
   fromBookFlow?: boolean;
+  /**
+   * dialog = overlay modal (homepage / campaigns).
+   * page = full-viewport in-route flow (e.g. /book/with/[empId]).
+   */
+  presentation?: "dialog" | "page";
 }
 
 function stepForHeader(step: BookingUiStep): string {
@@ -202,7 +209,9 @@ const BookingModal = ({
   initialCustomerName,
   initialAppointment,
   fromBookFlow = false,
+  presentation = "dialog",
 }: BookingModalProps) => {
+  const isPagePresentation = presentation === "page";
   const { lang, dir, t, format } = useBookingTranslations();
   const router = useRouter();
   const BackIcon = dir === "rtl" ? ArrowRight : ArrowLeft;
@@ -671,7 +680,7 @@ const BookingModal = ({
     if (!effectiveBranch.branchCode || flow.step !== "branch") return;
     if (isBarberFirst && branchResolution.resolution === "none") return;
     if (multiBranchBarber) return;
-    flow.setStep(effectiveInitialMode || isBarberFirst ? "service" : "mode");
+    flow.setStep(effectiveInitialMode || isBarberFirst ? "date" : "mode");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     open,
@@ -712,7 +721,7 @@ const BookingModal = ({
     }
     flow.commitDraftBranch(branch);
     selectBranch(branch);
-    flow.setStep(effectiveInitialMode || isBarberFirst ? "service" : "mode");
+    flow.setStep(effectiveInitialMode || isBarberFirst ? "date" : "mode");
   };
 
   const handleCoreServiceSelect = (id: number) => {
@@ -1263,10 +1272,17 @@ const BookingModal = ({
               selectedCount={selectedServices.length}
               onContinue={() => {
                 if (flow.mode === "specific" && flow.barber?.id == null) return;
+                if (isBarberFirst && flow.selectedDate) {
+                  // Date already chosen — load times for the selected services.
+                  flow.setStep("time");
+                  return;
+                }
                 flow.goToSlotsStep();
               }}
             />
-            <BookingNavFooter onBack={handleBack} />
+            <BookingNavFooter
+              onBack={visibleStepIds[0] === "service" ? undefined : handleBack}
+            />
           </div>
         );
       }
@@ -1369,7 +1385,15 @@ const BookingModal = ({
               legend={showBranchIndicators}
               activeBranchCode={activeBranchCode}
             />
-            <BookingNavFooter onBack={handleBack} backLabel={t("actions.backToServices")} />
+            <BookingNavFooter
+              onBack={visibleStepIds[0] === "date" ? undefined : handleBack}
+              backLabel={
+                visibleStepIds.indexOf("service") >= 0 &&
+                visibleStepIds.indexOf("date") > visibleStepIds.indexOf("service")
+                  ? t("actions.backToServices")
+                  : undefined
+              }
+            />
           </div>
         );
       }
@@ -1503,7 +1527,12 @@ const BookingModal = ({
                 isLoading={slotsBusy}
               />
             )}
-            <BookingNavFooter onBack={handleBack} backLabel={t("actions.backToDate")} />
+            <BookingNavFooter
+              onBack={handleBack}
+              backLabel={
+                isBarberFirst ? t("actions.backToServices") : t("actions.backToDate")
+              }
+            />
           </div>
         );
       }
@@ -1704,7 +1733,11 @@ const BookingModal = ({
                 : "—"
             }
             totalPriceLabel={
-              p?.totalPrice != null ? format.price(p.totalPrice) : "—"
+              p?.totalPrice != null ? (
+                <BookingPromoPrice amount={p.totalPrice} formatPrice={format.price} />
+              ) : (
+                "—"
+              )
             }
             mutationBanner={renderMutationBanner()}
             onEditBranch={() => flow.setStep(isBarberFirst ? "branch" : "branch")}
@@ -1810,149 +1843,202 @@ const BookingModal = ({
       ? t("loading.planning")
       : t("loading.creating");
 
+  const bookingTitle = isNearestMode
+    ? t("header.bookNearest")
+    : t("header.bookWith", { name: barber.name });
+
+  const flowPanel = (
+    <BookingPricePromoProvider
+      branchCode={
+        flow.effectiveBranchCode ??
+        displayBranchCode ??
+        explicitEntryBranchCode ??
+        null
+      }
+    >
+      <div
+        className={`relative flex min-h-0 w-full flex-col overflow-hidden ${
+          isPagePresentation ? "min-h-[100svh] max-h-[100svh]" : "max-h-[92vh]"
+        }`}
+      >
+        <BookDelayedWaitingOverlay
+          busy={waitingBusy}
+          delayMs={waitingDelayMs}
+          lang={lang}
+          tone={waitingTone}
+          label={waitingLabel}
+          variant="absolute"
+        />
+
+        <VisuallyHidden>
+          {isPagePresentation ? (
+            <h1>{bookingTitle}</h1>
+          ) : (
+            <DialogTitle>{bookingTitle}</DialogTitle>
+          )}
+        </VisuallyHidden>
+        {isPagePresentation ? (
+          <p className="sr-only">{t("header.dialogDescription")}</p>
+        ) : (
+          <DialogDescription className="sr-only">
+            {t("header.dialogDescription")}
+          </DialogDescription>
+        )}
+
+        <BookingStepHeader
+          steps={headerSteps}
+          currentStep={activeStepId}
+          barberName={displayBarberName}
+          onClose={handleClose}
+          nearest={isNearestMode}
+          allCompleted={flow.step === "success"}
+        />
+
+        <div className="flex flex-col md:flex-row flex-1 min-h-0 overflow-hidden">
+          <aside
+            className={`hidden md:block w-72 flex-shrink-0 border-e border-[var(--booking-border-subtle)] bg-[var(--booking-bg)] ${
+              isReviewOrSuccess(flow.step) ? "overflow-hidden" : "overflow-y-auto"
+            }`}
+            data-testid="booking-desktop-sidebar"
+          >
+            <BookingInfoPanel
+              barber={{ ...barber, name: sidebarBarberName }}
+              selectedDate={flow.selectedDate}
+              selectedTime={flow.selectedSlot?.time}
+              service={
+                selectedServices.length > 0 ? (
+                  <SelectedServicesBilingual services={selectedServices} />
+                ) : undefined
+              }
+              servicePrice={
+                flow.plan?.totalPrice ?? (flow.catalogPrice || undefined)
+              }
+              serviceDuration={
+                flow.plan?.totalDurationMinutes ??
+                (flow.catalogDuration || undefined)
+              }
+              mode={flow.mode}
+              branchName={displayBranchName}
+              branchCode={displayBranchCode}
+              density={isReviewOrSuccess(flow.step) ? "identity" : "compact"}
+            />
+          </aside>
+
+          <div className="flex-1 flex flex-col overflow-hidden min-h-0 bg-[var(--booking-bg)]">
+            <div
+              className={`flex-1 bg-[var(--booking-bg)] min-h-0 ${
+                flow.step === "service"
+                  ? "flex flex-col overflow-hidden"
+                  : "overflow-y-auto"
+              }`}
+            >
+              {flow.step !== "service" &&
+                flow.step !== "success" &&
+                flow.step !== "review" &&
+                flow.step !== "branch" &&
+                (flow.serviceIds.length > 0 ||
+                  flow.selectedDate ||
+                  flow.selectedSlot) && (
+                  <div className="md:hidden bg-[var(--booking-surface)] px-4 py-2.5 border-b border-[var(--booking-border-subtle)] flex-shrink-0">
+                    <div className="flex items-center gap-2 text-xs">
+                      {selectedServices.length > 0 && (
+                        <SelectedServicesBilingual
+                          services={selectedServices}
+                          compact
+                        />
+                      )}
+                      {flow.selectedDate && (
+                        <span className="text-[var(--booking-text-secondary)]">
+                          {format.shortDate(flow.selectedDate)}
+                        </span>
+                      )}
+                      {flow.selectedSlot && (
+                        <span className="text-[var(--booking-text)] font-medium">
+                          {format.time(flow.selectedSlot.time)}
+                        </span>
+                      )}
+                      <button
+                        type="button"
+                        onClick={handleBack}
+                        className="ms-auto text-[var(--booking-text)] font-medium flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--booking-accent)] rounded"
+                      >
+                        <BackIcon className="w-3 h-3" />
+                        {t("actions.edit")}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              {renderContent()}
+            </div>
+          </div>
+        </div>
+
+        <div className="md:hidden flex-shrink-0 border-t border-[var(--booking-border-subtle)] bg-[var(--booking-bg)] px-4 py-3 safe-area-pb">
+          <div className="flex items-center gap-3">
+            {isNearestMode ? (
+              <div className="w-9 h-9 rounded-full bg-[var(--booking-accent-soft)] flex items-center justify-center border border-[var(--booking-border)] flex-shrink-0">
+                <Zap className="w-4 h-4 text-[var(--booking-accent)]" />
+              </div>
+            ) : (
+              <div className="w-9 h-9 rounded-full overflow-hidden border border-[var(--booking-border)] flex-shrink-0">
+                <BarberPhoto
+                  src={barber.image}
+                  name={barber.name}
+                  imgClassName="w-full h-full object-cover object-top"
+                />
+              </div>
+            )}
+            <div className="flex-1 min-w-0">
+              <p className="font-bold text-[var(--booking-text)] text-sm leading-none">
+                {displayBarberName}
+              </p>
+              <p className="text-[var(--booking-text-secondary)] text-xs mt-0.5">
+                {isNearestMode
+                  ? t("header.nearestBarber")
+                  : barber.specialty ||
+                    barber.role ||
+                    t("header.professionalBarber")}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </BookingPricePromoProvider>
+  );
+
+  if (isPagePresentation) {
+    if (!open) return null;
+    return (
+      <>
+        <ConfettiBurst trigger={confettiTrigger} particleCount={55} />
+        <main
+          className="min-h-[100svh] w-full bg-[var(--booking-bg)] booking-modal-shell"
+          dir={dir}
+          lang={lang}
+          data-testid="booking-page-shell"
+        >
+          {flowPanel}
+        </main>
+      </>
+    );
+  }
+
   return (
     <>
       <ConfettiBurst trigger={confettiTrigger} particleCount={55} />
-      <Dialog open={open} onOpenChange={(next) => { if (!next) handleClose(); }}>
+      <Dialog
+        open={open}
+        onOpenChange={(next) => {
+          if (!next) handleClose();
+        }}
+      >
         <DialogContent
           hideDefaultClose
           className="max-w-4xl w-[95vw] max-h-[92vh] p-0 bg-[var(--booking-bg)] border border-[var(--booking-border)] overflow-hidden gap-0 rounded-2xl shadow-2xl booking-modal-shell"
           dir={dir}
           lang={lang}
         >
-          <div className="relative flex max-h-[92vh] min-h-0 w-full flex-col overflow-hidden">
-          <BookDelayedWaitingOverlay
-            busy={waitingBusy}
-            delayMs={waitingDelayMs}
-            lang={lang}
-            tone={waitingTone}
-            label={waitingLabel}
-            variant="absolute"
-          />
-
-          <VisuallyHidden>
-            <DialogTitle>
-              {isNearestMode
-                ? t("header.bookNearest")
-                : t("header.bookWith", { name: barber.name })}
-            </DialogTitle>
-          </VisuallyHidden>
-          <DialogDescription className="sr-only">
-            {t("header.dialogDescription")}
-          </DialogDescription>
-
-          <BookingStepHeader
-            steps={headerSteps}
-            currentStep={activeStepId}
-            barberName={displayBarberName}
-            onClose={handleClose}
-            nearest={isNearestMode}
-            allCompleted={flow.step === "success"}
-          />
-
-          <div className="flex flex-col md:flex-row flex-1 min-h-0 overflow-hidden">
-            <aside
-              className={`hidden md:block w-72 flex-shrink-0 border-e border-[var(--booking-border-subtle)] bg-[var(--booking-bg)] ${
-                isReviewOrSuccess(flow.step) ? "overflow-hidden" : "overflow-y-auto"
-              }`}
-              data-testid="booking-desktop-sidebar"
-            >
-              <BookingInfoPanel
-                barber={{ ...barber, name: sidebarBarberName }}
-                selectedDate={flow.selectedDate}
-                selectedTime={flow.selectedSlot?.time}
-                service={
-                  selectedServices.length > 0 ? (
-                    <SelectedServicesBilingual services={selectedServices} />
-                  ) : undefined
-                }
-                servicePrice={
-                  flow.plan?.totalPrice ??
-                  (flow.catalogPrice || undefined)
-                }
-                serviceDuration={
-                  flow.plan?.totalDurationMinutes ??
-                  (flow.catalogDuration || undefined)
-                }
-                mode={flow.mode}
-                branchName={displayBranchName}
-                branchCode={displayBranchCode}
-                density={isReviewOrSuccess(flow.step) ? "identity" : "compact"}
-              />
-            </aside>
-
-            <div className="flex-1 flex flex-col overflow-hidden min-h-0 bg-[var(--booking-bg)]">
-              <div
-                className={`flex-1 bg-[var(--booking-bg)] min-h-0 ${
-                  flow.step === "service"
-                    ? "flex flex-col overflow-hidden"
-                    : "overflow-y-auto"
-                }`}
-              >
-                {flow.step !== "service" &&
-                  flow.step !== "success" &&
-                  flow.step !== "review" &&
-                  flow.step !== "branch" &&
-                  (flow.serviceIds.length > 0 || flow.selectedDate || flow.selectedSlot) && (
-                    <div className="md:hidden bg-[var(--booking-surface)] px-4 py-2.5 border-b border-[var(--booking-border-subtle)] flex-shrink-0">
-                      <div className="flex items-center gap-2 text-xs">
-                        {selectedServices.length > 0 && (
-                          <SelectedServicesBilingual services={selectedServices} compact />
-                        )}
-                        {flow.selectedDate && (
-                          <span className="text-[var(--booking-text-secondary)]">
-                            {format.shortDate(flow.selectedDate)}
-                          </span>
-                        )}
-                        {flow.selectedSlot && (
-                          <span className="text-[var(--booking-text)] font-medium">
-                            {format.time(flow.selectedSlot.time)}
-                          </span>
-                        )}
-                        <button
-                          type="button"
-                          onClick={handleBack}
-                          className="ms-auto text-[var(--booking-text)] font-medium flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--booking-accent)] rounded"
-                        >
-                          <BackIcon className="w-3 h-3" />
-                          {t("actions.edit")}
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                {renderContent()}
-              </div>
-            </div>
-          </div>
-
-          <div className="md:hidden flex-shrink-0 border-t border-[var(--booking-border-subtle)] bg-[var(--booking-bg)] px-4 py-3 safe-area-pb">
-            <div className="flex items-center gap-3">
-              {isNearestMode ? (
-                <div className="w-9 h-9 rounded-full bg-[var(--booking-accent-soft)] flex items-center justify-center border border-[var(--booking-border)] flex-shrink-0">
-                  <Zap className="w-4 h-4 text-[var(--booking-accent)]" />
-                </div>
-              ) : (
-                <div className="w-9 h-9 rounded-full overflow-hidden border border-[var(--booking-border)] flex-shrink-0">
-                  <BarberPhoto
-                    src={barber.image}
-                    name={barber.name}
-                    imgClassName="w-full h-full object-cover object-top"
-                  />
-                </div>
-              )}
-              <div className="flex-1 min-w-0">
-                <p className="font-bold text-[var(--booking-text)] text-sm leading-none">
-                  {displayBarberName}
-                </p>
-                <p className="text-[var(--booking-text-secondary)] text-xs mt-0.5">
-                  {isNearestMode
-                    ? t("header.nearestBarber")
-                    : barber.specialty || barber.role || t("header.professionalBarber")}
-                </p>
-              </div>
-            </div>
-          </div>
-          </div>
+          {flowPanel}
         </DialogContent>
       </Dialog>
     </>

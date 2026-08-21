@@ -57,7 +57,7 @@ export default function MainNav() {
   const router = useRouter();
   const { lang, dir, setLang } = useLanguage();
   const label = (key: keyof typeof navigationLabels) => navigationLabels[key][lang];
-  const barberHref = lang === "en" ? "/#english-barbers" : "/#barbers";
+  const barberHref = "/#barbers";
   const closeMobileMenu = () => setMobileOpen(false);
   const goToBook = () => {
     closeMobileMenu();
@@ -120,10 +120,16 @@ export default function MainNav() {
 
   return (
     <>
+      {/* Temporary: keep full header visible under the fixed Camp Caesar bar */}
+      <div
+        className="w-full shrink-0"
+        style={{ height: "var(--cut-campaign-bar-height, 0px)" }}
+        aria-hidden
+      />
       <motion.header
-        initial={{ opacity: 0, y: -16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, ease: "easeOut" }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.45, ease: "easeOut" }}
         className="cut-nav-glass sticky top-[var(--cut-campaign-bar-height,0px)] z-50 w-full transition-[top] duration-200"
         dir={dir}
       >

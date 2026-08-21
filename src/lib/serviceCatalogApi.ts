@@ -1,4 +1,4 @@
-const API_BASE = (process.env.NEXT_PUBLIC_BOOKING_API_BASE_URL ?? "").replace(/\/$/, "");
+import { getBookingApiBaseUrl } from "@/lib/booking-api/env";
 
 export type ServiceCatalogService = {
   id: number;
@@ -28,7 +28,8 @@ type ServiceCatalogResponse = {
 };
 
 export async function getServiceCatalog(): Promise<ServiceCatalogCategory[]> {
-  const response = await fetch(`${API_BASE}/api/services/catalog?type=serv`, { cache: "no-store" });
+  const apiBase = getBookingApiBaseUrl();
+  const response = await fetch(`${apiBase}/api/services/catalog?type=serv`, { cache: "no-store" });
   const data: ServiceCatalogResponse | null = await response.json().catch(() => null);
 
   if (!response.ok || !data?.ok) {

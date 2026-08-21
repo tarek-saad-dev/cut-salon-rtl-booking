@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { ChevronLeft, ChevronRight, Scissors, Clock, Zap } from "lucide-react";
 import { type BarberBookingInfo } from "./BookingModal";
 import BarberPhoto from "./BarberPhoto";
@@ -13,8 +14,11 @@ import {
   type PublicBarber,
 } from "@/lib/booking-api";
 import { useBranch } from "@/context/BranchContext";
-import { useBookingController } from "@/context/BookingController";
+import { useLanguage } from "@/context/LanguageContext";
 import { useBarberCardPrefetch } from "@/hooks/useBarberCardPrefetch";
+import { landingCopy } from "@/lib/i18n/landing";
+import { tx } from "@/lib/i18n/tx";
+import type { Language } from "@/lib/i18n/types";
 
 type DisplayBarber = BarberBookingInfo & {
   buttonText: string;
@@ -26,14 +30,16 @@ function hasEmpId(barber: { id?: number } | null | undefined): barber is { id: n
   return barber?.id != null && Number.isFinite(barber.id) && barber.id > 0;
 }
 
-function apiToDisplay(b: PublicBarber): DisplayBarber {
+function apiToDisplay(b: PublicBarber, lang: Language): DisplayBarber {
+  const t = landingCopy.barbers;
+  const name = resolveBarberDisplayName(b, lang);
   return {
     id: b.id,
-    name: resolveBarberDisplayName(b, "ar"),
-    role: b.job ?? "حلاق محترف",
+    name,
+    role: b.job ?? tx(t.professionalRole, lang),
     image: resolveBarberPhotoUrl(b),
-    location: "Cut Salon · الإسكندرية",
-    buttonText: `احجز مع ${resolveBarberDisplayName(b, "ar")}`,
+    location: tx(t.location, lang),
+    buttonText: `${tx(t.bookWith, lang)} ${name}`,
     publicBranches: b.branches,
     serviceIds: b.serviceIds,
   };
@@ -58,10 +64,12 @@ const BarberCard = ({
   barber,
   onSelect,
   isActive,
+  unavailableLabel,
 }: {
   barber: DisplayBarber;
   onSelect: () => void;
   isActive?: boolean;
+  unavailableLabel: string;
 }) => {
   const canBook = hasEmpId(barber);
   const { rootRef, prefetchHandlers } = useBarberCardPrefetch({
@@ -115,9 +123,7 @@ const BarberCard = ({
             {barber.buttonText}
           </button>
         ) : (
-          <p className="w-full py-2.5 text-xs text-cut-soft-ivory/45">
-            الحجز الإلكتروني غير متاح لهذا الحلاق
-          </p>
+          <p className="w-full py-2.5 text-xs text-cut-soft-ivory/45">{unavailableLabel}</p>
         )}
       </div>
     </div>
@@ -137,22 +143,16 @@ type BookingGate =
   | { status: "unavailable"; message: string }
   | { status: "error"; message: string };
 
-const NEAREST_PLACEHOLDER_BARBER: DisplayBarber = {
-  name: "أقرب حلاق متاح",
-  image: null,
-  role: "أقرب حلاق متاح",
-  location: "Cut Salon · الإسكندرية",
-  buttonText: "احجز أقرب ميعاد",
-};
-
 const BarbersSection = () => {
+  const { lang, dir } = useLanguage();
+  const t = landingCopy.barbers;
   const [bookingGate, setBookingGate] = useState<BookingGate>({ status: "loading" });
   const [groomBooking, setGroomBooking] = useState<GroomBookingDetail | null>(null);
   const [barbers, setBarbers] = useState<DisplayBarber[]>([]);
   const [isLoadingBarbers, setIsLoadingBarbers] = useState(true);
   const [barbersError, setBarbersError] = useState<string | null>(null);
   const [barbersReload, setBarbersReload] = useState(0);
-  const { openBooking } = useBookingController();
+  const router = useRouter();
   const { isLoadingBranches, selectedBranch, branches } = useBranch();
 
   const railRef = useRef<HTMLDivElement>(null);
@@ -162,30 +162,11 @@ const BarbersSection = () => {
 
   const openBarberFirst = (barber: DisplayBarber) => {
     if (!hasEmpId(barber)) return;
-    openBooking({
-      barber,
-      entryMode: "barber_first",
-      initialMode: "specific",
-      profileSeed: {
-        empId: barber.id,
-        displayName: barber.name,
-        image: barber.image,
-        publicBranches: barber.publicBranches,
-        serviceIds: barber.serviceIds,
-      },
-    });
+    router.push(`/book?mode=barber&empId=${barber.id}`);
   };
 
-  const openNearestBooking = (groom?: GroomBookingDetail | null) => {
-    const detail = groom ?? groomBooking;
-    openBooking({
-      barber: NEAREST_PLACEHOLDER_BARBER,
-      entryMode: "branch_first",
-      initialMode: "nearest",
-      initialServiceMatches: detail?.serviceMatches,
-      initialServiceIds: detail?.serviceIds,
-      bookingNote: detail?.note,
-    });
+  const openNearestBooking = (_groom?: GroomBookingDetail | null) => {
+    router.push("/book?mode=nearest");
   };
 
   useEffect(() => {
@@ -204,20 +185,18 @@ const BarbersSection = () => {
             ? { status: "enabled" }
             : {
                 status: "unavailable",
-                message:
-                  result.message ||
-                  "الحجز غير متاح اليوم. برجاء اتصل أو احجز عبر الواتساب",
+                message: result.message || tx(t.bookingClosedDefault, lang),
               },
         );
       })
       .catch(() => {
-        if (!cancelled) setBookingGate({ status: "error", message: "تعذر التحقق من حالة الحجز" });
+        if (!cancelled) setBookingGate({ status: "error", message: tx(t.bookingStatusError, lang) });
       });
 
     return () => {
       cancelled = true;
     };
-  }, [isLoadingBranches, selectedBranch?.branchCode]);
+  }, [isLoadingBranches, selectedBranch?.branchCode, lang]);
 
   useEffect(() => {
     const handleBookNearest = () => {
@@ -244,13 +223,11 @@ const BarbersSection = () => {
     const handleBookBranch = (e: Event) => {
       const detail = (e as CustomEvent<{ branchCode: string; mode?: "nearest" | "specific" }>).detail;
       if (!detail?.branchCode) return;
-      openBooking({
-        barber: NEAREST_PLACEHOLDER_BARBER,
-        entryMode: "branch_first",
-        initialMode: detail.mode ?? "nearest",
-        explicitEntryBranchCode: detail.branchCode,
-        initialAvailabilityScope: "specific_branch",
+      const params = new URLSearchParams({
+        mode: detail.mode === "specific" ? "branch" : "nearest",
+        branch: detail.branchCode,
       });
+      router.push(`/book?${params.toString()}`);
     };
     window.addEventListener("cut:book-nearest", handleBookNearest);
     window.addEventListener("cut:book-groom", handleBookGroom);
@@ -262,7 +239,7 @@ const BarbersSection = () => {
       window.removeEventListener("cut:book-barber", handleBookBarber);
       window.removeEventListener("cut:book-branch", handleBookBranch);
     };
-  }, [barbers, groomBooking, openBooking, openBarberFirst, openNearestBooking]);
+  }, [barbers, groomBooking, router, openBarberFirst, openNearestBooking]);
 
   useEffect(() => {
     let cancelled = false;
@@ -275,15 +252,15 @@ const BarbersSection = () => {
           (res.data ?? []).filter((b) => hasEmpId(b)),
           branches,
         );
-        setBarbers(bookable.map(apiToDisplay));
+        setBarbers(bookable.map((b) => apiToDisplay(b, lang)));
         if (bookable.length === 0) {
-          setBarbersError("لا يوجد حلاقون متاحون للحجز الإلكتروني حالياً");
+          setBarbersError(tx(t.noBarbers, lang));
         }
       })
       .catch(() => {
         if (cancelled) return;
         setBarbers([]);
-        setBarbersError("تعذر تحميل قائمة الحلاقين، حاول مرة أخرى");
+        setBarbersError(tx(t.loadError, lang));
       })
       .finally(() => {
         if (!cancelled) setIsLoadingBarbers(false);
@@ -291,7 +268,7 @@ const BarbersSection = () => {
     return () => {
       cancelled = true;
     };
-  }, [barbersReload, branches]);
+  }, [barbersReload, branches, lang]);
 
   const updateRailState = useCallback(() => {
     const el = railRef.current;
@@ -337,7 +314,7 @@ const BarbersSection = () => {
     return (
       <section
         id="barbers"
-        dir="rtl"
+        dir={dir}
         className="relative isolate overflow-hidden bg-cut-black py-20 text-cut-ivory md:py-28"
       >
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_45%,rgba(74,0,15,0.62),transparent_48%)]" />
@@ -350,10 +327,10 @@ const BarbersSection = () => {
                 <Clock className="h-7 w-7 text-cut-bronze" />
               </div>
               <p className="mt-6 font-display text-xs tracking-[0.32em] text-cut-bronze">
-                CUT SALON / BOOKING
+                {tx(t.closedEyebrow, lang)}
               </p>
               <h2 className="cut-ar-section-heading mt-4 text-3xl font-black md:text-4xl">
-                الحجز الإلكتروني غير متاح حاليًا
+                {tx(t.closedTitle, lang)}
               </h2>
               <p className="mx-auto mt-4 max-w-md leading-8 text-cut-ivory/70">{message}</p>
               <div className="mx-auto mt-9 grid max-w-md gap-3 sm:grid-cols-2">
@@ -361,7 +338,7 @@ const BarbersSection = () => {
                   href="tel:035861483"
                   className="group flex min-h-14 flex-col items-center justify-center border border-cut-bronze/40 bg-cut-ivory/[0.03] px-4 transition hover:border-cut-warm-beige hover:bg-cut-burgundy/45"
                 >
-                  <span className="text-xs text-cut-ivory/55">اتصل للحجز</span>
+                  <span className="text-xs text-cut-ivory/55">{tx(t.callToBook, lang)}</span>
                   <span
                     className="mt-1 font-display text-lg tracking-[0.08em] text-cut-warm-beige"
                     dir="ltr"
@@ -373,7 +350,7 @@ const BarbersSection = () => {
                   href="tel:01012126899"
                   className="group flex min-h-14 flex-col items-center justify-center border border-cut-bronze/40 bg-cut-ivory/[0.03] px-4 transition hover:border-cut-warm-beige hover:bg-cut-burgundy/45"
                 >
-                  <span className="text-xs text-cut-ivory/55">اتصل للحجز</span>
+                  <span className="text-xs text-cut-ivory/55">{tx(t.callToBook, lang)}</span>
                   <span
                     className="mt-1 font-display text-lg tracking-[0.08em] text-cut-warm-beige"
                     dir="ltr"
@@ -390,14 +367,14 @@ const BarbersSection = () => {
   }
 
   return (
-    <section id="barbers" dir="rtl" className="relative overflow-hidden bg-cut-black py-20 md:py-28">
+    <section id="barbers" dir={dir} className="relative overflow-hidden bg-cut-black py-20 md:py-28">
       <div className="pointer-events-none absolute left-1/2 top-0 h-[620px] w-[620px] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(74,0,15,0.45),transparent_62%)]" />
       <div className="pointer-events-none absolute inset-x-0 top-24 h-40 bg-[radial-gradient(ellipse_at_center,rgba(210,183,163,0.08),transparent_70%)]" />
 
       <div className="container relative z-10 px-4">
         <div className="mb-0 text-center">
           <p className="cut-editorial-label mb-3 font-heading text-sm font-bold tracking-widest text-cut-bronze">
-            فريقنا
+            {tx(t.teamLabel, lang)}
           </p>
           <h2 className="cut-ar-section-heading relative mx-auto max-w-3xl text-3xl md:text-4xl lg:text-5xl">
             <span className="relative inline-block">
@@ -405,9 +382,9 @@ const BarbersSection = () => {
                 aria-hidden
                 className="pointer-events-none absolute -inset-x-8 -inset-y-4 rounded-full bg-[radial-gradient(ellipse_at_center,rgba(74,0,15,0.4),transparent_70%)] blur-xl"
               />
-              <span className="relative text-cut-ivory/95">اختَر </span>
+              <span className="relative text-cut-ivory/95">{tx(t.titleLead, lang)}</span>
               <span className="relative bg-[linear-gradient(115deg,#FCF9ED_0%,#F4EBDD_35%,#EFE4D2_65%,#FCF9ED_100%)] bg-[length:200%_100%] bg-clip-text text-transparent [animation:cut-barber-title-shine_5s_ease-in-out_infinite]">
-                حلاقك المفضل
+                {tx(t.titleAccent, lang)}
               </span>
             </span>
           </h2>
@@ -428,10 +405,10 @@ const BarbersSection = () => {
               />
               <Zap className="relative h-5 w-5 shrink-0 text-cut-burgundy transition-transform duration-300 group-hover:scale-110" />
               <span className="cut-ar-ui-title relative font-heading text-[15px] font-bold tracking-wide md:text-base">
-                اختار أقرب ميعاد
+                {tx(t.nearestCta, lang)}
               </span>
               <span className="relative rounded-full bg-cut-burgundy px-2.5 py-1 text-[10px] font-bold text-cut-soft-ivory shadow-sm">
-                أسرع
+                {tx(t.nearestBadge, lang)}
               </span>
             </button>
           </div>
@@ -440,9 +417,7 @@ const BarbersSection = () => {
 
         {/* Caption exactly centered between bottom line and barber cards */}
         <div className="flex items-center justify-center py-8">
-          <p className="text-center text-[13px] text-cut-soft-ivory/55">
-            أو تصفّح مواعيد الحلاقين المتاحة
-          </p>
+          <p className="text-center text-[13px] text-cut-soft-ivory/55">{tx(t.browseCaption, lang)}</p>
         </div>
 
         {barbersError && !isLoadingBarbers && (
@@ -456,7 +431,7 @@ const BarbersSection = () => {
               onClick={() => setBarbersReload((n) => n + 1)}
               className="inline-flex items-center gap-2 rounded-xl border border-cut-warm-beige/30 px-4 py-2 text-sm font-bold text-cut-warm-beige transition-colors hover:bg-cut-warm-beige/10"
             >
-              إعادة المحاولة
+              {tx(t.retry, lang)}
             </button>
           </div>
         )}
@@ -482,12 +457,13 @@ const BarbersSection = () => {
                   <div
                     key={`${barber.id}-${barber.name}`}
                     className="w-[min(78vw,280px)] flex-none snap-center"
-                    dir="rtl"
+                    dir={dir}
                   >
                     <BarberCard
                       barber={barber}
                       onSelect={() => openBarberFirst(barber)}
                       isActive={index === selectedIndex}
+                      unavailableLabel={tx(t.onlineUnavailableForBarber, lang)}
                     />
                   </div>
                 ))}
@@ -498,7 +474,7 @@ const BarbersSection = () => {
               type="button"
               onClick={() => scrollRail(-1)}
               disabled={!canScrollPrev}
-              aria-label="السابق"
+              aria-label={lang === "ar" ? "السابق" : "Previous"}
               className="flex h-9 w-9 items-center justify-center rounded-full border border-cut-warm-beige/35 bg-cut-wine-black transition-all active:scale-95 disabled:opacity-25"
             >
               <ChevronLeft className="h-4 w-4 text-cut-warm-beige" />
@@ -514,7 +490,7 @@ const BarbersSection = () => {
                       ? "w-5 bg-cut-warm-beige shadow-[0_0_10px_rgba(210,183,163,0.55)]"
                       : "w-1.5 bg-cut-soft-ivory/20 hover:bg-cut-soft-ivory/40"
                   }`}
-                  aria-label={`الحلاق ${idx + 1}`}
+                  aria-label={lang === "ar" ? `الحلاق ${idx + 1}` : `Barber ${idx + 1}`}
                 />
               ))}
             </div>
@@ -522,7 +498,7 @@ const BarbersSection = () => {
               type="button"
               onClick={() => scrollRail(1)}
               disabled={!canScrollNext}
-              aria-label="التالي"
+              aria-label={lang === "ar" ? "التالي" : "Next"}
               className="flex h-9 w-9 items-center justify-center rounded-full border border-cut-warm-beige/35 bg-cut-wine-black transition-all active:scale-95 disabled:opacity-25"
             >
               <ChevronRight className="h-4 w-4 text-cut-warm-beige" />
@@ -538,6 +514,7 @@ const BarbersSection = () => {
                   key={`${barber.id}-${barber.name}`}
                   barber={barber}
                   onSelect={() => openBarberFirst(barber)}
+                  unavailableLabel={tx(t.onlineUnavailableForBarber, lang)}
                 />
               ))}
         </div>

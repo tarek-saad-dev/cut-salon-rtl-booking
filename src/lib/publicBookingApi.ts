@@ -15,19 +15,11 @@
 
 // ─── Base URL ─────────────────────────────────────────────────────────────────
 
-const BOOKING_API_BASE_URL =
-  process.env.NEXT_PUBLIC_BOOKING_API_BASE_URL ||
-  process.env.NEXT_PUBLIC_API_BASE_URL ||
-  "";
+import { getBookingApiBaseUrl } from "@/lib/booking-api/env";
 
 function buildBookingApiUrl(path: string): string {
-  const base = BOOKING_API_BASE_URL.replace(/\/$/, "");
+  const base = getBookingApiBaseUrl();
   const cleanPath = path.startsWith("/") ? path : `/${path}`;
-  if (base.toLowerCase().includes("casher-five.vercel.app")) {
-    throw new Error(
-      "[publicBookingApi] REFUSING production API during local E2E — use http://localhost:5500",
-    );
-  }
   return `${base}${cleanPath}`;
 }
 

@@ -1,6 +1,7 @@
 /**
  * Phase 8B1 — controlled booking flow hook for BookingModal.
- * One selection source; plan then create; no legacy publicBookingApi.
+ * Local Booking V2 cutover: bootstrap + 14-day matrix + local FreeMask starts.
+ * Writes remain plan/create against BOOKING_API_BASE (production Casher or local Hawai).
  */
 "use client";
 
@@ -67,6 +68,24 @@ import {
 } from "@/lib/booking-api";
 import { getCachedCatalog, setCachedCatalog } from "@/lib/booking-api/session-cache";
 import { normalizeBranchCode } from "@/lib/booking-api/branch-code";
+import { isBookingV2ClientEnabled } from "@/lib/bookingV2/feature";
+import type { AvailabilityMatrix, BookingV2Bootstrap } from "@/lib/bookingV2/types";
+import {
+  applyLocalOccupancyToAllCachedMatrices,
+  applyLocalOccupancyToMatrix,
+  revalidateAvailabilityBusinessDate,
+  slotStartMin,
+} from "@/lib/bookingV2/occupyLocal";
+import { deriveDayOffsetForLegacyWrite, localDateToBusinessDate } from "@/lib/bookingV2/businessDate";
+import {
+  bootstrapBarberForFlow,
+  catalogFromBootstrap,
+  deriveV2Days,
+  deriveV2Slots,
+  ensureBookingV2Bootstrap,
+  loadV2Matrix,
+  resolveV2Scope,
+} from "@/hooks/bookingFlowV2Support";
 
 export type BookingUiStep =
   | "appointment_scope"
@@ -161,6 +180,7 @@ export function useBookingFlow(opts: {
     profileSeed = null,
   } = opts;
 
+  const bookingV2Enabled = isBookingV2ClientEnabled();
   const isBarberFirst = entryMode === "barber_first";
 
   const [step, setStep] = useState<BookingUiStep>("branch");
@@ -216,7 +236,7 @@ export function useBookingFlow(opts: {
 
   /** Multi-branch appointment search scope (barber-first only). */
   const [availabilityScope, setAvailabilityScopeState] = useState<BarberAvailabilityScope | null>(
-    initialAvailabilityScope,
+    initialAvailabilityScope ?? (entryMode === "barber_first" ? "all_branches" : null),
   );
   const [selectedSpecificBranchCode, setSelectedSpecificBranchCode] = useState<string | null>(
     normalizeBranchCode(explicitEntryBranchCode),
@@ -238,6 +258,13 @@ export function useBookingFlow(opts: {
   const [created, setCreated] = useState<BookingCreateResponse | null>(null);
   const [mutationUi, setMutationUi] = useState<FlowMutationUi>({ kind: "idle" });
   const [rateLimitTick, setRateLimitTick] = useState(0);
+
+  /** Booking V2: bootstrap + matrix — SoT for modal availability when enabled. */
+  const [v2Bootstrap, setV2Bootstrap] = useState<BookingV2Bootstrap | null>(null);
+  const [v2Matrix, setV2Matrix] = useState<AvailabilityMatrix | null>(null);
+  const [v2MatrixLoading, setV2MatrixLoading] = useState(false);
+  const [v2MatrixError, setV2MatrixError] = useState<string | null>(null);
+  const v2MatrixScopeKeyRef = useRef<string | null>(null);
 
   const selectionVersionRef = useRef(0);
   const daysAbortRef = useRef<AbortController | null>(null);
@@ -337,6 +364,244 @@ export function useBookingFlow(opts: {
       (availabilityScope === "specific_branch" &&
         Boolean(normalizeBranchCode(selectedSpecificBranchCode))));
 
+  const selectedServicesForDuration = useMemo(
+    () => services.filter((s) => serviceIds.includes(s.id)),
+    [services, serviceIds],
+  );
+  const v2DurationMinutes = useMemo(
+    () => selectedServicesForDuration.reduce((sum, s) => sum + (s.durationMinutes || 0), 0),
+    [selectedServicesForDuration],
+  );
+  /** Calendar can paint before services; probe a typical slot length for day availability. */
+  const v2CalendarDurationMinutes =
+    v2DurationMinutes > 0 ? v2DurationMinutes : isBarberFirst ? 30 : 0;
+  const v2IntervalMinutes =
+    config?.settings.slotIntervalMinutes ??
+    v2Bootstrap?.settings.slotIntervalMinutes ??
+    15;
+  const v2MinNotice =
+    config?.settings.minNoticeMinutes ?? v2Bootstrap?.settings.minNoticeMinutes ?? 15;
+
+  const v2BranchFilter = useMemo(() => {
+    if (!bookingV2Enabled) return null;
+    if (mode === "nearest") return effectiveBranchCode ?? branchCode ?? null;
+    if (availabilityScope === "all_branches") return null;
+    if (availabilityScope === "specific_branch") {
+      return selectedSpecificBranchCode ?? bookingBranchCode ?? null;
+    }
+    return bookingBranchCode ?? branchCode ?? null;
+  }, [
+    mode,
+    availabilityScope,
+    selectedSpecificBranchCode,
+    bookingBranchCode,
+    branchCode,
+    effectiveBranchCode,
+  ]);
+
+  const v2Scope = useMemo(() => {
+    if (!bookingV2Enabled || !v2Bootstrap) return null;
+    const allCodes = v2Bootstrap.branches.map((b) => b.branchCode);
+    const v2Barber = bootstrapBarberForFlow(v2Bootstrap, barber?.id);
+    return resolveV2Scope({
+      mode: mode === "nearest" ? "nearest" : "specific",
+      empId: mode === "specific" ? barber?.id : undefined,
+      barber: v2Barber,
+      selectedBranchCode: effectiveBranchCode ?? branchCode,
+      allBranchCodes: allCodes,
+      availabilityScope,
+      specificBranchCode: selectedSpecificBranchCode,
+    });
+  }, [
+    v2Bootstrap,
+    mode,
+    barber?.id,
+    effectiveBranchCode,
+    branchCode,
+    availabilityScope,
+    selectedSpecificBranchCode,
+  ]);
+
+  // ── Booking V2: bootstrap catalog (no config/services/barbers GETs) ─────────
+  useEffect(() => {
+    if (!bookingV2Enabled || !open) return;
+    let cancelled = false;
+    setCatalogLoading(true);
+    setCatalogError(null);
+    (async () => {
+      try {
+        const boot = await ensureBookingV2Bootstrap();
+        if (cancelled) return;
+        setV2Bootstrap(boot);
+        const catalog = catalogFromBootstrap(boot);
+        setConfig(catalog.config);
+        const allowed =
+          isBarberFirst && barberServiceIdsRef.current !== null
+            ? new Set(barberServiceIdsRef.current)
+            : null;
+        const filtered = filterCatalogByServiceIds(
+          {
+            services: catalog.services,
+            categories: catalog.categories,
+            mostPopular: null,
+          },
+          allowed,
+          true,
+        );
+        setServices(filtered.services);
+        setServiceCategories(filtered.categories);
+        setServiceMostPopular(filtered.mostPopular);
+        if (!isBarberFirst) {
+          const branch = normalizeBranchCode(branchCode);
+          const branchBarbers = catalog.barbers.filter((b) => {
+            if (!branch) return true;
+            return (b.branches ?? []).some(
+              (br) => normalizeBranchCode(br.branchCode) === branch,
+            );
+          });
+          setBarbers(branchBarbers.length ? branchBarbers : catalog.barbers);
+        }
+        if (isBarberFirst && initialBarber?.id != null) {
+          const vb = bootstrapBarberForFlow(boot, initialBarber.id);
+          if (vb) {
+            setBarberBranches(
+              vb.branches.map((br) => ({
+                branchCode: br.branchCode,
+                branchName: br.branchName,
+              })),
+            );
+            setBarberServiceIds(vb.serviceIds ?? null);
+            setBarberProfileStatus("success");
+            setBarberProfileLoading(false);
+          }
+          setBarber({ id: initialBarber.id, name: initialBarber.name });
+          setMode("specific");
+        }
+        setCatalogLoading(false);
+      } catch (err) {
+        if (cancelled) return;
+        setCatalogError(err instanceof Error ? err.message : "catalogLoadFailed");
+        setCatalogLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [open, branchCode, isBarberFirst, initialBarber?.id, initialBarber?.name]);
+
+  // ── Booking V2: one 14-day matrix per scope ────────────────────────────────
+  useEffect(() => {
+    if (!bookingV2Enabled || !open || !v2Scope) return;
+    // Need barber for specific, or branch roster for nearest
+    if (mode === "specific" && barber?.id == null) return;
+    if (isBarberFirst && !availabilityScope && allowedBarberBranches.length > 1) return;
+
+    const scopeKey = `${v2Scope.mode}|${v2Scope.empId ?? "any"}|${[...v2Scope.branchCodes].sort().join(",")}`;
+    let cancelled = false;
+    setV2MatrixError(null);
+    const existing = v2MatrixScopeKeyRef.current === scopeKey ? v2Matrix : null;
+    if (!existing) setV2MatrixLoading(true);
+
+    (async () => {
+      try {
+        const matrix = await loadV2Matrix(v2Scope, 14);
+        if (cancelled) return;
+        v2MatrixScopeKeyRef.current = scopeKey;
+        setV2Matrix(matrix);
+        setV2MatrixLoading(false);
+      } catch (err) {
+        if (cancelled) return;
+        setV2MatrixError(err instanceof Error ? err.message : "daysLoadFailed");
+        setV2MatrixLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- v2Matrix intentional omit (avoid loop)
+  }, [
+    open,
+    v2Scope,
+    mode,
+    barber?.id,
+    isBarberFirst,
+    availabilityScope,
+    allowedBarberBranches.length,
+  ]);
+
+  // ── Booking V2: local days/slots from matrix (ZERO network on service/date) ─
+  useEffect(() => {
+    if (!bookingV2Enabled) return;
+    if (!v2Matrix) {
+      if (v2MatrixLoading) {
+        setDaysLoading(true);
+        setSlotsLoading(true);
+      }
+      return;
+    }
+    if (v2CalendarDurationMinutes <= 0) {
+      setDays([]);
+      setMultiBranchDays([]);
+      setSlots([]);
+      setMultiBranchSlots([]);
+      setDaysLoading(false);
+      setSlotsLoading(false);
+      return;
+    }
+
+    const { days: nextDays, multiBranchDays: nextMbDays } = deriveV2Days(v2Matrix, {
+      mode: mode === "nearest" ? "nearest" : "specific",
+      empId: barber?.id,
+      branchCode: v2BranchFilter,
+      durationMinutes: v2CalendarDurationMinutes,
+      intervalMinutes: v2IntervalMinutes,
+      minNoticeMinutes: v2MinNotice,
+    });
+    setDays(nextDays);
+    setMultiBranchDays(nextMbDays);
+    setDaysLoading(false);
+    setDaysError(v2MatrixError);
+    setMultiBranchDaysMeta(null);
+
+    if (!selectedDate || v2DurationMinutes <= 0) {
+      setSlots([]);
+      setMultiBranchSlots([]);
+      setSlotsLoading(false);
+      return;
+    }
+
+    const { slots: nextSlots, multiBranchSlots: nextMbSlots } = deriveV2Slots(
+      v2Matrix,
+      selectedDate,
+      {
+        mode: mode === "nearest" ? "nearest" : "specific",
+        empId: barber?.id,
+        branchCode: v2BranchFilter,
+        durationMinutes: v2DurationMinutes,
+        intervalMinutes: v2IntervalMinutes,
+        minNoticeMinutes: v2MinNotice,
+      },
+    );
+    setSlots(nextSlots);
+    setMultiBranchSlots(nextMbSlots);
+    setSlotsLoading(false);
+    setSlotsError(null);
+    setMultiBranchSlotsMeta(null);
+  }, [
+    v2Matrix,
+    v2MatrixLoading,
+    v2MatrixError,
+    v2CalendarDurationMinutes,
+    v2DurationMinutes,
+    v2IntervalMinutes,
+    v2MinNotice,
+    v2BranchFilter,
+    mode,
+    barber?.id,
+    selectedDate,
+  ]);
+
   const setAvailabilityScope = useCallback(
     (scope: BarberAvailabilityScope) => {
       bumpSelection();
@@ -360,7 +625,7 @@ export function useBookingFlow(opts: {
       if (scope === "all_branches") {
         setSelectedSpecificBranchCode(null);
         setSelectedBranchFilter("all");
-        setStep("service");
+        setStep("date");
       } else {
         const explicit = normalizeBranchCode(explicitEntryBranch);
         if (explicit) {
@@ -372,7 +637,7 @@ export function useBookingFlow(opts: {
             setBookingBranchCode(match.branchCode);
             setBookingBranchName(match.branchName);
           }
-          setStep("service");
+          setStep("date");
         } else {
           setSelectedSpecificBranchCode(null);
           setStep("branch");
@@ -399,7 +664,7 @@ export function useBookingFlow(opts: {
       setMultiBranchSlots([]);
       setPlan(null);
       setMutationUi({ kind: "idle" });
-      setStep("service");
+      setStep("date");
     },
     [bumpSelection],
   );
@@ -409,13 +674,15 @@ export function useBookingFlow(opts: {
     if (!open) return;
     const code = normalizeBranchCode(explicitEntryBranchCode);
     setExplicitEntryBranch(code);
-    if (initialAvailabilityScope) {
+    if (isBarberFirst) {
+      setAvailabilityScopeState(initialAvailabilityScope ?? "all_branches");
+    } else if (initialAvailabilityScope) {
       setAvailabilityScopeState(initialAvailabilityScope);
     }
     if (code && initialAvailabilityScope === "specific_branch") {
       setSelectedSpecificBranchCode(code);
     }
-  }, [open, explicitEntryBranchCode, initialAvailabilityScope]);
+  }, [open, explicitEntryBranchCode, initialAvailabilityScope, isBarberFirst]);
 
   // Barber-first: load public branches + serviceIds (cache + seed + SWR)
   const [barberProfileReload, setBarberProfileReload] = useState(0);
@@ -425,6 +692,7 @@ export function useBookingFlow(opts: {
   const appliedProfileEmpRef = useRef<number | null>(null);
 
   useEffect(() => {
+    if (bookingV2Enabled) return; // profile comes from V2 bootstrap
     if (!open || !isBarberFirst) {
       setBarberBranches([]);
       setBarberServiceIds(null);
@@ -606,7 +874,7 @@ export function useBookingFlow(opts: {
     clearDownstreamFromBranch();
     setBookingBranchCode(undefined);
     setBookingBranchName(undefined);
-    setStep(isBarberFirst || skipModeStep || initialMode ? "service" : "mode");
+    setStep(isBarberFirst ? "date" : skipModeStep || initialMode ? "service" : "mode");
   }, [
     branchCode,
     open,
@@ -616,9 +884,18 @@ export function useBookingFlow(opts: {
     isBarberFirst,
   ]);
 
+  // Barber-first always lands on the calendar (scope/branch chooser removed).
+  useEffect(() => {
+    if (!open || !isBarberFirst) return;
+    if (step === "appointment_scope" || step === "branch" || step === "mode") {
+      setStep("date");
+    }
+  }, [open, isBarberFirst, step]);
+
   // Catalog load — keyed only by branch. Do NOT restart when barber profile
   // finishes (that used to abort in-flight config/services and double the wait).
   useEffect(() => {
+    if (bookingV2Enabled) return;
     if (!open) return;
 
     let catalogBranch: string | undefined;
@@ -774,14 +1051,22 @@ export function useBookingFlow(opts: {
   // IMPORTANT: do not abort this request on cleanup — aborting would kill the
   // shared deduped in-flight call used by the date step.
   useEffect(() => {
-    if (!open || serviceIds.length === 0) return;
-    if (step !== "service" && step !== "mode") return;
+    if (bookingV2Enabled) return;
+    if (!open) return;
+    const probeIds =
+      serviceIds.length > 0
+        ? serviceIds
+        : isBarberFirst && services[0]
+          ? [services[0].id]
+          : [];
+    if (probeIds.length === 0) return;
+    if (step !== "service" && step !== "mode" && !(isBarberFirst && step === "date")) return;
     if (mode === "specific" && barber?.id == null) return;
 
     if (usesBarberAvailabilityApi && barber?.id != null && availabilityScope) {
       void getBarberAvailableDays({
         empId: barber.id,
-        serviceIds,
+        serviceIds: probeIds,
         scope: availabilityScope,
         branchCode: selectedSpecificBranchCode ?? undefined,
         allowedBranches: allowedBarberBranches,
@@ -792,7 +1077,7 @@ export function useBookingFlow(opts: {
     if (!branchCode) return;
     void getAvailableDays({
       branchCode,
-      serviceIds,
+      serviceIds: probeIds,
       mode,
       empId: mode === "specific" ? barber?.id : undefined,
     }).catch(() => {
@@ -802,6 +1087,7 @@ export function useBookingFlow(opts: {
     open,
     branchCode,
     serviceIds,
+    services,
     mode,
     barber?.id,
     step,
@@ -809,18 +1095,27 @@ export function useBookingFlow(opts: {
     availabilityScope,
     selectedSpecificBranchCode,
     allowedBranchesKey,
+    isBarberFirst,
   ]);
 
   // Available days (calendar date step)
   useEffect(() => {
-    if (step !== "date" || serviceIds.length === 0) return;
+    if (bookingV2Enabled) return;
+    if (step !== "date") return;
+    const probeIds =
+      serviceIds.length > 0
+        ? serviceIds
+        : isBarberFirst && services[0]
+          ? [services[0].id]
+          : [];
+    if (probeIds.length === 0) return;
     if (mode === "specific" && barber?.id == null) return;
 
     if (usesBarberAvailabilityApi && barber?.id != null && availabilityScope) {
       if (allowedBarberBranches.length === 0) return;
       const daysParams = {
         empId: barber.id,
-        serviceIds,
+        serviceIds: probeIds,
         scope: availabilityScope,
         branchCode: selectedSpecificBranchCode ?? undefined,
         allowedBranches: allowedBarberBranches,
@@ -867,7 +1162,7 @@ export function useBookingFlow(opts: {
 
     const daysParams = {
       branchCode,
-      serviceIds,
+      serviceIds: probeIds,
       mode,
       empId: mode === "specific" ? barber?.id : undefined,
     };
@@ -922,16 +1217,19 @@ export function useBookingFlow(opts: {
     step,
     branchCode,
     serviceIds,
+    services,
     mode,
     barber?.id,
     usesBarberAvailabilityApi,
     availabilityScope,
     selectedSpecificBranchCode,
     allowedBranchesKey,
+    isBarberFirst,
   ]);
 
   // Available slots (time step after calendar day)
   useEffect(() => {
+    if (bookingV2Enabled) return;
     if (step !== "time" || !selectedDate || serviceIds.length === 0) return;
     if (mode === "specific" && barber?.id == null) return;
 
@@ -1054,6 +1352,7 @@ export function useBookingFlow(opts: {
 
   // Legacy cross-branch slots panel (kept for tests; main UI uses calendar again)
   useEffect(() => {
+    if (bookingV2Enabled) return;
     if (!isBarberFirst) return;
     if (step !== "slots" || serviceIds.length === 0 || barber?.id == null) return;
 
@@ -1112,6 +1411,45 @@ export function useBookingFlow(opts: {
   // Barber day-location: after a calendar day is chosen, resolve which branch
   // the specific barber works at that day (shown prominently on time step).
   useEffect(() => {
+    if (bookingV2Enabled) {
+      // Derive working branch locally from matrix for the selected BusinessDate.
+      if (step !== "time" || !selectedDate || mode !== "specific" || barber?.id == null || !v2Matrix) {
+        return;
+      }
+      const businessDate = localDateToBusinessDate(selectedDate);
+      const day = v2Matrix.matrix.find((d) => d.businessDate === businessDate);
+      const working = day?.branches.find((b) =>
+        b.employees.some(
+          (e) =>
+            e.empId === barber.id &&
+            e.status !== "day_off" &&
+            e.status !== "closed" &&
+            ((e.freeRanges?.length ?? 0) > 0 || e.free.length > 0),
+        ),
+      );
+      if (working) {
+        setDayLocation({
+          date: businessDate,
+          isWorking: true,
+          status: "available",
+          branch: {
+            branchCode: working.branchCode,
+            branchName: working.branchName ?? working.branchCode,
+            address: null,
+            phone: null,
+          },
+        });
+        if (!bookingBranchCode && availabilityScope !== "all_branches") {
+          setBookingBranchCode(working.branchCode);
+          setBookingBranchName(working.branchName ?? working.branchCode);
+        }
+      } else {
+        setDayLocation(null);
+      }
+      setDayLocationLoading(false);
+      setDayLocationError(null);
+      return;
+    }
     if (step !== "time" || !selectedDate || mode !== "specific" || barber?.id == null) {
       return;
     }
@@ -1178,16 +1516,21 @@ export function useBookingFlow(opts: {
     clearPlanSession();
     crossAbortRef.current?.abort();
     setServiceIds(unique);
-    setSelectedDate(undefined);
+    // Barber-first picks the day first — keep the date, only reset the time slot.
+    if (!isBarberFirst) {
+      setSelectedDate(undefined);
+    }
     setSelectedSlot(undefined);
     // Keep specific-branch draft; clear slot-committed branch for all_branches.
     if (availabilityScope !== "specific_branch") {
       setBookingBranchCode(undefined);
       setBookingBranchName(undefined);
     }
-    setDays([]);
+    if (!isBarberFirst) {
+      setDays([]);
+      setMultiBranchDays([]);
+    }
     setSlots([]);
-    setMultiBranchDays([]);
     setMultiBranchSlots([]);
     setCrossSlots([]);
     setCrossBranches([]);
@@ -1195,7 +1538,7 @@ export function useBookingFlow(opts: {
     setCrossSlotsError(null);
     setPlan(null);
     setMutationUi({ kind: "idle" });
-  }, [bumpSelection, availabilityScope]);
+  }, [bumpSelection, availabilityScope, isBarberFirst]);
 
   const selectMode = useCallback((next: BookingMode) => {
     if (isBarberFirst) return;
@@ -1244,7 +1587,39 @@ export function useBookingFlow(opts: {
     // Keep prior dayLocation visible until the new location resolves (no blank banner).
     setDayLocationLoading(true);
     setPlan(null);
+
+    // Barber-first: day before services — continue to service, defer slots.
+    if (isBarberFirst && serviceIds.length === 0) {
+      setSlots([]);
+      setMultiBranchSlots([]);
+      setSlotsLoading(false);
+      setStep("service");
+      return;
+    }
+
     const dateStr = format(date, "yyyy-MM-dd");
+    if (bookingV2Enabled) {
+      // Local regenerate from matrix — no network.
+      if (v2Matrix && v2DurationMinutes > 0) {
+        const { slots: nextSlots, multiBranchSlots: nextMb } = deriveV2Slots(v2Matrix, date, {
+          mode: mode === "nearest" ? "nearest" : "specific",
+          empId: barber?.id,
+          branchCode: v2BranchFilter,
+          durationMinutes: v2DurationMinutes,
+          intervalMinutes: v2IntervalMinutes,
+          minNoticeMinutes: v2MinNotice,
+        });
+        setSlots(nextSlots);
+        setMultiBranchSlots(nextMb);
+        setSlotsLoading(false);
+      } else {
+        setSlots([]);
+        setMultiBranchSlots([]);
+        setSlotsLoading(Boolean(v2MatrixLoading));
+      }
+      setStep("time");
+      return;
+    }
     if (usesBarberAvailabilityApi && barber?.id != null && availabilityScope) {
       const cached = peekCachedBarberAvailableSlots({
         empId: barber.id,
@@ -1307,6 +1682,13 @@ export function useBookingFlow(opts: {
     availabilityScope,
     selectedSpecificBranchCode,
     allowedBranchesKey,
+    v2Matrix,
+    v2MatrixLoading,
+    v2DurationMinutes,
+    v2IntervalMinutes,
+    v2MinNotice,
+    v2BranchFilter,
+    isBarberFirst,
   ]);
 
   const selectSlot = useCallback((slot: AvailableSlot) => {
@@ -1393,10 +1775,14 @@ export function useBookingFlow(opts: {
     setMutationUi({ kind: "planning" });
 
     const dateStr =
-      selectedSlot.date && /^\d{4}-\d{2}-\d{2}$/.test(selectedSlot.date)
-        ? selectedSlot.date
-        : format(selectedDate, "yyyy-MM-dd");
-    const dayOffset = selectedSlot.dayOffset ?? 0;
+      selectedSlot.businessDate && /^\d{4}-\d{2}-\d{2}$/.test(selectedSlot.businessDate)
+        ? selectedSlot.businessDate
+        : selectedSlot.date && /^\d{4}-\d{2}-\d{2}$/.test(selectedSlot.date)
+          ? selectedSlot.date
+          : format(selectedDate, "yyyy-MM-dd");
+    const dayOffset = deriveDayOffsetForLegacyWrite(
+      selectedSlot.dayOffset === 1 ? 1 : 0,
+    );
     const empId =
       mode === "specific"
         ? barber?.id
@@ -1481,10 +1867,14 @@ export function useBookingFlow(opts: {
     setMutationUi({ kind: "creating" });
 
     const dateStr =
-      selectedSlot.date && /^\d{4}-\d{2}-\d{2}$/.test(selectedSlot.date)
-        ? selectedSlot.date
-        : format(selectedDate, "yyyy-MM-dd");
-    const dayOffset = selectedSlot.dayOffset ?? 0;
+      selectedSlot.businessDate && /^\d{4}-\d{2}-\d{2}$/.test(selectedSlot.businessDate)
+        ? selectedSlot.businessDate
+        : selectedSlot.date && /^\d{4}-\d{2}-\d{2}$/.test(selectedSlot.date)
+          ? selectedSlot.date
+          : format(selectedDate, "yyyy-MM-dd");
+    const dayOffset = deriveDayOffsetForLegacyWrite(
+      selectedSlot.dayOffset === 1 ? 1 : 0,
+    );
     const empId = mode === "specific" ? barber?.id : undefined;
     const customer: BookingCustomer = { name, phone };
 
@@ -1503,6 +1893,68 @@ export function useBookingFlow(opts: {
       });
 
       if (result.outcome === "success" && result.booking) {
+        if (bookingV2Enabled) {
+          const startMin = slotStartMin({
+            startMin: selectedSlot.startMin,
+            time: selectedSlot.time,
+            dayOffset: selectedSlot.dayOffset,
+          });
+          const duration =
+            selectedSlot.durationMinutes && selectedSlot.durationMinutes > 0
+              ? selectedSlot.durationMinutes
+              : v2DurationMinutes;
+          const occEmpId =
+            selectedSlot.empId ??
+            (mode === "specific" ? barber?.id : null) ??
+            null;
+          if (occEmpId != null && duration > 0) {
+            applyLocalOccupancyToAllCachedMatrices({
+              empId: occEmpId,
+              businessDate: dateStr,
+              startMin,
+              durationMinutes: duration,
+              branchCode: effectiveBranchCode,
+            });
+            // Refresh in-memory matrix for current scope immediately
+            if (v2Matrix) {
+              setV2Matrix(
+                applyLocalOccupancyToMatrix(v2Matrix, {
+                  empId: occEmpId,
+                  businessDate: dateStr,
+                  startMin,
+                  durationMinutes: duration,
+                  branchCode: effectiveBranchCode,
+                }),
+              );
+            }
+            const branchCodes =
+              v2Scope?.branchCodes ??
+              (effectiveBranchCode ? [effectiveBranchCode] : []);
+            void revalidateAvailabilityBusinessDate({
+              mode: mode === "nearest" ? "nearest" : "specific",
+              empId: mode === "specific" ? occEmpId : undefined,
+              branchCodes,
+              businessDate: dateStr,
+            })
+              .then((dayMatrix) => {
+                if (!v2Matrix) return;
+                const day = dayMatrix.matrix.find((d) => d.businessDate === dateStr);
+                if (!day) return;
+                setV2Matrix((prev) => {
+                  if (!prev) return prev;
+                  return {
+                    ...prev,
+                    matrix: prev.matrix.map((d) =>
+                      d.businessDate === dateStr ? day : d,
+                    ),
+                    fetchedAt: Date.now(),
+                    stale: false,
+                  };
+                });
+              })
+              .catch(() => undefined);
+          }
+        }
         setCreated(result.booking);
         setPlan(null);
         setMutationUi({ kind: "idle" });
@@ -1544,14 +1996,44 @@ export function useBookingFlow(opts: {
       }
 
       if (code && conflictCodes.has(code)) {
+        // No optimistic occupancy on failure — targeted 1-day refresh only.
+        if (bookingV2Enabled) {
+          const branchCodes =
+            v2Scope?.branchCodes ??
+            (effectiveBranchCode ? [effectiveBranchCode] : []);
+          void revalidateAvailabilityBusinessDate({
+            mode: mode === "nearest" ? "nearest" : "specific",
+            empId: mode === "specific" ? barber?.id : undefined,
+            branchCodes,
+            businessDate: dateStr,
+          })
+            .then((dayMatrix) => {
+              const day = dayMatrix.matrix.find((d) => d.businessDate === dateStr);
+              if (!day) return;
+              setV2Matrix((prev) => {
+                if (!prev) return prev;
+                return {
+                  ...prev,
+                  matrix: prev.matrix.map((d) =>
+                    d.businessDate === dateStr ? day : d,
+                  ),
+                  fetchedAt: Date.now(),
+                  stale: false,
+                };
+              });
+            })
+            .catch(() => undefined);
+        }
         clearPlanSession();
         setPlan(null);
         setSelectedSlot(undefined);
-        setBookingBranchCode(undefined);
-        setBookingBranchName(undefined);
-        setSlots([]);
-        setDays([]);
-        setCrossSlots([]);
+        if (!bookingV2Enabled) {
+          setBookingBranchCode(undefined);
+          setBookingBranchName(undefined);
+          setSlots([]);
+          setDays([]);
+          setCrossSlots([]);
+        }
         setMutationUi({
           kind: "error",
           message: err?.message ?? getArabicErrorMessage(code as never),
@@ -1582,6 +2064,9 @@ export function useBookingFlow(opts: {
     barber?.id,
     mutationUi,
     isBarberFirst,
+    v2DurationMinutes,
+    v2Matrix,
+    v2Scope,
   ]);
 
   const safeRetryCreate = useCallback(() => {
@@ -1613,7 +2098,7 @@ export function useBookingFlow(opts: {
       );
     }
     clearPlanSession();
-    setStep("branch");
+    setStep(isBarberFirst ? "date" : "branch");
     setMode(isBarberFirst ? "specific" : (initialMode ?? "specific"));
     setServiceIds([]);
     setBarber(
@@ -1623,7 +2108,9 @@ export function useBookingFlow(opts: {
     setSelectedSlot(undefined);
     setBookingBranchCode(undefined);
     setBookingBranchName(undefined);
-    setAvailabilityScopeState(initialAvailabilityScope);
+    setAvailabilityScopeState(
+      initialAvailabilityScope ?? (isBarberFirst ? "all_branches" : null),
+    );
     setSelectedSpecificBranchCode(normalizeBranchCode(explicitEntryBranchCode));
     setExplicitEntryBranch(normalizeBranchCode(explicitEntryBranchCode));
     setSelectedBranchFilter("all");

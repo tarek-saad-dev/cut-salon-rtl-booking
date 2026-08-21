@@ -25,6 +25,8 @@ type BookFlowChromeProps = {
   children: React.ReactNode;
   /** Show back control over the hero (e.g. visit-type → locations). */
   backHref?: string;
+  /** In-flow back (preferred for multi-step /book O2). */
+  onBack?: () => void;
   backLabel?: string;
   footer?: boolean;
   /** Title composed onto the hero image (e.g. Menu). */
@@ -36,6 +38,7 @@ type BookFlowChromeProps = {
 export function BookFlowChrome({
   children,
   backHref,
+  onBack,
   backLabel,
   footer = true,
   heroTitle,
@@ -47,7 +50,7 @@ export function BookFlowChrome({
   const BackIcon = ar ? ChevronRight : ChevronLeft;
   const [menuOpen, setMenuOpen] = useState(false);
   const label = (key: keyof typeof navigationLabels) => navigationLabels[key][lang];
-  const barberHref = lang === "en" ? "/#english-barbers" : "/#barbers";
+  const barberHref = "/#barbers";
   const closeMenu = () => setMenuOpen(false);
 
   useEffect(() => {
@@ -70,7 +73,13 @@ export function BookFlowChrome({
 
   return (
     <main dir={dir} lang={lang} className="min-h-[100svh] bg-cut-soft-ivory text-cut-black">
-      <header className="sticky top-0 z-30 border-b border-cut-bronze/20 bg-cut-black text-cut-ivory">
+      {/* Temporary: keep book header fully visible under the fixed Camp Caesar bar */}
+      <div
+        className="w-full shrink-0"
+        style={{ height: "var(--cut-campaign-bar-height, 0px)" }}
+        aria-hidden
+      />
+      <header className="sticky top-[var(--cut-campaign-bar-height,0px)] z-30 border-b border-cut-bronze/20 bg-cut-black text-cut-ivory transition-[top] duration-200">
         <div className="relative flex h-14 items-center justify-center px-4">
           <button
             type="button"
@@ -140,6 +149,7 @@ export function BookFlowChrome({
               className={`fixed inset-y-0 z-50 flex w-[min(22rem,86vw)] flex-col bg-[#1f1c1b] ${
                 dir === "rtl" ? "right-0" : "left-0"
               }`}
+              style={{ top: "var(--cut-campaign-bar-height, 0px)" }}
               dir={dir}
               aria-label={ar ? "قائمة التنقل" : "Navigation menu"}
             >
@@ -308,11 +318,26 @@ export function BookFlowChrome({
         />
         <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(5,5,5,0.35)_0%,rgba(23,4,6,0.35)_40%,rgba(5,5,5,0.82)_100%)]" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_30%,rgba(74,0,15,0.45),transparent_55%)]" />
-        {backHref ? (
+        {onBack ? (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onBack();
+            }}
+            aria-label={backLabel ?? (ar ? "رجوع" : "Back")}
+            className={`absolute top-3 z-20 inline-flex h-11 w-11 items-center justify-center rounded-xl text-cut-ivory transition hover:bg-cut-ivory/15 hover:text-cut-warm-beige focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cut-warm-beige ${
+              ar ? "right-3" : "left-3"
+            }`}
+          >
+            <BackIcon className="h-6 w-6" strokeWidth={1.75} />
+          </button>
+        ) : backHref ? (
           <Link
             href={backHref}
             aria-label={backLabel ?? (ar ? "رجوع" : "Back")}
-            className={`absolute top-3 z-10 inline-flex h-10 w-10 items-center justify-center text-cut-ivory transition hover:text-cut-warm-beige focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cut-warm-beige ${
+            className={`absolute top-3 z-20 inline-flex h-11 w-11 items-center justify-center rounded-xl text-cut-ivory transition hover:bg-cut-ivory/15 hover:text-cut-warm-beige focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cut-warm-beige ${
               ar ? "right-3" : "left-3"
             }`}
           >
@@ -321,7 +346,7 @@ export function BookFlowChrome({
         ) : null}
 
         {heroTitle ? (
-          <div className="absolute inset-0 z-10 flex items-center justify-center px-5 sm:px-8">
+          <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center px-5 sm:px-8">
             <div className="mx-auto max-w-lg text-center">
               <h1 className="font-display text-[clamp(1.75rem,5.2vw,2.5rem)] leading-tight text-cut-ivory">
                 {heroTitle}

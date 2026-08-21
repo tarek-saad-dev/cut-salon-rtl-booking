@@ -17,6 +17,8 @@ function makeResponse(status: number, body?: unknown, headers?: Record<string, s
 describe("bookingApiRequest", () => {
   beforeEach(() => {
     vi.resetModules();
+    vi.stubEnv("NEXT_PUBLIC_BOOKING_V2_CLIENT", "false");
+    vi.stubEnv("NEXT_PUBLIC_BOOKING_API_BASE_URL", "");
     vi.stubEnv("NEXT_PUBLIC_CASHER_API_BASE_URL", "https://casher-five.vercel.app/");
     mockFetch.mockReset();
   });
@@ -34,8 +36,11 @@ describe("bookingApiRequest", () => {
     expect(url).toBe("https://casher-five.vercel.app/api/public/branches");
   });
 
-  it("throws when NEXT_PUBLIC_CASHER_API_BASE_URL is missing", async () => {
+  it("throws when booking API base URL is missing", async () => {
+    vi.stubEnv("NEXT_PUBLIC_BOOKING_API_BASE_URL", "");
+    vi.stubEnv("NEXT_PUBLIC_API_BASE_URL", "");
     vi.stubEnv("NEXT_PUBLIC_CASHER_API_BASE_URL", "");
+    vi.stubEnv("NEXT_PUBLIC_BOOKING_V2_CLIENT", "false");
     const { bookingApiRequest } = await import("../client");
     await expect(bookingApiRequest({ path: "/test" })).rejects.toThrow("not configured");
   });

@@ -173,6 +173,10 @@ export interface AvailableSlot {
   branchName?: string | null;
   /** Calendar date YYYY-MM-DD when selected from cross-branch availability. */
   date?: string | null;
+  /** V2 FreeMask start on 48h business timeline (minutes from BusinessDate midnight). */
+  startMin?: number | null;
+  /** V2 BusinessDate (YYYY-MM-DD) — may differ from calendar display when overnight. */
+  businessDate?: string | null;
 }
 
 // ─── Cross-branch availability (Phase 10C / 10D) ─────────────────────────────

@@ -263,7 +263,7 @@ describe("aggregate capability + wire scope", () => {
 });
 
 describe("optimistic multi-branch steps with seed", () => {
-  it("multi-branch starts at appointment_scope without waiting for availability", () => {
+  it("multi-branch starts at date without appointment_scope", () => {
     expect(
       getBookingSteps({
         entryMode: "barber_first",
@@ -273,10 +273,10 @@ describe("optimistic multi-branch steps with seed", () => {
         multiBranchBarber: true,
         availabilityScope: null,
       }),
-    ).toEqual(["appointment_scope", "service", "date", "time", "details", "review"]);
+    ).toEqual(["date", "service", "time", "details", "review"]);
   });
 
-  it("specific_branch includes branch picker but not availability", () => {
+  it("specific_branch no longer includes branch picker", () => {
     expect(
       getBookingSteps({
         entryMode: "barber_first",
@@ -286,6 +286,6 @@ describe("optimistic multi-branch steps with seed", () => {
         multiBranchBarber: true,
         availabilityScope: "specific_branch",
       }),
-    ).toContain("branch");
+    ).not.toContain("branch");
   });
 });

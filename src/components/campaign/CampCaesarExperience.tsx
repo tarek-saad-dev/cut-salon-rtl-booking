@@ -69,7 +69,9 @@ function ExperienceBody({
 
       <div className="flex-1 px-5 py-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
         <div className="text-center mb-8">
-          <p className="font-display text-5xl font-black text-gold-gradient leading-none">{config.offer}</p>
+          <p className="font-editorial text-5xl font-bold text-gold-gradient leading-none tracking-tight">
+            {config.offer}
+          </p>
           <p className="mt-2 font-display text-sm font-semibold tracking-[0.25em] text-cut-warm-beige">
             {config.offerDescription}
           </p>

@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
-import { Check, ChevronDown, ChevronUp, Plus, ShoppingBag, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, ChevronDown, ChevronUp, Plus, ShoppingBag, X } from "lucide-react";
 import type { BookingService } from "@/lib/booking-api";
 import { getServicePresentation } from "@/lib/booking/service-presentation";
 import { getServiceVisual } from "@/lib/booking/service-visuals";
 import { useBookingTranslations } from "@/hooks/useBookingTranslations";
 import BookingServiceImage from "./BookingServiceImage";
+import BookingPromoPrice from "@/components/booking/BookingPromoPrice";
 
 interface BookingServiceCartProps {
   selectedServices: BookingService[];
@@ -17,6 +18,8 @@ interface BookingServiceCartProps {
   onBrowseServices?: () => void;
   onContinue?: () => void;
   continueDisabled?: boolean;
+  onBack?: () => void;
+  backLabel?: string;
   /**
    * Bumps whenever a service is newly added (parent-driven).
    * Prefer this over counting so the first add (cart mount) still toasts.
@@ -34,6 +37,8 @@ export default function BookingServiceCart({
   onBrowseServices,
   onContinue,
   continueDisabled = false,
+  onBack,
+  backLabel,
   addedSignal = null,
 }: BookingServiceCartProps) {
   const { t, format, lang, dir } = useBookingTranslations();
@@ -195,7 +200,7 @@ export default function BookingServiceCart({
                     {format.duration(service.durationMinutes)}
                     <span className="text-[var(--booking-text-muted)]"> · </span>
                     <span className="font-semibold text-[var(--booking-text)] tabular-nums">
-                      {format.price(service.price)}
+                      <BookingPromoPrice amount={service.price} formatPrice={format.price} />
                     </span>
                   </p>
                 </div>
@@ -324,7 +329,7 @@ export default function BookingServiceCart({
               {t("service.cartSubtotal")}
             </p>
             <p className="font-bold text-[var(--booking-text)] tabular-nums text-sm">
-              {format.price(totalPrice)}
+              <BookingPromoPrice amount={totalPrice} formatPrice={format.price} />
             </p>
           </div>
         </button>
@@ -338,6 +343,21 @@ export default function BookingServiceCart({
             data-cart-continue
           >
             {t("service.cartContinue")}
+          </button>
+        ) : null}
+        {onBack ? (
+          <button
+            type="button"
+            onClick={onBack}
+            className="w-full min-h-11 py-2.5 rounded-xl border border-[var(--booking-border)] text-[var(--booking-text-secondary)] font-medium text-sm inline-flex items-center justify-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--booking-accent)]"
+            data-cart-back
+          >
+            {dir === "rtl" ? (
+              <ArrowRight className="w-4 h-4" aria-hidden />
+            ) : (
+              <ArrowLeft className="w-4 h-4" aria-hidden />
+            )}
+            {backLabel ?? t("actions.back")}
           </button>
         ) : null}
       </div>

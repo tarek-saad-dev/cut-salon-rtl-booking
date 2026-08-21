@@ -25,7 +25,7 @@ const camp: PublicBranch = {
 const publicBranches = [gleem, camp];
 
 describe("barberAvailabilityScope — getBookingSteps", () => {
-  it("single-branch barber-first skips appointment_scope", () => {
+  it("single-branch barber-first starts at date before service", () => {
     expect(
       getBookingSteps({
         entryMode: "barber_first",
@@ -34,10 +34,10 @@ describe("barberAvailabilityScope — getBookingSteps", () => {
         barberResolved: true,
         multiBranchBarber: false,
       }),
-    ).toEqual(["service", "date", "time", "details", "review"]);
+    ).toEqual(["date", "service", "time", "details", "review"]);
   });
 
-  it("multi-branch with unset scope starts at appointment_scope", () => {
+  it("multi-branch skips appointment_scope and starts at date", () => {
     expect(
       getBookingSteps({
         entryMode: "barber_first",
@@ -47,7 +47,7 @@ describe("barberAvailabilityScope — getBookingSteps", () => {
         multiBranchBarber: true,
         availabilityScope: null,
       }),
-    ).toEqual(["appointment_scope", "service", "date", "time", "details", "review"]);
+    ).toEqual(["date", "service", "time", "details", "review"]);
   });
 
   it("multi-branch all_branches skips branch step", () => {
@@ -60,10 +60,10 @@ describe("barberAvailabilityScope — getBookingSteps", () => {
         multiBranchBarber: true,
         availabilityScope: "all_branches",
       }),
-    ).toEqual(["appointment_scope", "service", "date", "time", "details", "review"]);
+    ).toEqual(["date", "service", "time", "details", "review"]);
   });
 
-  it("multi-branch specific_branch includes branch until resolved", () => {
+  it("multi-branch specific_branch no longer includes branch picker", () => {
     expect(
       getBookingSteps({
         entryMode: "barber_first",
@@ -73,15 +73,7 @@ describe("barberAvailabilityScope — getBookingSteps", () => {
         multiBranchBarber: true,
         availabilityScope: "specific_branch",
       }),
-    ).toEqual([
-      "appointment_scope",
-      "branch",
-      "service",
-      "date",
-      "time",
-      "details",
-      "review",
-    ]);
+    ).toEqual(["date", "service", "time", "details", "review"]);
   });
 });
 

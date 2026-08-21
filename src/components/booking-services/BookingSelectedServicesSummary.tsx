@@ -1,6 +1,7 @@
 "use client";
 
 import { useBookingTranslations } from "@/hooks/useBookingTranslations";
+import BookingPromoPrice from "@/components/booking/BookingPromoPrice";
 
 interface BookingSelectedServicesSummaryProps {
   selectedCount: number;
@@ -39,7 +40,7 @@ export default function BookingSelectedServicesSummary({
           </span>
         </p>
         <p className="font-bold text-[var(--booking-text)] tabular-nums">
-          {format.price(totalPrice)}
+          <BookingPromoPrice amount={totalPrice} formatPrice={format.price} />
         </p>
       </div>
     </div>

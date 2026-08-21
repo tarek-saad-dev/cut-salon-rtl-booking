@@ -1,18 +1,18 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { AnimatePresence } from "framer-motion";
 import { getActiveCampaign } from "@/config/campaigns";
-import {
-  markCampaignDismissed,
-  shouldAutoShowOpeningSheet,
-} from "@/lib/campaignStorage";
+import { markCampaignDismissed } from "@/lib/campaignStorage";
 import { trackCampaignEvent } from "@/lib/campaignAnalytics";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useCampaignPageLoadCelebration } from "@/hooks/useCampaignPageLoadCelebration";
 import CampaignAnnouncement from "./CampaignAnnouncement";
 import CampCaesarOpeningSheet from "./CampCaesarOpeningSheet";
 import CampCaesarExperience from "./CampCaesarExperience";
 import CampaignFloatingPill from "./CampaignFloatingPill";
+import CampaignPageLoadCelebration from "./CampaignPageLoadCelebration";
 
 const HISTORY_EXPERIENCE = "cut-camp-caesar-experience";
 const HISTORY_OPENING = "cut-camp-caesar-opening";
@@ -20,6 +20,15 @@ const HISTORY_OPENING = "cut-camp-caesar-opening";
 export default function CampCaesarCampaign() {
   const config = getActiveCampaign();
   const isMobile = useIsMobile();
+  const router = useRouter();
+  const {
+    active: celebrationActive,
+    variant,
+    introPhase,
+    introActive,
+    loadCelebrationComplete,
+    loadKey,
+  } = useCampaignPageLoadCelebration();
 
   const [openingOpen, setOpeningOpen] = useState(false);
   const [experienceOpen, setExperienceOpen] = useState(false);
@@ -43,13 +52,9 @@ export default function CampCaesarCampaign() {
     return () => window.removeEventListener("cut:blocking-overlay", handler);
   }, []);
 
-  // Auto-show opening sheet after delay
+  // Auto-show opening sheet once per full page load, after page-load celebration
   useEffect(() => {
-    if (!config || autoShowAttempted.current) return;
-    if (!shouldAutoShowOpeningSheet(config)) {
-      setShowPill(true);
-      return;
-    }
+    if (!config || autoShowAttempted.current || !loadCelebrationComplete) return;
 
     autoShowAttempted.current = true;
     const [minMs, maxMs] = config.openingDelayMs;
@@ -67,7 +72,7 @@ export default function CampCaesarCampaign() {
     }, delay);
 
     return () => window.clearTimeout(timer);
-  }, [config]);
+  }, [config, loadCelebrationComplete]);
 
   // Browser back closes campaign layers
   useEffect(() => {
@@ -112,18 +117,31 @@ export default function CampCaesarCampaign() {
     }
   }, []);
 
+  const openCampBooking = useCallback(
+    (source: string) => {
+      if (!config) return;
+      trackCampaignEvent("camp_caesar_booking_click", { source });
+      markCampaignDismissed(config.campaignId);
+      setExperienceOpen(false);
+      setOpeningOpen(false);
+      setShowPill(false);
+      router.push(
+        `/book?mode=nearest&branch=${encodeURIComponent(config.branchCode)}`,
+      );
+    },
+    [config, router],
+  );
+
   const handleBookCampCaesar = useCallback(() => {
-    if (!config) return;
-    trackCampaignEvent("camp_caesar_booking_click");
-    setExperienceOpen(false);
-    setOpeningOpen(false);
-    setShowPill(false);
-    window.dispatchEvent(
-      new CustomEvent("cut:book-branch", {
-        detail: { branchCode: config.branchCode, mode: "nearest" as const },
-      }),
-    );
-  }, [config]);
+    openCampBooking("experience");
+  }, [openCampBooking]);
+
+  const handleOpeningBook = useCallback(() => {
+    if (window.history.state?.[HISTORY_OPENING]) {
+      window.history.back();
+    }
+    openCampBooking("opening_sheet");
+  }, [openCampBooking]);
 
   const handleManualOpen = useCallback(() => {
     manualOpenRef.current = true;
@@ -134,7 +152,19 @@ export default function CampCaesarCampaign() {
 
   return (
     <>
-      <CampaignAnnouncement config={config} onDiscover={() => openExperience("announcement_bar")} />
+      <CampaignPageLoadCelebration
+        key={loadKey}
+        active={celebrationActive}
+        variant={variant}
+        loadKey={loadKey}
+      />
+
+      <CampaignAnnouncement
+        config={config}
+        onDiscover={() => openExperience("announcement_bar")}
+        introPhase={introPhase}
+        introActive={introActive}
+      />
 
       <AnimatePresence>
         {openingOpen && (
@@ -144,6 +174,7 @@ export default function CampCaesarCampaign() {
             open={openingOpen}
             isMobile={isMobile}
             onExplore={() => openExperience("opening_sheet")}
+            onBook={handleOpeningBook}
             onContinue={dismissOpening}
             onClose={dismissOpening}
           />
@@ -164,8 +195,8 @@ export default function CampCaesarCampaign() {
       </AnimatePresence>
 
       <CampaignFloatingPill
-        config={config}
         visible={showPill && !openingOpen && !experienceOpen}
+        introActive={introActive}
         onOpen={handleManualOpen}
       />
     </>

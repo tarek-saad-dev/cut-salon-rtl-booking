@@ -5,6 +5,7 @@ import { Clock, Scissors, MapPin, Star, CalendarDays, Banknote, Zap } from "luci
 import BarberPhoto from "./BarberPhoto";
 import { getBranchAccent } from "@/lib/branchTheme";
 import { useBookingTranslations } from "@/hooks/useBookingTranslations";
+import BookingPromoPrice from "@/components/booking/BookingPromoPrice";
 
 interface BarberInfo {
   name: string;
@@ -242,7 +243,7 @@ const BookingInfoPanel = ({
                           {t("infoPanel.price")}
                         </p>
                         <p className="font-medium text-sm text-[var(--booking-text)]">
-                          {format.price(servicePrice)}
+                          <BookingPromoPrice amount={servicePrice} formatPrice={format.price} />
                         </p>
                       </div>
                     </div>

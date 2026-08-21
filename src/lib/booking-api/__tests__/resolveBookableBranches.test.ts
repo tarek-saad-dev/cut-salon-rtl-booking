@@ -160,7 +160,7 @@ describe("getEffectiveBookingBranch", () => {
 });
 
 describe("getBookingSteps", () => {
-  it("barber-first with resolved branch skips branch and mode", () => {
+  it("barber-first uses date before service and skips branch/mode/scope", () => {
     expect(
       getBookingSteps({
         entryMode: "barber_first",
@@ -168,10 +168,10 @@ describe("getBookingSteps", () => {
         branchResolved: true,
         barberResolved: true,
       }),
-    ).toEqual(["service", "date", "time", "details", "review"]);
+    ).toEqual(["date", "service", "time", "details", "review"]);
   });
 
-  it("barber-first with multiple branches shows branch step", () => {
+  it("barber-first unresolved branch still skips branch chooser", () => {
     expect(
       getBookingSteps({
         entryMode: "barber_first",
@@ -179,10 +179,10 @@ describe("getBookingSteps", () => {
         branchResolved: false,
         barberResolved: true,
       }),
-    ).toEqual(["branch", "service", "date", "time", "details", "review"]);
+    ).toEqual(["date", "service", "time", "details", "review"]);
   });
 
-  it("multi-branch barber shows appointment_scope before service", () => {
+  it("multi-branch barber skips appointment_scope and starts at date", () => {
     expect(
       getBookingSteps({
         entryMode: "barber_first",
@@ -192,10 +192,10 @@ describe("getBookingSteps", () => {
         multiBranchBarber: true,
         availabilityScope: null,
       }),
-    ).toEqual(["appointment_scope", "service", "date", "time", "details", "review"]);
+    ).toEqual(["date", "service", "time", "details", "review"]);
   });
 
-  it("multi-branch specific_branch adds branch step until resolved", () => {
+  it("multi-branch specific_branch no longer inserts branch step", () => {
     expect(
       getBookingSteps({
         entryMode: "barber_first",
@@ -205,7 +205,7 @@ describe("getBookingSteps", () => {
         multiBranchBarber: true,
         availabilityScope: "specific_branch",
       }),
-    ).toEqual(["appointment_scope", "branch", "service", "date", "time", "details", "review"]);
+    ).toEqual(["date", "service", "time", "details", "review"]);
   });
 
   it("nearest with confirmed branch skips branch and mode", () => {
@@ -231,8 +231,8 @@ describe("getBookingSteps", () => {
 
   it("recoverStepInSequence moves off removed branch step", () => {
     expect(
-      recoverStepInSequence("branch", ["service", "date", "time", "details", "review"]),
-    ).toBe("service");
+      recoverStepInSequence("branch", ["date", "service", "time", "details", "review"]),
+    ).toBe("date");
   });
 });
 

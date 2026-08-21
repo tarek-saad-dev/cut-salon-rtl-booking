@@ -15,6 +15,8 @@ const { fns } = vi.hoisted(() => {
     getPublicBarberProfile: vi.fn(),
     getAvailableDays: vi.fn(),
     getAvailableSlots: vi.fn(),
+    getBarberAvailableDays: vi.fn(),
+    getBarberAvailableSlots: vi.fn(),
     getCrossBranchAvailability: vi.fn(),
     createBookingPlan: vi.fn(),
     submitBookingFromPlan: vi.fn(),
@@ -41,6 +43,8 @@ vi.mock("@/lib/booking-api", async () => {
     getPublicBarberProfile: (...a: unknown[]) => fns.getPublicBarberProfile(...a),
     getAvailableDays: (...a: unknown[]) => fns.getAvailableDays(...a),
     getAvailableSlots: (...a: unknown[]) => fns.getAvailableSlots(...a),
+    getBarberAvailableDays: (...a: unknown[]) => fns.getBarberAvailableDays(...a),
+    getBarberAvailableSlots: (...a: unknown[]) => fns.getBarberAvailableSlots(...a),
     getCrossBranchAvailability: (...a: unknown[]) => fns.getCrossBranchAvailability(...a),
     createBookingPlan: (...a: unknown[]) => fns.createBookingPlan(...a),
     submitBookingFromPlan: (...a: unknown[]) => fns.submitBookingFromPlan(...a),
@@ -83,6 +87,25 @@ describe("BookingModalBarberFirst calendar flow", () => {
     fns.getAvailableSlots.mockResolvedValue(
       apiOk([{ time: "13:00", available: true, dayOffset: 0 as const }]),
     );
+    fns.getBarberAvailableDays.mockResolvedValue(
+      apiOk({
+        days: [{ date: "2026-07-28", available: true, branches: [{ branchCode: "GLEEM", slotsCount: 1 }] }],
+      }),
+    );
+    fns.getBarberAvailableSlots.mockResolvedValue(
+      apiOk({
+        slots: [
+          {
+            time: "13:00",
+            available: true,
+            dayOffset: 0 as const,
+            branchCode: "GLEEM",
+            branchName: "جليم",
+            date: "2026-07-28",
+          },
+        ],
+      }),
+    );
     fns.createBookingPlan.mockResolvedValue(apiOk(mockPlan));
     localStorage.clear();
   });
@@ -104,7 +127,7 @@ describe("BookingModalBarberFirst calendar flow", () => {
     expect(fns.getPublicBarberProfile).not.toHaveBeenCalled();
   });
 
-  it("starts on branch step then loads filtered services for a branch", async () => {
+  it("starts on date step then loads filtered services for a branch", async () => {
     const { result } = renderHook(() =>
       useBookingFlow({
         open: true,
@@ -114,13 +137,13 @@ describe("BookingModalBarberFirst calendar flow", () => {
         skipModeStep: true,
       }),
     );
-    expect(result.current.step).toBe("branch");
+    await waitFor(() => expect(result.current.step).toBe("date"));
     await waitFor(() => expect(result.current.catalogLoading).toBe(false));
     expect(result.current.services.map((s) => s.id)).toEqual([10]);
     expect(fns.listBranchBarbers).not.toHaveBeenCalled();
   });
 
-  it("continue after services opens classic calendar (date), not cross-branch slots", async () => {
+  it("calendar loads on date before services (not cross-branch slots)", async () => {
     const { result } = renderHook(() =>
       useBookingFlow({
         open: true,
@@ -130,22 +153,13 @@ describe("BookingModalBarberFirst calendar flow", () => {
         skipModeStep: true,
       }),
     );
+    await waitFor(() => expect(result.current.step).toBe("date"));
     await waitFor(() => expect(result.current.catalogLoading).toBe(false));
-    act(() => {
-      result.current.selectServices([10]);
-      result.current.setStep("service");
-    });
-    act(() => {
-      result.current.goToSlotsStep();
-    });
-    expect(result.current.step).toBe("date");
-    await waitFor(() => expect(result.current.daysLoading).toBe(false));
-    expect(fns.getAvailableDays).toHaveBeenCalled();
+    await waitFor(() => expect(fns.getBarberAvailableDays).toHaveBeenCalled());
     expect(fns.getCrossBranchAvailability).not.toHaveBeenCalled();
-    expect(result.current.days.some((d) => d.date === "2026-07-28")).toBe(true);
   });
 
-  it("selecting a calendar day then time stores plan inputs from branch context", async () => {
+  it("selecting a calendar day then service then time stores plan inputs", async () => {
     const { result } = renderHook(() =>
       useBookingFlow({
         open: true,
@@ -155,15 +169,17 @@ describe("BookingModalBarberFirst calendar flow", () => {
         skipModeStep: true,
       }),
     );
-    await waitFor(() => expect(result.current.catalogLoading).toBe(false));
-    act(() => {
-      result.current.selectServices([10]);
-      result.current.goToSlotsStep();
-    });
+    await waitFor(() => expect(result.current.step).toBe("date"));
     await waitFor(() => expect(result.current.daysLoading).toBe(false));
 
     act(() => {
       result.current.selectDate(new Date(2026, 6, 28));
+    });
+    expect(result.current.step).toBe("service");
+
+    act(() => {
+      result.current.selectServices([10]);
+      result.current.setStep("time");
     });
     expect(result.current.step).toBe("time");
     await waitFor(() => expect(result.current.slotsLoading).toBe(false));
