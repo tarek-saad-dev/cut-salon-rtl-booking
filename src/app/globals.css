@@ -430,6 +430,25 @@
   .booking-cart-success-flash {
     animation: booking-cart-success-flash 1.65s ease-out;
   }
+  .campaign-shimmer {
+    background: linear-gradient(
+      105deg,
+      transparent 40%,
+      rgba(210, 183, 163, 0.08) 50%,
+      transparent 60%
+    );
+    background-size: 200% 100%;
+    animation: campaign-shimmer 2s ease-in-out infinite;
+  }
+  @keyframes campaign-shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .campaign-shimmer {
+      animation: none;
+    }
+  }
 }
 
 @keyframes booking-cart-in {

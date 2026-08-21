@@ -7,6 +7,8 @@ import { Calendar, Zap, Shield, Gem, Clock } from "lucide-react";
 // Temporarily hidden per request: import CustomerUpcomingBookings from "./CustomerUpcomingBookings";
 import BarberPhoto from "./BarberPhoto";
 import { listGlobalBarbers, resolveBarberPhotoUrl, resolveBarberDisplayName } from "@/lib/booking-api";
+import { isFirstSiteVisit } from "@/lib/campaignStorage";
+import { getActiveCampaign } from "@/config/campaigns";
 
 const heroImg = "/hero.png";
 const heroVerticalImg = "/hero_vertical.png";
@@ -24,6 +26,13 @@ const fadeUp = {
 
 const HeroSection = () => {
   const [barberStrip, setBarberStrip] = useState<HeroBarber[]>([]);
+  const [showLocationTrust, setShowLocationTrust] = useState(false);
+
+  useEffect(() => {
+    if (getActiveCampaign() && isFirstSiteVisit()) {
+      setShowLocationTrust(true);
+    }
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -91,6 +100,15 @@ const HeroSection = () => {
                   <span className="cut-ar-meta text-cut-warm-beige text-xs md:text-sm font-bold tracking-wide">CUT SALON</span>
                   <div className="w-8 md:w-10 h-px bg-gradient-to-r from-cut-bronze to-transparent" />
                 </div>
+                {showLocationTrust && (
+                  <p
+                    className="text-cut-ivory/40 text-[10px] md:text-[11px] tracking-wide font-display mt-0.5"
+                    dir="ltr"
+                  >
+                    Now serving Alexandria from 2 locations · Gleem · Camp Caesar{" "}
+                    <span className="text-cut-bronze/80 font-semibold">NEW</span>
+                  </p>
+                )}
               </motion.div>
 
               <motion.h1 custom={1} variants={fadeUp} initial="hidden" animate="visible"
@@ -111,6 +129,7 @@ const HeroSection = () => {
                 <Link
                   href="/book"
                   aria-label="احجز الآن"
+                  data-book-now="true"
                   className="group relative inline-flex items-center justify-center gap-2.5 w-full sm:w-auto px-8 py-3.5 rounded-xl font-heading font-bold text-cut-black text-base bg-cut-ivory hover:bg-cut-warm-beige shadow-cut-glow-strong hover:scale-[1.02] active:scale-[0.97] transition-all duration-300 cursor-pointer">
                   <Calendar className="w-4 h-4" />
                   احجز الآن

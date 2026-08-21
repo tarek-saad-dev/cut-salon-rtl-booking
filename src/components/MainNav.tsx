@@ -124,7 +124,7 @@ export default function MainNav() {
         initial={{ opacity: 0, y: -16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: "easeOut" }}
-        className="cut-nav-glass relative z-50 w-full"
+        className="cut-nav-glass sticky top-[var(--cut-campaign-bar-height,0px)] z-50 w-full transition-[top] duration-200"
         dir={dir}
       >
         {/* Desktop header */}
@@ -229,6 +229,7 @@ export default function MainNav() {
               className={`fixed inset-y-0 z-50 flex w-[min(22rem,86vw)] flex-col bg-[#1f1c1b] lg:hidden ${
                 dir === "rtl" ? "right-0" : "left-0"
               }`}
+              style={{ top: "var(--cut-campaign-bar-height, 0px)" }}
               dir={dir}
               aria-label={lang === "ar" ? "قائمة التنقل" : "Navigation menu"}
             >

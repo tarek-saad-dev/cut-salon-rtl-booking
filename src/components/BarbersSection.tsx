@@ -241,15 +241,28 @@ const BarbersSection = () => {
       );
       if (match) openBarberFirst(match);
     };
+    const handleBookBranch = (e: Event) => {
+      const detail = (e as CustomEvent<{ branchCode: string; mode?: "nearest" | "specific" }>).detail;
+      if (!detail?.branchCode) return;
+      openBooking({
+        barber: NEAREST_PLACEHOLDER_BARBER,
+        entryMode: "branch_first",
+        initialMode: detail.mode ?? "nearest",
+        explicitEntryBranchCode: detail.branchCode,
+        initialAvailabilityScope: "specific_branch",
+      });
+    };
     window.addEventListener("cut:book-nearest", handleBookNearest);
     window.addEventListener("cut:book-groom", handleBookGroom);
     window.addEventListener("cut:book-barber", handleBookBarber);
+    window.addEventListener("cut:book-branch", handleBookBranch);
     return () => {
       window.removeEventListener("cut:book-nearest", handleBookNearest);
       window.removeEventListener("cut:book-groom", handleBookGroom);
       window.removeEventListener("cut:book-barber", handleBookBarber);
+      window.removeEventListener("cut:book-branch", handleBookBranch);
     };
-  }, [barbers]);
+  }, [barbers, groomBooking, openBooking, openBarberFirst, openNearestBooking]);
 
   useEffect(() => {
     let cancelled = false;

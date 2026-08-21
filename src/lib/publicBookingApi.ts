@@ -15,11 +15,19 @@
 
 // ─── Base URL ─────────────────────────────────────────────────────────────────
 
-const BOOKING_API_BASE_URL = process.env.NEXT_PUBLIC_BOOKING_API_BASE_URL || "";
+const BOOKING_API_BASE_URL =
+  process.env.NEXT_PUBLIC_BOOKING_API_BASE_URL ||
+  process.env.NEXT_PUBLIC_API_BASE_URL ||
+  "";
 
 function buildBookingApiUrl(path: string): string {
   const base = BOOKING_API_BASE_URL.replace(/\/$/, "");
   const cleanPath = path.startsWith("/") ? path : `/${path}`;
+  if (base.toLowerCase().includes("casher-five.vercel.app")) {
+    throw new Error(
+      "[publicBookingApi] REFUSING production API during local E2E — use http://localhost:5500",
+    );
+  }
   return `${base}${cleanPath}`;
 }
 
@@ -103,6 +111,10 @@ export interface BookingBarber {
   photoUrl: string | null;
   bio: string | null;
   isBookableOnline: boolean;
+  branches?: { branchCode: string; branchName: string }[];
+  empId?: number;
+  nameEn?: string | null;
+  nameAr?: string | null;
 }
 
 export interface BookingBarbersResponse {

@@ -4,6 +4,7 @@ import localFont from "next/font/local";
 import "./globals.css";
 import { Providers } from "@/components/providers";
 import MainNav from "@/components/MainNav";
+import CampCaesarCampaign from "@/components/campaign/CampCaesarCampaign";
 
 const alexandria = Alexandria({
   variable: "--font-alexandria-loaded",
@@ -94,6 +95,7 @@ export default function RootLayout({
     <html lang="en" dir="ltr" suppressHydrationWarning>
       <body className={`${alexandria.variable} ${laxr.variable} antialiased`}>
         <Providers>
+          <CampCaesarCampaign />
           <MainNav />
           {children}
         </Providers>
