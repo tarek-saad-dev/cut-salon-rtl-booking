@@ -130,11 +130,25 @@ export interface ClientLoyaltyDashboardResponse {
   recentActivity: ApiActivityItem[];
 }
 
+export interface CasherRedeemRewardResponse {
+  ok: true;
+  message?: string;
+  redemption?: {
+    rewardId?: number | string;
+    titleAr?: string;
+    titleEn?: string;
+    pointsCost?: number;
+    code?: string;
+  };
+  newBalance?: number;
+}
+
 export interface RedeemRewardResponse {
   ok: true;
   message?: string;
   redeemCode?: string;
   newBalance?: number;
+  pointsDeducted?: number;
 }
 
 export interface ActivityPageResponse {
@@ -232,7 +246,17 @@ export async function redeemClientReward(
         : "فشل استبدال المكافأة";
     throw new Error(msg);
   }
-  return data as RedeemRewardResponse;
+
+  const body = data as CasherRedeemRewardResponse;
+  const redemption = body.redemption;
+
+  return {
+    ok: true,
+    message: body.message,
+    newBalance: body.newBalance,
+    redeemCode: redemption?.code,
+    pointsDeducted: redemption?.pointsCost,
+  };
 }
 
 export async function fetchClientReferral(
