@@ -404,6 +404,19 @@
     font-family: var(--font-laxr), "LAXR", var(--font-alexandria), sans-serif !important;
     font-weight: 400 !important;
   }
+  /**
+   * LAXR glyphs sit outside the em-box. Give display titles breathing room
+   * so strokes are not clipped by overflow / tight line-height.
+   */
+  .cut-laxr-safe {
+    overflow: visible;
+    margin: 0.4em;
+    padding: 0.28em 0.42em;
+  }
+  html[lang="ar"] h1.cut-laxr-safe,
+  html[lang="ar"] .cut-laxr-safe {
+    line-height: 1.45;
+  }
   .font-ui {
     font-family: var(--font-ui);
   }

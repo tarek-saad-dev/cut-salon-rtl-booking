@@ -314,7 +314,7 @@ export function BookFlowChrome({
 
   const heroHeadingBlock = (
     <div
-      className={`flex flex-col items-start md:items-center ${
+      className={`flex flex-col items-start overflow-visible md:items-center ${
         heroBranchLabel ? "gap-3" : "gap-1.5"
       }`}
     >
@@ -326,7 +326,13 @@ export function BookFlowChrome({
         />
       ) : null}
       {heroTitle ? (
-        <h1 className="truncate font-display text-[1.05rem] font-bold leading-tight text-cut-ivory md:text-[clamp(1.75rem,5.2vw,2.5rem)] md:leading-tight">
+        <h1
+          className={
+            ar
+              ? "cut-laxr-safe overflow-visible font-laxr text-[1.05rem] font-normal text-cut-ivory md:text-[clamp(1.75rem,5.2vw,2.5rem)]"
+              : "truncate font-display text-[1.05rem] font-bold leading-tight text-cut-ivory md:text-[clamp(1.75rem,5.2vw,2.5rem)] md:leading-tight"
+          }
+        >
           {heroTitle}
         </h1>
       ) : null}
@@ -387,7 +393,7 @@ export function BookFlowChrome({
       {/* ── Mobile compact hero (~100–120px) ── */}
       {compact && !heroCollapsed ? (
         <section
-          className="relative h-[7.5rem] max-h-[130px] min-h-[95px] shrink-0 overflow-hidden bg-cut-black md:hidden"
+          className="relative h-[8.25rem] max-h-[148px] min-h-[108px] shrink-0 overflow-hidden bg-cut-black md:hidden"
           aria-label={heroTitle ?? (ar ? "الحجز" : "Booking")}
         >
           <img
@@ -398,12 +404,12 @@ export function BookFlowChrome({
           />
           <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(5,5,5,0.55)_0%,rgba(23,4,6,0.72)_100%)]" />
           <div
-            className={`relative z-10 flex h-full flex-col justify-end px-4 pb-3 ${
-              heroBranchLabel ? "pt-4" : "pt-2"
+            className={`relative z-10 flex h-full flex-col justify-end px-5 pb-4 ${
+              heroBranchLabel ? "pt-5" : "pt-3"
             }`}
           >
             <div className="flex items-end justify-between gap-2">
-              <div className="min-w-0 flex-1">
+              <div className="min-w-0 flex-1 overflow-visible">
                 {heroHeadingBlock}
                 {stepLine ? (
                   <p className="mt-0.5 text-[11px] font-medium text-cut-soft-ivory/75">
@@ -665,8 +671,8 @@ export function BookFlowChrome({
           : null}
 
         {heroTitle || heroBranchLabel ? (
-          <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center px-5 sm:px-8">
-            <div className="mx-auto flex max-w-lg flex-col items-center gap-3 text-center">
+          <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center px-6 py-6 sm:px-10 sm:py-8">
+            <div className="mx-auto flex max-w-lg flex-col items-center gap-3 overflow-visible text-center">
               {heroHeadingBlock}
               {heroMeta && !heroBranchLabel ? (
                 <p className="mt-3 text-[13px] font-medium leading-6 tracking-wide text-cut-soft-ivory/80 sm:text-sm">
