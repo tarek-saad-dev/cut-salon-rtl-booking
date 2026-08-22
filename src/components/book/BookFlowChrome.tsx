@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
   ChevronLeft,
   ChevronRight,
@@ -16,24 +16,76 @@ import {
   User,
   X,
 } from "lucide-react";
+import BarberPhoto from "@/components/BarberPhoto";
+import { BookCompactProgress } from "@/components/book/BookCompactProgress";
+import { useBookCompactMode } from "@/components/book/useBookCompactMode";
 import { useLanguage } from "@/context/LanguageContext";
+import { useMobileNav } from "@/context/MobileNavContext";
 import { navigationLabels } from "@/lib/i18n/navigation";
 
 const WHATSAPP_URL = "https://wa.me/201012126899";
 
-type BookFlowChromeProps = {
-  children: React.ReactNode;
-  /** Show back control over the hero (e.g. visit-type → locations). */
+export type BookFlowChromeProps = {
+  children: ReactNode;
   backHref?: string;
-  /** In-flow back (preferred for multi-step /book O2). */
   onBack?: () => void;
   backLabel?: string;
   footer?: boolean;
-  /** Title composed onto the hero image (e.g. Menu). */
+  /** Primary title — hero overlay on mobile, hero center on desktop. */
   heroTitle?: string;
-  /** Supporting line under the hero title (e.g. branch · visit type). */
+  /** Supporting line — desktop hero only. */
   heroMeta?: string;
+  entryScroll?: boolean;
+  /** Enable compact mobile booking shell (default true). */
+  compact?: boolean;
+  closeHref?: string;
+  /** 1-based step index for compact progress. */
+  stepIndex?: number;
+  stepTotal?: number;
+  avatarSrc?: string | null;
+  avatarName?: string;
 };
+
+function CutLogo({ compact = false }: { compact?: boolean }) {
+  return (
+    <Link
+      href="/"
+      className="group flex items-center gap-1 select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cut-warm-beige"
+      aria-label="CUT Salon - Home"
+    >
+      <span
+        className={`font-black tracking-widest text-cut-bronze transition-colors group-hover:text-cut-warm-beige ${
+          compact ? "text-sm" : "text-base"
+        }`}
+      >
+        —
+      </span>
+      <div className="mx-0.5 text-center">
+        <span
+          className={`font-brand font-black leading-none tracking-[0.22em] text-cut-ivory ${
+            compact ? "text-base" : "text-xl"
+          }`}
+        >
+          CUT
+        </span>
+        <div
+          className={`-mt-0.5 font-semibold tracking-[0.45em] text-cut-bronze transition-colors group-hover:text-cut-warm-beige ${
+            compact ? "text-[6px]" : "text-[8px]"
+          }`}
+        >
+          SALON
+        </div>
+      </div>
+      <span
+        className={`font-black tracking-widest text-cut-bronze transition-colors group-hover:text-cut-warm-beige ${
+          compact ? "text-sm" : "text-base"
+        }`}
+      >
+        —
+      </span>
+    </Link>
+  );
+}
 
 export function BookFlowChrome({
   children,
@@ -43,15 +95,108 @@ export function BookFlowChrome({
   footer = true,
   heroTitle,
   heroMeta,
+  entryScroll = true,
+  compact = true,
+  closeHref = "/",
+  stepIndex,
+  stepTotal,
+  avatarSrc,
+  avatarName,
 }: BookFlowChromeProps) {
   const router = useRouter();
   const { lang, dir, setLang } = useLanguage();
+  const { setBack } = useMobileNav();
   const ar = lang === "ar";
   const BackIcon = ar ? ChevronRight : ChevronLeft;
   const [menuOpen, setMenuOpen] = useState(false);
+  const [heroCollapsed, setHeroCollapsed] = useState(false);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const heroRef = useRef<HTMLElement>(null);
+  const entryScrollDone = useRef(false);
+  const reduceMotion = useReducedMotion();
   const label = (key: keyof typeof navigationLabels) => navigationLabels[key][lang];
   const barberHref = "/#barbers";
   const closeMenu = () => setMenuOpen(false);
+
+  useBookCompactMode(compact);
+
+  useEffect(() => {
+    if (!compact) {
+      setBack({});
+      return;
+    }
+
+    if (onBack || backHref) {
+      setBack({
+        visible: true,
+        action: () => {
+          if (onBack) onBack();
+          else if (backHref) router.push(backHref);
+        },
+      });
+    } else {
+      setBack({ visible: true });
+    }
+
+    return () => setBack({});
+  }, [compact, onBack, backHref, router, setBack]);
+
+  const hasStepProgress =
+    typeof stepIndex === "number" &&
+    typeof stepTotal === "number" &&
+    stepTotal > 0 &&
+    stepIndex > 0;
+
+  const stepLine =
+    hasStepProgress && stepIndex != null && stepTotal != null
+      ? ar
+        ? `الخطوة ${stepIndex} من ${stepTotal}`
+        : `Step ${stepIndex} of ${stepTotal}`
+      : null;
+
+  const handleContentScroll = useCallback(() => {
+    const el = contentRef.current;
+    if (!el || !compact) return;
+    setHeroCollapsed(el.scrollTop > 28);
+  }, [compact]);
+
+  useEffect(() => {
+    if (!entryScroll || entryScrollDone.current || compact) return;
+    entryScrollDone.current = true;
+
+    const scrollToContent = () => {
+      const hero = heroRef.current;
+      const content = contentRef.current;
+      if (!content) return;
+
+      const rootStyles = getComputedStyle(document.documentElement);
+      const campaignBar =
+        parseFloat(rootStyles.getPropertyValue("--cut-campaign-bar-height")) || 0;
+      const stickyTop = campaignBar + 56;
+
+      let target = content.offsetTop - stickyTop;
+      if (hero) {
+        const hideHero = hero.offsetTop + hero.offsetHeight - stickyTop - 4;
+        target = Math.max(target, hideHero);
+      }
+
+      window.scrollTo({
+        top: Math.max(0, target),
+        behavior: reduceMotion ? "instant" : "smooth",
+      });
+    };
+
+    if (reduceMotion) {
+      scrollToContent();
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      requestAnimationFrame(scrollToContent);
+    }, 100);
+
+    return () => window.clearTimeout(timer);
+  }, [entryScroll, reduceMotion, compact]);
 
   useEffect(() => {
     document.body.style.overflow = menuOpen ? "hidden" : "";
@@ -68,64 +213,161 @@ export function BookFlowChrome({
     return () => window.removeEventListener("keydown", onEscape);
   }, []);
 
+  const renderBackControl = (
+    className: string,
+    iconClass = "h-5 w-5",
+  ) => {
+    if (onBack) {
+      return (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onBack();
+          }}
+          aria-label={backLabel ?? (ar ? "رجوع" : "Back")}
+          className={className}
+        >
+          <BackIcon className={iconClass} strokeWidth={1.75} />
+        </button>
+      );
+    }
+    if (backHref) {
+      return (
+        <Link
+          href={backHref}
+          aria-label={backLabel ?? (ar ? "رجوع" : "Back")}
+          className={className}
+        >
+          <BackIcon className={iconClass} strokeWidth={1.75} />
+        </Link>
+      );
+    }
+    return <span className="inline-flex h-10 w-10 shrink-0" aria-hidden />;
+  };
+
   const navItemClass =
     "flex min-h-[3.25rem] w-full items-center border-b border-cut-bronze py-3.5 text-start text-[1.05rem] font-semibold tracking-wide text-cut-ivory transition hover:text-cut-warm-beige focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-cut-warm-beige";
 
   return (
-    <main dir={dir} lang={lang} className="min-h-[100svh] bg-cut-soft-ivory text-cut-black">
-      {/* Temporary: keep book header fully visible under the fixed Camp Caesar bar */}
-      <div
-        className="w-full shrink-0"
-        style={{ height: "var(--cut-campaign-bar-height, 0px)" }}
-        aria-hidden
-      />
-      <header className="sticky top-[var(--cut-campaign-bar-height,0px)] z-30 border-b border-cut-bronze/20 bg-cut-black text-cut-ivory transition-[top] duration-200">
-        <div className="relative flex h-14 items-center justify-center px-4">
-          <button
-            type="button"
-            onClick={() => setMenuOpen(true)}
-            aria-label={label("openMenu")}
-            aria-expanded={menuOpen}
-            aria-controls="book-side-navigation"
-            className={`absolute top-1/2 z-10 inline-flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-xl border border-cut-warm-beige/45 bg-cut-ivory/10 text-cut-ivory shadow-[0_0_0_1px_rgba(252,249,237,0.08)] transition hover:border-cut-warm-beige hover:bg-cut-ivory/15 hover:text-cut-warm-beige focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cut-warm-beige ${
-              ar ? "right-3" : "left-3"
-            }`}
-          >
-            <Menu className="h-6 w-6" strokeWidth={2.35} />
-          </button>
-
-          <Link
-            href="/"
-            className="group flex items-center gap-1.5 select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cut-warm-beige"
-            aria-label={ar ? "CUT Salon - الرئيسية" : "CUT Salon - Home"}
-          >
-            <span className="text-base font-black tracking-widest text-cut-bronze transition-colors group-hover:text-cut-warm-beige">
-              —
-            </span>
-            <div className="mx-0.5 text-center">
-              <span className="font-brand text-xl font-black leading-none tracking-[0.22em] text-cut-ivory">
-                CUT
-              </span>
-              <div className="-mt-0.5 text-[8px] font-semibold tracking-[0.45em] text-cut-bronze transition-colors group-hover:text-cut-warm-beige">
-                SALON
+    <main
+      dir={dir}
+      lang={lang}
+      className={`overflow-x-hidden bg-cut-soft-ivory text-cut-black ${
+        compact
+          ? "max-md:flex max-md:h-[calc(100dvh-var(--cut-mobile-nav-total,3.25rem))] max-md:flex-col max-md:overflow-hidden"
+          : ""
+      } md:min-h-[100svh]`}
+      data-book-shell={compact ? "compact" : "full"}
+    >
+      {/* ── Mobile collapsed scroll strip (back lives in GlobalMobileNav) ── */}
+      {compact && heroCollapsed && heroTitle ? (
+        <div className="flex h-10 shrink-0 items-center gap-2 border-b border-cut-black/10 bg-cut-soft-ivory/95 px-3 backdrop-blur-sm md:hidden">
+          <div className="flex min-w-0 flex-1 items-center gap-2">
+            {avatarSrc ? (
+              <div className="h-7 w-7 shrink-0 overflow-hidden rounded-full border border-cut-black/10">
+                <BarberPhoto
+                  src={avatarSrc}
+                  name={avatarName ?? heroTitle}
+                  imgClassName="h-full w-full object-cover object-top"
+                />
               </div>
-            </div>
-            <span className="text-base font-black tracking-widest text-cut-bronze transition-colors group-hover:text-cut-warm-beige">
-              —
+            ) : null}
+            <p className="truncate text-[13px] font-bold text-cut-black">{heroTitle}</p>
+          </div>
+          {hasStepProgress && stepIndex != null && stepTotal != null ? (
+            <span className="shrink-0 text-[11px] font-semibold tabular-nums text-cut-black/45">
+              {stepIndex}/{stepTotal}
             </span>
-          </Link>
-
-          <Link
-            href="/booking"
-            className={`absolute top-1/2 inline-flex -translate-y-1/2 items-center gap-1.5 text-xs font-semibold text-cut-ivory/75 transition hover:text-cut-warm-beige ${
-              ar ? "left-4" : "right-4"
-            }`}
-          >
-            {ar ? "مواعيدك" : "Appointments"}
-            <ExternalLink className="h-3 w-3 opacity-80" strokeWidth={1.75} />
-          </Link>
+          ) : null}
         </div>
-      </header>
+      ) : null}
+
+      {/* ── Mobile compact hero (~100–120px) ── */}
+      {compact && !heroCollapsed ? (
+        <section
+          className="relative h-[7.5rem] max-h-[130px] min-h-[95px] shrink-0 overflow-hidden bg-cut-black md:hidden"
+          aria-label={heroTitle ?? (ar ? "الحجز" : "Booking")}
+        >
+          <img
+            src="/hero_vertical.png"
+            alt=""
+            aria-hidden
+            className="absolute inset-0 h-full w-full object-cover object-[center_15%] opacity-40"
+          />
+          <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(5,5,5,0.55)_0%,rgba(23,4,6,0.72)_100%)]" />
+          <div className="relative z-10 flex h-full flex-col justify-end px-4 pb-3 pt-2">
+            <div className="flex items-end justify-between gap-2">
+              <div className="min-w-0 flex-1">
+                {heroTitle ? (
+                  <h1 className="truncate font-display text-[1.05rem] font-bold leading-tight text-cut-ivory">
+                    {heroTitle}
+                  </h1>
+                ) : null}
+                {stepLine ? (
+                  <p className="mt-0.5 text-[11px] font-medium text-cut-soft-ivory/75">
+                    {stepLine}
+                  </p>
+                ) : heroMeta ? (
+                  <p className="mt-0.5 truncate text-[11px] text-cut-soft-ivory/70">
+                    {heroMeta}
+                  </p>
+                ) : null}
+              </div>
+              {avatarSrc ? (
+                <div className="h-9 w-9 shrink-0 overflow-hidden rounded-full border border-cut-ivory/25">
+                  <BarberPhoto
+                    src={avatarSrc}
+                    name={avatarName ?? heroTitle ?? ""}
+                    imgClassName="h-full w-full object-cover object-top"
+                  />
+                </div>
+              ) : null}
+            </div>
+            {hasStepProgress && stepIndex != null && stepTotal != null ? (
+              <div className="mt-2">
+                <BookCompactProgress current={stepIndex} total={stepTotal} />
+              </div>
+            ) : null}
+          </div>
+        </section>
+      ) : null}
+
+      {/* ── Desktop full chrome ── */}
+      <div className="hidden md:block">
+        <div
+          className="w-full shrink-0"
+          style={{ height: "var(--cut-campaign-bar-height, 0px)" }}
+          aria-hidden
+        />
+        <header className="sticky top-[var(--cut-campaign-bar-height,0px)] z-30 border-b border-cut-bronze/20 bg-cut-black text-cut-ivory transition-[top] duration-200">
+          <div className="relative flex h-14 items-center justify-center px-4">
+            <button
+              type="button"
+              onClick={() => setMenuOpen(true)}
+              aria-label={label("openMenu")}
+              aria-expanded={menuOpen}
+              aria-controls="book-side-navigation"
+              className={`absolute top-1/2 z-10 inline-flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-xl border border-cut-warm-beige/45 bg-cut-ivory/10 text-cut-ivory shadow-[0_0_0_1px_rgba(252,249,237,0.08)] transition hover:border-cut-warm-beige hover:bg-cut-ivory/15 hover:text-cut-warm-beige focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cut-warm-beige ${
+                ar ? "right-3" : "left-3"
+              }`}
+            >
+              <Menu className="h-6 w-6" strokeWidth={2.35} />
+            </button>
+            <CutLogo />
+            <Link
+              href="/booking"
+              className={`absolute top-1/2 inline-flex -translate-y-1/2 items-center gap-1.5 text-xs font-semibold text-cut-ivory/75 transition hover:text-cut-warm-beige ${
+                ar ? "left-4" : "right-4"
+              }`}
+            >
+              {ar ? "مواعيدك" : "Appointments"}
+              <ExternalLink className="h-3 w-3 opacity-80" strokeWidth={1.75} />
+            </Link>
+          </div>
+        </header>
+      </div>
 
       <AnimatePresence>
         {menuOpen && (
@@ -136,7 +378,7 @@ export function BookFlowChrome({
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
-              className="fixed inset-0 z-40 bg-cut-black/70"
+              className="fixed inset-0 z-40 hidden bg-cut-black/70 md:block"
               onClick={closeMenu}
             />
             <motion.aside
@@ -146,7 +388,7 @@ export function BookFlowChrome({
               animate={{ x: 0 }}
               exit={{ x: dir === "rtl" ? "100%" : "-100%" }}
               transition={{ type: "spring", stiffness: 340, damping: 34 }}
-              className={`fixed inset-y-0 z-50 flex w-[min(22rem,86vw)] flex-col bg-[#1f1c1b] ${
+              className={`fixed inset-y-0 z-50 hidden w-[min(22rem,86vw)] flex-col bg-[#1f1c1b] md:flex ${
                 dir === "rtl" ? "right-0" : "left-0"
               }`}
               style={{ top: "var(--cut-campaign-bar-height, 0px)" }}
@@ -235,9 +477,7 @@ export function BookFlowChrome({
                         setLang(lang === "ar" ? "en" : "ar");
                         closeMenu();
                       }}
-                      aria-label={
-                        ar ? "التبديل إلى الإنجليزية" : "Switch to Arabic"
-                      }
+                      aria-label={ar ? "التبديل إلى الإنجليزية" : "Switch to Arabic"}
                       className="flex w-full flex-col gap-2 rounded-xl border border-cut-warm-beige/35 bg-gradient-to-l from-cut-burgundy/40 to-cut-black/50 px-4 py-3 text-start transition hover:border-cut-warm-beige/60 hover:from-cut-burgundy/55"
                     >
                       <span className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-cut-warm-beige/90">
@@ -254,18 +494,14 @@ export function BookFlowChrome({
                         >
                           <span
                             className={`rounded-full px-2.5 py-1 transition ${
-                              ar
-                                ? "bg-cut-warm-beige text-cut-black"
-                                : "text-cut-ivory/45"
+                              ar ? "bg-cut-warm-beige text-cut-black" : "text-cut-ivory/45"
                             }`}
                           >
                             AR
                           </span>
                           <span
                             className={`rounded-full px-2.5 py-1 transition ${
-                              !ar
-                                ? "bg-cut-warm-beige text-cut-black"
-                                : "text-cut-ivory/45"
+                              !ar ? "bg-cut-warm-beige text-cut-black" : "text-cut-ivory/45"
                             }`}
                           >
                             EN
@@ -304,7 +540,8 @@ export function BookFlowChrome({
       </AnimatePresence>
 
       <section
-        className={`relative overflow-hidden bg-cut-black ${
+        ref={heroRef}
+        className={`relative hidden overflow-hidden bg-cut-black md:block ${
           heroTitle
             ? "h-[28svh] min-h-[180px] max-h-[240px] sm:h-[220px]"
             : "h-[22svh] min-h-[140px] max-h-[200px] sm:h-[180px]"
@@ -318,32 +555,14 @@ export function BookFlowChrome({
         />
         <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(5,5,5,0.35)_0%,rgba(23,4,6,0.35)_40%,rgba(5,5,5,0.82)_100%)]" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_30%,rgba(74,0,15,0.45),transparent_55%)]" />
-        {onBack ? (
-          <button
-            type="button"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              onBack();
-            }}
-            aria-label={backLabel ?? (ar ? "رجوع" : "Back")}
-            className={`absolute top-3 z-20 inline-flex h-11 w-11 items-center justify-center rounded-xl text-cut-ivory transition hover:bg-cut-ivory/15 hover:text-cut-warm-beige focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cut-warm-beige ${
-              ar ? "right-3" : "left-3"
-            }`}
-          >
-            <BackIcon className="h-6 w-6" strokeWidth={1.75} />
-          </button>
-        ) : backHref ? (
-          <Link
-            href={backHref}
-            aria-label={backLabel ?? (ar ? "رجوع" : "Back")}
-            className={`absolute top-3 z-20 inline-flex h-11 w-11 items-center justify-center rounded-xl text-cut-ivory transition hover:bg-cut-ivory/15 hover:text-cut-warm-beige focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cut-warm-beige ${
-              ar ? "right-3" : "left-3"
-            }`}
-          >
-            <BackIcon className="h-6 w-6" strokeWidth={1.75} />
-          </Link>
-        ) : null}
+        {onBack || backHref
+          ? renderBackControl(
+              `absolute top-3 z-20 inline-flex h-11 w-11 items-center justify-center rounded-xl text-cut-ivory transition hover:bg-cut-ivory/15 hover:text-cut-warm-beige focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cut-warm-beige ${
+                ar ? "right-3" : "left-3"
+              }`,
+              "h-6 w-6",
+            )
+          : null}
 
         {heroTitle ? (
           <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center px-5 sm:px-8">
@@ -356,15 +575,29 @@ export function BookFlowChrome({
                   {heroMeta}
                 </p>
               ) : null}
+              {hasStepProgress && stepIndex != null && stepTotal != null ? (
+                <div className="mx-auto mt-4 max-w-xs">
+                  <BookCompactProgress current={stepIndex} total={stepTotal} />
+                </div>
+              ) : null}
             </div>
           </div>
         ) : null}
       </section>
 
-      {children}
+      <div
+        ref={contentRef}
+        id="book-main-content"
+        onScroll={handleContentScroll}
+        className={`${
+          compact ? "max-md:flex-1 max-md:min-h-0 max-md:overflow-y-auto" : ""
+        } scroll-mt-[calc(var(--cut-campaign-bar-height,0px)+3.5rem)]`}
+      >
+        {children}
+      </div>
 
       {footer ? (
-        <footer className="border-t border-cut-black/10 px-5 py-8 text-center sm:px-8">
+        <footer className="hidden border-t border-cut-black/10 px-5 py-8 text-center sm:px-8 md:block">
           <p className="text-[11px] tracking-[0.2em] text-cut-black/40">CUT SALON · ALEXANDRIA</p>
           <Link
             href="/"

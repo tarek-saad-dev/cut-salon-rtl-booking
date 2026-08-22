@@ -26,7 +26,6 @@ export default function CampCaesarCampaign() {
     variant,
     introPhase,
     introActive,
-    loadCelebrationComplete,
     loadKey,
   } = useCampaignPageLoadCelebration();
 
@@ -52,27 +51,21 @@ export default function CampCaesarCampaign() {
     return () => window.removeEventListener("cut:blocking-overlay", handler);
   }, []);
 
-  // Auto-show opening sheet once per full page load, after page-load celebration
+  // Auto-show opening sheet immediately on first mount (once per full page load)
   useEffect(() => {
-    if (!config || autoShowAttempted.current || !loadCelebrationComplete) return;
+    if (!config || autoShowAttempted.current) return;
 
     autoShowAttempted.current = true;
-    const [minMs, maxMs] = config.openingDelayMs;
-    const delay = minMs + Math.random() * (maxMs - minMs);
 
-    const timer = window.setTimeout(() => {
-      if (manualOpenRef.current) return;
-      if (blockingRef.current) {
-        setShowPill(true);
-        return;
-      }
-      setOpeningOpen(true);
-      trackCampaignEvent("camp_caesar_campaign_view", { source: "auto_open" });
-      window.history.pushState({ [HISTORY_OPENING]: true }, "");
-    }, delay);
-
-    return () => window.clearTimeout(timer);
-  }, [config, loadCelebrationComplete]);
+    if (manualOpenRef.current) return;
+    if (blockingRef.current) {
+      setShowPill(true);
+      return;
+    }
+    setOpeningOpen(true);
+    trackCampaignEvent("camp_caesar_campaign_view", { source: "auto_open" });
+    window.history.pushState({ [HISTORY_OPENING]: true }, "");
+  }, [config]);
 
   // Browser back closes campaign layers
   useEffect(() => {

@@ -151,22 +151,25 @@ export default function BookProfessionalsClient() {
   };
 
   const rowClass =
-    "flex w-full items-center gap-3 px-5 py-4 text-start transition hover:bg-cut-warm-paper/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-cut-burgundy sm:px-6";
+    "flex w-full min-h-[3.75rem] items-center gap-2.5 px-3 py-2 text-start transition hover:bg-cut-warm-paper/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-cut-burgundy sm:px-6 md:gap-3 md:px-5 md:py-4";
 
   return (
     <BookFlowChrome
       backHref={servicesHref}
       backLabel={ar ? "رجوع للخدمات" : "Back to services"}
       footer={false}
+      entryScroll={false}
+      heroTitle={ar ? "اختر الحلاق" : "Select a professional"}
+      heroMeta={branchLabel ?? undefined}
     >
-      <section className="relative -mt-4 rounded-t-[1.75rem] bg-cut-soft-ivory pb-28 shadow-[0_-12px_40px_rgba(0,0,0,0.18)]">
+      <section className="relative bg-cut-soft-ivory pb-28 md:-mt-4 md:rounded-t-[1.75rem] md:shadow-[0_-12px_40px_rgba(0,0,0,0.18)]">
         <BookDelayedWaitingOverlay
           busy={loading}
           delayMs={800}
           lang={lang}
           label={ar ? "جاري تحميل الحلاقين…" : "Loading professionals…"}
         />
-        <div className="border-b border-cut-black/10 px-5 py-5 sm:px-6">
+        <div className="hidden border-b border-cut-black/10 px-5 py-5 sm:px-6 md:block">
           <h1 className="text-[13px] font-black uppercase tracking-[0.16em] text-cut-black">
             {ar ? "اختر الحلاق" : "Select a professional"}
           </h1>
@@ -201,16 +204,16 @@ export default function BookProfessionalsClient() {
         ) : null}
 
         {!loading && !error ? (
-          <ul className="divide-y divide-cut-black/10">
+          <ul className="space-y-2 px-3 py-1 md:divide-y md:divide-cut-black/10 md:space-y-0 md:px-0 md:py-0">
             <li>
               <button
                 type="button"
                 onClick={() => setSelected("nearest")}
-                className={rowClass}
+                className={`${rowClass} rounded-xl border border-cut-black/10 bg-cut-ivory/90 md:rounded-none md:border-0 md:bg-transparent`}
                 aria-pressed={selected === "nearest"}
               >
                 <span
-                  className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 ${
+                  className={`hidden h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 md:flex ${
                     selected === "nearest"
                       ? "border-cut-burgundy bg-cut-burgundy"
                       : "border-cut-black/25 bg-transparent"
@@ -221,15 +224,15 @@ export default function BookProfessionalsClient() {
                     <span className="h-2 w-2 rounded-full bg-cut-ivory" />
                   ) : null}
                 </span>
-                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-cut-warm-paper text-cut-burgundy">
-                  <Star className="h-5 w-5" fill="currentColor" strokeWidth={0} />
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-cut-warm-paper text-cut-burgundy md:h-11 md:w-11">
+                  <Star className="h-4 w-4" fill="currentColor" strokeWidth={0} />
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className="block text-[15px] font-bold text-cut-black">
+                  <span className="block text-[14px] font-bold leading-tight text-cut-black md:text-[15px]">
                     {ar ? "أول حلاق متاح" : "First Available"}
                   </span>
-                  <span className="mt-0.5 block text-[13px] text-cut-black/55">
-                    {ar ? "أقرب ميعاد مناسب في الفرع" : "Earliest suitable appointment"}
+                  <span className="mt-0.5 block truncate text-[11px] text-cut-black/50 md:text-[13px]">
+                    {ar ? "أقرب ميعاد مناسب" : "Earliest suitable slot"}
                   </span>
                 </span>
               </button>
@@ -244,11 +247,11 @@ export default function BookProfessionalsClient() {
                   <button
                     type="button"
                     onClick={() => setSelected(barber.id)}
-                    className={rowClass}
+                    className={`${rowClass} rounded-xl border border-cut-black/10 bg-cut-ivory/90 md:rounded-none md:border-0 md:bg-transparent`}
                     aria-pressed={active}
                   >
                     <span
-                      className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 ${
+                      className={`hidden h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 md:flex ${
                         active
                           ? "border-cut-burgundy bg-cut-burgundy"
                           : "border-cut-black/25 bg-transparent"
@@ -257,7 +260,7 @@ export default function BookProfessionalsClient() {
                     >
                       {active ? <span className="h-2 w-2 rounded-full bg-cut-ivory" /> : null}
                     </span>
-                    <span className="h-11 w-11 shrink-0 overflow-hidden rounded-full border border-cut-bronze/30 bg-cut-warm-paper">
+                    <span className="h-10 w-10 shrink-0 overflow-hidden rounded-full border border-cut-bronze/30 bg-cut-warm-paper md:h-11 md:w-11">
                       {resolveBarberPhotoUrl(barber) ? (
                         <BarberPhoto
                           src={resolveBarberPhotoUrl(barber)}
@@ -267,13 +270,17 @@ export default function BookProfessionalsClient() {
                         />
                       ) : (
                         <span className="flex h-full w-full items-center justify-center text-cut-black/35">
-                          <User className="h-5 w-5" strokeWidth={1.6} />
+                          <User className="h-4 w-4" strokeWidth={1.6} />
                         </span>
                       )}
                     </span>
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate text-[15px] font-bold text-cut-black">{name}</span>
-                      <span className="mt-0.5 block truncate text-[13px] text-cut-black/55">{role}</span>
+                      <span className="block truncate text-[14px] font-bold leading-tight text-cut-black md:text-[15px]">
+                        {name}
+                      </span>
+                      <span className="mt-0.5 block truncate text-[11px] text-cut-black/50 md:text-[13px]">
+                        {role}
+                      </span>
                     </span>
                   </button>
                 </li>

@@ -63,28 +63,15 @@ const BADGE_I18N: Record<ServiceBadgeKey, string> = {
   commonlyAdded: "service.badgeCommonlyAdded",
 };
 
-function FeaturedSkeleton() {
+function ServiceCardSkeleton() {
   return (
-    <div className="flex min-h-[5.75rem] overflow-hidden rounded-2xl border border-[var(--booking-border-subtle)] animate-pulse">
-      <div className="w-[6.75rem] shrink-0 self-stretch bg-[var(--booking-surface)] sm:w-[7.75rem]" />
-      <div className="flex flex-1 flex-col justify-center gap-2 px-3.5 py-3">
-        <div className="h-4 w-2/3 rounded bg-[var(--booking-surface)]" />
-        <div className="h-3 w-full rounded bg-[var(--booking-surface)]" />
-        <div className="h-3 w-1/3 rounded bg-[var(--booking-surface)]" />
+    <div className="flex items-center gap-3 rounded-2xl border border-white/40 bg-white/35 px-3 py-2.5 animate-pulse">
+      <div className="h-11 w-11 shrink-0 rounded-xl bg-[var(--booking-surface)]" />
+      <div className="flex flex-1 flex-col gap-1.5">
+        <div className="h-3.5 w-2/5 rounded bg-[var(--booking-surface)]" />
+        <div className="h-2.5 w-1/4 rounded bg-[var(--booking-surface)]" />
       </div>
-    </div>
-  );
-}
-
-function CompactSkeleton() {
-  return (
-    <div className="flex min-h-[5.25rem] overflow-hidden rounded-2xl border border-[var(--booking-border-subtle)] animate-pulse">
-      <div className="w-[5.75rem] shrink-0 self-stretch bg-[var(--booking-surface)] sm:w-[6.5rem]" />
-      <div className="flex flex-1 flex-col justify-center gap-2 px-3 py-2.5">
-        <div className="h-4 w-1/2 rounded bg-[var(--booking-surface)]" />
-        <div className="h-3 w-full rounded bg-[var(--booking-surface)]" />
-        <div className="h-3 w-1/3 rounded bg-[var(--booking-surface)]" />
-      </div>
+      <div className="h-[1.125rem] w-[1.125rem] shrink-0 rounded-full bg-[var(--booking-surface)]" />
     </div>
   );
 }
@@ -159,7 +146,7 @@ function ServiceGrid({
           {featuredHeading ? (
             <h5 className="sr-only">{featuredHeading}</h5>
           ) : null}
-          <div className="grid grid-cols-1 gap-2.5" role="radiogroup">
+          <div className="grid grid-cols-1 gap-2" role="radiogroup">
             {featuredInView.map((s, i) => (
               <BookingFeaturedServiceCard
                 key={`featured-${s.id}`}
@@ -384,14 +371,11 @@ export default function BookingServiceStep({
               <div className="h-3 w-64 rounded bg-[var(--booking-surface)] animate-pulse" />
             </div>
           ) : null}
-          <div className="grid grid-cols-1 gap-2.5">
-            <FeaturedSkeleton />
-            <FeaturedSkeleton />
-          </div>
-          <div className="grid grid-cols-1 gap-2.5">
-            <CompactSkeleton />
-            <CompactSkeleton />
-            <CompactSkeleton />
+          <div className="grid grid-cols-1 gap-2">
+            <ServiceCardSkeleton />
+            <ServiceCardSkeleton />
+            <ServiceCardSkeleton />
+            <ServiceCardSkeleton />
           </div>
         </div>
       </div>

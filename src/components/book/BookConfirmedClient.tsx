@@ -132,10 +132,10 @@ export default function BookConfirmedClient() {
   }
 
   return (
-    <BookFlowChrome footer={false}>
+    <BookFlowChrome footer={false} entryScroll={false} heroTitle={ar ? "تم الحجز" : "Booking confirmed"} compact closeHref="/">
       <section
         dir={dir}
-        className="relative -mt-4 min-h-[55svh] rounded-t-[1.75rem] bg-cut-soft-ivory px-5 pb-12 pt-10 shadow-[0_-12px_40px_rgba(0,0,0,0.18)] sm:px-6"
+        className="relative bg-cut-soft-ivory px-3 pb-12 pt-4 sm:px-6 md:-mt-4 md:min-h-[55svh] md:rounded-t-[1.75rem] md:px-5 md:pt-10 md:shadow-[0_-12px_40px_rgba(0,0,0,0.18)]"
         role="status"
         aria-live="polite"
       >

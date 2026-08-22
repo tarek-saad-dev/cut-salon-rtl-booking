@@ -370,6 +370,8 @@ export default function BookConfirmClient() {
       backHref={timeHref}
       backLabel={ar ? "رجوع للمواعيد" : "Back to times"}
       footer={false}
+      entryScroll={false}
+      heroTitle={ar ? "راجع وأكّد" : "Review & confirm"}
     >
       {submitting ? (
         <div
@@ -386,7 +388,7 @@ export default function BookConfirmClient() {
       ) : null}
 
       <section
-        className={`relative -mt-4 min-h-[55svh] rounded-t-[1.75rem] bg-cut-soft-ivory pb-36 shadow-[0_-12px_40px_rgba(0,0,0,0.18)] ${
+        className={`relative bg-cut-soft-ivory pb-36 md:-mt-4 md:min-h-[55svh] md:rounded-t-[1.75rem] md:shadow-[0_-12px_40px_rgba(0,0,0,0.18)] ${
           submitting ? "pointer-events-none select-none" : ""
         }`}
         aria-hidden={submitting || undefined}

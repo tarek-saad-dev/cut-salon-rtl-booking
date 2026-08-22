@@ -1,10 +1,11 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import type { CSSProperties } from "react";
 import { Alexandria } from "next/font/google";
 import localFont from "next/font/local";
 import "./globals.css";
 import { Providers } from "@/components/providers";
 import MainNav from "@/components/MainNav";
+import GlobalMobileNav from "@/components/GlobalMobileNav";
 import CampCaesarCampaign from "@/components/campaign/CampCaesarCampaign";
 import {
   CAMPAIGN_ANNOUNCEMENT_BAR_HEIGHT_PX,
@@ -91,6 +92,12 @@ export const metadata: Metadata = {
   },
 };
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -115,6 +122,7 @@ export default function RootLayout({
       <body className={`${alexandria.variable} ${laxr.variable} antialiased`}>
         <Providers>
           <CampCaesarCampaign />
+          <GlobalMobileNav />
           <MainNav />
           {children}
         </Providers>

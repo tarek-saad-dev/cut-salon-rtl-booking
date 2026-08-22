@@ -73,9 +73,10 @@ const HeroSection = () => {
 
   return (
     <section
-      className="relative min-h-[100svh] md:min-h-screen overflow-hidden hero-gradient cut-grain"
+      className="relative min-h-[100svh] md:min-h-screen overflow-hidden hero-gradient cut-grain max-lg:-mt-[var(--cut-mobile-nav-total)] max-lg:pt-[var(--cut-mobile-nav-total)]"
       dir={dir}
       aria-label={tx(t.ariaLabel, lang)}
+      data-mobile-nav-overlay
     >
       <div className="absolute inset-0 z-0">
         <img

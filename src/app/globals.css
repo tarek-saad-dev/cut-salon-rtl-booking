@@ -173,9 +173,16 @@
   html {
     direction: ltr;
     scroll-behavior: smooth;
+    overflow-x: hidden;
+    width: 100%;
+    -webkit-text-size-adjust: 100%;
   }
   body {
     @apply bg-background text-foreground antialiased;
+    overflow-x: hidden;
+    width: 100%;
+    max-width: 100%;
+    position: relative;
     /* Re-resolve stacks here: next/font sets --*-loaded on <body> */
     --font-alexandria: var(--font-alexandria-loaded), "Alexandria", sans-serif;
     --font-laxr: var(--font-laxr-loaded), "LAXR", sans-serif;
@@ -237,6 +244,25 @@
     letter-spacing: 0;
     line-height: 1;
   }
+
+  /*
+   * iOS Safari zooms focused fields when font-size < 16px — causes layout shift
+   * and horizontal scroll. Keep touch targets readable without browser zoom.
+   */
+  @media (max-width: 1023px) {
+    input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="button"]):not([type="submit"]):not([type="reset"]):not([type="hidden"]),
+    select,
+    textarea {
+      font-size: 16px !important;
+      max-width: 100%;
+    }
+  }
+
+  input,
+  select,
+  textarea {
+    max-width: 100%;
+  }
 }
 
 @layer components {
@@ -276,7 +302,7 @@
     }
   }
   .cut-input {
-    @apply w-full rounded-xl border border-cut-black/15 bg-white px-4 py-2.5 text-sm text-cut-black placeholder:text-cut-black/45 focus:border-[#D4AF37] focus:outline-none focus:ring-2 focus:ring-[#D4AF37]/30 transition-colors;
+    @apply w-full max-w-full rounded-xl border border-cut-black/15 bg-white px-4 py-2.5 text-base text-cut-black placeholder:text-cut-black/45 focus:border-[#D4AF37] focus:outline-none focus:ring-2 focus:ring-[#D4AF37]/30 transition-colors md:text-sm;
   }
   .cut-badge {
     @apply inline-flex items-center rounded-lg border border-cut-bronze/30 bg-cut-espresso px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider text-cut-bronze;
@@ -895,5 +921,34 @@
   .campaign-page-celebration,
   .campaign-page-celebration__confetti {
     display: none;
+  }
+}
+
+/* Compact mobile booking — hide promo bar, zero campaign offset */
+@media (max-width: 767px) {
+  html.book-compact-mode {
+    --cut-campaign-bar-height: 0px !important;
+  }
+
+  html.book-compact-mode [data-cut-campaign-bar] {
+    display: none !important;
+  }
+}
+
+/* Global mobile sticky nav — tablet/mobile only */
+@media (max-width: 1023px) {
+  :root {
+    --cut-mobile-nav-height: 3.25rem;
+    --cut-mobile-nav-total: calc(
+      var(--cut-campaign-bar-height, 0px) + var(--cut-mobile-nav-height) +
+        env(safe-area-inset-top, 0px)
+    );
+  }
+}
+
+@media (min-width: 1024px) {
+  :root {
+    --cut-mobile-nav-height: 0px;
+    --cut-mobile-nav-total: 0px;
   }
 }

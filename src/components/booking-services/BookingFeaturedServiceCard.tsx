@@ -25,9 +25,8 @@ export default function BookingFeaturedServiceCard({
   selectionType,
   onSelect,
   priorityImage = false,
-  badgeLabel,
 }: BookingFeaturedServiceCardProps) {
-  const { t, format, dir } = useBookingTranslations();
+  const { format, dir } = useBookingTranslations();
   const visual = getServiceVisual({ service });
   const imageAlt = presentation.displayName || "";
 
@@ -45,72 +44,57 @@ export default function BookingFeaturedServiceCard({
       aria-checked={selected}
       role={selectionType === "radio" ? "radio" : "checkbox"}
       className={`
-        group flex w-full min-h-[5.75rem] overflow-hidden rounded-2xl border bg-[var(--booking-bg)] text-start transition-all
+        group flex w-full items-center gap-3 rounded-2xl border px-3 py-2.5 text-start
+        backdrop-blur-xl transition-all duration-200 ease-out
         focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--booking-accent)] focus-visible:ring-offset-2
         ${
           selected
-            ? "border-[var(--booking-slot-selected-outline)] bg-[var(--booking-accent-soft)] shadow-sm ring-2 ring-[var(--booking-slot-selected-outline)]"
-            : "border-[var(--booking-border)] hover:border-[var(--booking-text-muted)] hover:bg-[var(--booking-surface-hover)] hover:shadow-sm"
+            ? "border-[var(--booking-slot-selected-outline)]/50 bg-white/75 shadow-[0_4px_20px_rgba(74,0,15,0.07)] ring-1 ring-[var(--booking-slot-selected-outline)]/35"
+            : "border-white/55 bg-white/42 shadow-[0_2px_10px_rgba(0,0,0,0.04)] hover:border-white/75 hover:bg-white/58 hover:shadow-[0_4px_16px_rgba(0,0,0,0.06)] active:scale-[0.985]"
         }
       `}
       dir={dir}
       data-service-card="featured"
       data-selected={selected ? "true" : "false"}
     >
-      <div className="relative w-[6.75rem] shrink-0 self-stretch sm:w-[7.75rem]">
+      <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-xl border border-white/50 shadow-sm">
         <BookingServiceImage
           visual={visual}
           alt={imageAlt}
           priority={priorityImage}
           fillContainer
-          sizes="124px"
-          className="rounded-none"
+          sizes="44px"
+          className="rounded-xl"
         />
       </div>
 
-      <div className="flex min-w-0 flex-1 flex-col justify-center gap-1 px-3.5 py-3 sm:px-4">
-        <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0 flex-1">
-            {badgeLabel ? (
-              <span className="mb-1 inline-flex rounded-md border border-[var(--booking-border)] bg-[var(--booking-bg)] px-1.5 py-0.5 text-[10px] font-bold text-[var(--booking-text-secondary)]">
-                {badgeLabel}
-              </span>
-            ) : null}
-            <h4 className="font-heading text-[15px] font-bold leading-snug text-[var(--booking-text)] sm:text-base">
-              {presentation.displayName}
-            </h4>
-          </div>
-          <span
-            className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 ${
-              selected
-                ? "border-[var(--booking-slot-selected-outline)] bg-[var(--booking-bg)] text-[var(--booking-text)]"
-                : "border-[var(--booking-border)] bg-[var(--booking-bg)]"
-            }`}
-            aria-hidden
-          >
-            {selected ? <Check className="h-3 w-3" strokeWidth={3} /> : null}
-          </span>
-        </div>
-
-        <p className="line-clamp-1 text-[12px] leading-snug text-[var(--booking-text-secondary)] sm:text-[13px]">
-          {presentation.description}
-        </p>
-
-        <div className="mt-0.5 flex items-center justify-between gap-2 text-[13px]">
+      <div className="min-w-0 flex-1">
+        <h4 className="truncate text-[14px] font-semibold leading-tight text-[var(--booking-text)]">
+          {presentation.displayName}
+        </h4>
+        <div className="mt-0.5 flex items-center gap-1.5 text-[11px] leading-none">
           <span className="text-[var(--booking-text-muted)]">
             {format.duration(service.durationMinutes)}
           </span>
-          <span className="font-bold tabular-nums text-[var(--booking-text)]">
+          <span aria-hidden className="text-[var(--booking-text-muted)]/45">
+            ·
+          </span>
+          <span className="font-semibold tabular-nums text-[var(--booking-text)]">
             <BookingPromoPrice amount={service.price} formatPrice={format.price} />
           </span>
         </div>
-
-        {selected ? (
-          <p className="text-[11px] font-bold text-[var(--booking-text)]">
-            {t("service.selectedLabel")}
-          </p>
-        ) : null}
       </div>
+
+      <span
+        className={`flex h-[1.125rem] w-[1.125rem] shrink-0 items-center justify-center rounded-full border transition-colors ${
+          selected
+            ? "border-[var(--booking-slot-selected-outline)] bg-[var(--booking-slot-selected-outline)] text-white"
+            : "border-[var(--booking-border)] bg-white/60 group-hover:border-[var(--booking-text-muted)]/40"
+        }`}
+        aria-hidden
+      >
+        {selected ? <Check className="h-2.5 w-2.5" strokeWidth={3} /> : null}
+      </span>
     </button>
   );
 }

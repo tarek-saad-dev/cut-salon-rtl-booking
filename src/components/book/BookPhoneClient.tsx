@@ -233,15 +233,17 @@ export default function BookPhoneClient() {
       backHref={cartHref}
       backLabel={ar ? "رجوع للسلة" : "Back to cart"}
       footer={false}
+      entryScroll={false}
+      heroTitle={ar ? "أدخل رقم موبايلك" : "Enter your mobile number"}
     >
-      <section className="relative -mt-4 min-h-[55svh] rounded-t-[1.75rem] bg-cut-soft-ivory pb-36 shadow-[0_-12px_40px_rgba(0,0,0,0.18)]">
+      <section className="relative bg-cut-soft-ivory pb-36 md:-mt-4 md:min-h-[55svh] md:rounded-t-[1.75rem] md:shadow-[0_-12px_40px_rgba(0,0,0,0.18)]">
         <BookDelayedWaitingOverlay
           busy={lookupStatus === "loading"}
           delayMs={600}
           lang={lang}
           label={ar ? "جاري التحقق من الرقم…" : "Looking up your number…"}
         />
-        <div className="px-5 pt-6 sm:px-6">
+        <div className="hidden px-5 pt-6 sm:px-6 md:block">
           <h1 className="text-[13px] font-black uppercase tracking-[0.14em] text-cut-black">
             {ar ? "أدخل رقم موبايلك" : "Enter your mobile number"}
           </h1>
@@ -252,7 +254,7 @@ export default function BookPhoneClient() {
           </p>
         </div>
 
-        <div className="mt-8 px-5 sm:px-6">
+        <div className="mt-3 px-3 sm:px-6 md:mt-8 md:px-5">
           <div className="relative" ref={pickerRef}>
             <div className="flex items-stretch overflow-hidden rounded-xl border border-cut-black/15 bg-cut-ivory focus-within:border-cut-burgundy focus-within:ring-2 focus-within:ring-cut-burgundy/15">
               <button
@@ -304,7 +306,7 @@ export default function BookPhoneClient() {
                     value={countryQuery}
                     onChange={(e) => setCountryQuery(e.target.value)}
                     placeholder={ar ? "ابحث عن دولة…" : "Search country…"}
-                    className="min-w-0 flex-1 bg-transparent text-sm text-cut-black outline-none placeholder:text-cut-black/40"
+                    className="min-w-0 flex-1 bg-transparent text-base text-cut-black outline-none placeholder:text-cut-black/40"
                     autoFocus
                   />
                 </div>

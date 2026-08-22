@@ -57,6 +57,7 @@ export default function CampaignAnnouncement({
       type="button"
       onClick={handleDiscover}
       disabled={introActive}
+      data-cut-campaign-bar
       className={`fixed top-0 inset-x-0 z-[60] h-7 flex items-center justify-center gap-3 px-3
         bg-cut-wine-black/95 border-b border-cut-bronze/20 backdrop-blur-sm
         text-[10px] sm:text-[11px] tracking-wide text-cut-ivory/85

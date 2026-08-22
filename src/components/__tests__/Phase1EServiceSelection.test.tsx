@@ -131,7 +131,7 @@ describe("Phase 1E BookingServiceStep", () => {
     expect(container.querySelector('[data-service-category="20"]')).toBeTruthy();
   });
 
-  it("shows English name/description only in EN", () => {
+  it("shows English service names only in EN", () => {
     render(
       wrap(
         <BookingServiceStep
@@ -144,11 +144,11 @@ describe("Phase 1E BookingServiceStep", () => {
       ),
     );
     expect(screen.getAllByText("Hair Cut").length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/clean cut and fade/i).length).toBeGreaterThan(0);
+    expect(screen.queryByText(/clean cut and fade/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/قص وتدريج نظيف/)).not.toBeInTheDocument();
   });
 
-  it("shows Arabic name/description only in AR", () => {
+  it("shows Arabic service names only in AR", () => {
     localStorage.setItem("cut-salon-lang", "ar");
     render(
       wrap(
@@ -162,8 +162,8 @@ describe("Phase 1E BookingServiceStep", () => {
       ),
     );
     expect(screen.getAllByText("حلاقة شعر").length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/قص وتدريج نظيف/).length).toBeGreaterThan(0);
     expect(screen.queryByText(/clean cut and fade/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/قص وتدريج نظيف/)).not.toBeInTheDocument();
   });
 
   it("filtering does not clear selection", () => {
@@ -182,7 +182,7 @@ describe("Phase 1E BookingServiceStep", () => {
         />,
       ),
     );
-    expect(screen.getByText(/Selected/i)).toBeInTheDocument();
+    expect(document.querySelector('[data-service-card][data-selected="true"]')).toBeTruthy();
     const beardFilter = screen.getByRole("button", { name: /Beard Cut/i });
     fireEvent.click(beardFilter);
     expect(document.querySelector("[data-service-summary]")).toBeTruthy();

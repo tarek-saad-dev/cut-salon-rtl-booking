@@ -9,11 +9,10 @@ import {
   Loader2,
   MapPin,
   Scissors,
-  UserRound,
 } from "lucide-react";
 import { BookFlowChrome } from "@/components/book/BookFlowChrome";
+import { CompactBarberRow } from "@/components/book/CompactBarberRow";
 import { BookDelayedWaitingOverlay } from "@/components/book/BookDelayedWaitingOverlay";
-import BarberPhoto from "@/components/BarberPhoto";
 import { useBranch } from "@/context/BranchContext";
 import { useLanguage } from "@/context/LanguageContext";
 import {
@@ -171,8 +170,27 @@ export default function BookBranchesClient() {
       ? undefined
       : { href: "/book", label: ar ? "رجوع للبداية" : "Back to start" };
 
+  const heroTitle =
+    mode === "intent"
+      ? ar
+        ? "احجز الآن"
+        : "Book now"
+      : mode === "location"
+        ? ar
+          ? "اختر فرع الخدمة"
+          : "Select service location"
+        : ar
+          ? "اختر حلاقك"
+          : "Choose your barber";
+
   return (
-    <BookFlowChrome backHref={chromeBack?.href} backLabel={chromeBack?.label}>
+    <BookFlowChrome
+      backHref={chromeBack?.href}
+      backLabel={chromeBack?.label}
+      entryScroll={false}
+      heroTitle={heroTitle}
+      footer={mode === "intent"}
+    >
       {mode === "intent" ? (
         <IntentStep ar={ar} dir={dir} onLocation={goLocationMode} onBarber={goBarberMode} />
       ) : null}
@@ -193,7 +211,7 @@ export default function BookBranchesClient() {
         <BarberStep
           ar={ar}
           lang={lang}
-          Chevron={Chevron}
+          dir={dir}
           barbers={barbers}
           isLoading={barbersLoading || isLoadingBranches}
           error={barbersError}
@@ -240,12 +258,12 @@ function IntentStep({
   ] as const;
 
   return (
-    <section className="relative bg-cut-soft-ivory px-5 pb-16 pt-8 sm:px-8" dir={dir}>
+    <section className="relative bg-cut-soft-ivory px-3 pb-8 pt-2 sm:px-8 md:px-5 md:pb-16 md:pt-8" dir={dir}>
       <div className="mx-auto max-w-xl">
         <motion.p
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-[11px] font-black uppercase tracking-[0.22em] text-cut-burgundy"
+          className="hidden text-[11px] font-black uppercase tracking-[0.22em] text-cut-burgundy md:block"
         >
           {ar ? "مرحبًا بك في الحجز" : "Welcome to booking"}
         </motion.p>
@@ -253,24 +271,14 @@ function IntentStep({
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.05 }}
-          className={`mt-3 text-[1.85rem] font-black leading-tight text-cut-black sm:text-[2.15rem] ${
+          className={`hidden text-[1.85rem] font-black leading-tight text-cut-black sm:text-[2.15rem] md:mt-3 md:block ${
             ar ? "font-heading" : "font-display"
           }`}
         >
           {ar ? "ازاي تحب تبدأ؟" : "How would you like to start?"}
         </motion.h1>
-        <motion.p
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="mt-3 max-w-md text-[15px] leading-7 text-cut-black/60"
-        >
-          {ar
-            ? "اختار المسار الأنسب ليك — فرع قريب، أو حلاق معيّن تعرفه وتثق فيه."
-            : "Pick the path that fits you — a nearby branch, or a barber you already trust."}
-        </motion.p>
 
-        <div className="mt-8 grid gap-3">
+        <div className="grid gap-2 md:mt-8 md:gap-3">
           {cards.map((card, index) => (
             <motion.button
               key={card.key}
@@ -279,24 +287,24 @@ function IntentStep({
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.14 + index * 0.06 }}
               onClick={card.onClick}
-              className="group flex w-full items-start gap-4 rounded-2xl border border-cut-black/10 bg-cut-ivory px-4 py-5 text-start shadow-[0_10px_30px_rgba(5,5,5,0.04)] transition hover:-translate-y-0.5 hover:border-cut-burgundy/35 hover:shadow-[0_14px_36px_rgba(74,0,15,0.12)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cut-burgundy active:scale-[0.99] sm:px-5"
+              className="group flex w-full min-h-[3.75rem] items-center gap-3 rounded-xl border border-cut-black/10 bg-cut-ivory px-3 py-2.5 text-start transition hover:border-cut-burgundy/35 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cut-burgundy md:items-start md:gap-4 md:rounded-2xl md:px-4 md:py-5 md:shadow-[0_10px_30px_rgba(5,5,5,0.04)] md:hover:-translate-y-0.5 md:hover:shadow-[0_14px_36px_rgba(74,0,15,0.12)]"
             >
-              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-cut-bronze/30 bg-cut-warm-paper text-cut-burgundy transition group-hover:border-cut-burgundy/40 group-hover:bg-cut-burgundy group-hover:text-cut-ivory">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-cut-bronze/30 bg-cut-warm-paper text-cut-burgundy transition group-hover:border-cut-burgundy/40 group-hover:bg-cut-burgundy group-hover:text-cut-ivory md:h-12 md:w-12">
                 <card.icon className="h-5 w-5" strokeWidth={1.9} />
               </span>
               <span className="min-w-0 flex-1">
-                <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-cut-burgundy/80">
+                <span className="hidden text-[10px] font-bold uppercase tracking-[0.18em] text-cut-burgundy/80 md:block">
                   {card.eyebrow}
                 </span>
-                <span className="mt-1 block text-[1.05rem] font-black text-cut-black sm:text-[1.15rem]">
+                <span className="block text-[15px] font-black text-cut-black md:mt-1 md:text-[1.05rem] sm:text-[1.15rem]">
                   {card.title}
                 </span>
-                <span className="mt-1.5 block text-[13px] leading-6 text-cut-black/55">
+                <span className="mt-1.5 hidden text-[13px] leading-6 text-cut-black/55 md:block">
                   {card.body}
                 </span>
               </span>
               <ChevronRight
-                className={`mt-3 h-5 w-5 shrink-0 text-cut-black/25 transition group-hover:text-cut-burgundy ${
+                className={`h-4 w-4 shrink-0 text-cut-black/25 transition group-hover:text-cut-burgundy md:mt-3 md:h-5 md:w-5 ${
                   ar ? "rotate-180" : ""
                 }`}
                 strokeWidth={1.75}
@@ -335,7 +343,7 @@ function LocationStep({
         lang={ar ? "ar" : "en"}
         label={ar ? "جاري تحميل الفروع…" : "Loading locations…"}
       />
-      <div className="border-b border-cut-black/10 px-5 py-5 sm:px-8">
+      <div className="hidden border-b border-cut-black/10 px-5 py-5 sm:px-8 md:block">
         <h1 className="text-[13px] font-black uppercase tracking-[0.18em] text-cut-black">
           {ar ? "اختر فرع الخدمة" : "Select service location"}
         </h1>
@@ -383,9 +391,9 @@ function LocationStep({
                 <button
                   type="button"
                   onClick={() => onSelect(branch)}
-                  className="flex w-full items-center gap-4 px-5 py-5 text-start transition hover:bg-cut-warm-paper/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-cut-burgundy sm:px-8"
+                  className="flex w-full min-h-[3.75rem] items-center gap-3 px-3 py-2.5 text-start transition hover:bg-cut-warm-paper/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-cut-burgundy sm:px-5 md:gap-4 md:px-5 md:py-5"
                 >
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center border border-cut-bronze/30 bg-cut-ivory">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center border border-cut-bronze/30 bg-cut-ivory md:h-12 md:w-12">
                     <span className="font-brand text-[11px] font-black tracking-[0.14em] text-cut-black">
                       CUT
                     </span>
@@ -422,7 +430,7 @@ function LocationStep({
 function BarberStep({
   ar,
   lang,
-  Chevron,
+  dir,
   barbers,
   isLoading,
   error,
@@ -431,7 +439,7 @@ function BarberStep({
 }: {
   ar: boolean;
   lang: "ar" | "en";
-  Chevron: typeof ChevronLeft;
+  dir: "ltr" | "rtl";
   barbers: PublicBarber[];
   isLoading: boolean;
   error: boolean;
@@ -439,14 +447,14 @@ function BarberStep({
   onSelect: (barber: PublicBarber) => void;
 }) {
   return (
-    <section className="relative bg-cut-soft-ivory">
+    <section className="relative bg-cut-soft-ivory px-3 py-2 sm:px-8">
       <BookDelayedWaitingOverlay
         busy={isLoading}
         delayMs={800}
         lang={lang}
         label={ar ? "جاري تحميل الحلاقين…" : "Loading barbers…"}
       />
-      <div className="border-b border-cut-black/10 px-5 py-5 sm:px-8">
+      <div className="hidden border-b border-cut-black/10 px-5 py-5 sm:px-8 md:block">
         <h1 className="text-[13px] font-black uppercase tracking-[0.18em] text-cut-black">
           {ar ? "اختر حلاقك" : "Choose your barber"}
         </h1>
@@ -458,14 +466,14 @@ function BarberStep({
       </div>
 
       {isLoading && (
-        <div className="flex items-center justify-center gap-2 px-5 py-16 text-sm text-cut-black/55">
+        <div className="flex items-center justify-center gap-2 px-3 py-12 text-sm text-cut-black/55">
           <Loader2 className="h-4 w-4 animate-spin" />
           {ar ? "جاري تحميل الحلاقين…" : "Loading barbers…"}
         </div>
       )}
 
       {!isLoading && error && (
-        <div className="px-5 py-12 text-center sm:px-8">
+        <div className="px-3 py-12 text-center sm:px-8">
           <p className="text-sm text-cut-black/65">
             {ar ? "تعذر تحميل الحلاقين. حاول مرة أخرى." : "Couldn't load barbers. Please try again."}
           </p>
@@ -480,39 +488,25 @@ function BarberStep({
       )}
 
       {!isLoading && !error && barbers.length === 0 && (
-        <p className="px-5 py-12 text-center text-sm text-cut-black/55 sm:px-8">
+        <p className="px-3 py-12 text-center text-sm text-cut-black/55 sm:px-8">
           {ar ? "لا يوجد حلاقون متاحون حاليًا." : "No barbers available right now."}
         </p>
       )}
 
       {!isLoading && !error && barbers.length > 0 && (
-        <ul className="divide-y divide-cut-black/10">
+        <ul className="space-y-2 py-1 md:divide-y md:divide-cut-black/10 md:space-y-0 md:py-0">
           {barbers.map((barber) => {
             const name = resolveBarberDisplayName(barber, lang);
             const role = barber.job || (ar ? "حلاق محترف" : "Professional barber");
             return (
               <li key={barber.id}>
-                <button
-                  type="button"
+                <CompactBarberRow
+                  name={name}
+                  role={role}
+                  imageSrc={resolveBarberPhotoUrl(barber)}
+                  dir={dir}
                   onClick={() => onSelect(barber)}
-                  className="flex w-full items-center gap-4 px-5 py-4 text-start transition hover:bg-cut-warm-paper/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-cut-burgundy sm:px-8"
-                >
-                  <div className="h-14 w-14 shrink-0 overflow-hidden rounded-full border border-cut-bronze/25 bg-cut-warm-paper">
-                    <BarberPhoto
-                      src={resolveBarberPhotoUrl(barber)}
-                      name={name}
-                      imgClassName="h-full w-full object-cover object-top"
-                    />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-[15px] font-bold text-cut-black">{name}</p>
-                    <p className="mt-1 flex items-center gap-1.5 text-[13px] text-cut-black/55">
-                      <UserRound className="h-3.5 w-3.5 text-cut-burgundy/70" />
-                      {role}
-                    </p>
-                  </div>
-                  <Chevron className="h-5 w-5 shrink-0 text-cut-black/35" strokeWidth={1.75} aria-hidden />
-                </button>
+                />
               </li>
             );
           })}

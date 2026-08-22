@@ -14,8 +14,6 @@ export interface CampaignConfig {
   locationUrl: string;
   /** Hours before the opening sheet may auto-show again after dismiss */
   showModalEveryHours: number;
-  /** Delay before auto-showing opening sheet (ms) */
-  openingDelayMs: [number, number];
   /** Optional branch image path under /public */
   branchImage?: string;
   /** Announcement bar copy (alternates) */
@@ -43,7 +41,6 @@ export const CAMP_CAESAR_OPENING_2026: CampaignConfig = {
   },
   locationUrl: "https://maps.app.goo.gl/217r3pLutcKFAW2x7",
   showModalEveryHours: 24,
-  openingDelayMs: [500, 800],
   branchImage: undefined,
   brandLabel: "CUT SALON",
   announcementLines: [

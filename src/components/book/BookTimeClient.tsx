@@ -280,9 +280,11 @@ export default function BookTimeClient() {
       backHref={phoneHref}
       backLabel={ar ? "رجوع لرقم الموبايل" : "Back to phone"}
       footer={false}
+      entryScroll={false}
+      heroTitle={ar ? "اختر ميعاد الخدمة" : "Select service time"}
     >
-      <section className="relative -mt-4 min-h-[55svh] rounded-t-[1.75rem] bg-cut-soft-ivory pb-10 shadow-[0_-12px_40px_rgba(0,0,0,0.18)]">
-        <div className="flex items-center justify-between gap-3 border-b border-cut-black/10 px-5 py-5 sm:px-6">
+      <section className="relative bg-cut-soft-ivory pb-10 md:-mt-4 md:min-h-[55svh] md:rounded-t-[1.75rem] md:shadow-[0_-12px_40px_rgba(0,0,0,0.18)]">
+        <div className="hidden items-center justify-between gap-3 border-b border-cut-black/10 px-5 py-5 sm:px-6 md:flex">
           <h1 className="text-[13px] font-black uppercase tracking-[0.14em] text-cut-black">
             {ar ? "اختر ميعاد الخدمة" : "Select service time"}
           </h1>

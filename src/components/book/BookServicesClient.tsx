@@ -211,19 +211,20 @@ export default function BookServicesClient() {
       backHref={backHref}
       backLabel={backLabel}
       footer={false}
+      entryScroll={false}
       heroTitle={ar ? "اختر خدمتك الأساسية" : "Choose your core service"}
       heroMeta={
         barberFirst
           ? ar
-            ? `الحجز مع ${entryBarber.name} — ابدأ بالخدمة الرئيسية`
-            : `Booking with ${entryBarber.name} — start with your main service`
-          : ar
-            ? "ابدأ بالخدمة الرئيسية المناسبة لك"
-            : "Start with the main service that suits you"
+            ? `الحجز مع ${entryBarber.name}`
+            : `Booking with ${entryBarber.name}`
+          : undefined
       }
+      avatarSrc={barberFirst ? entryBarber?.image : null}
+      avatarName={barberFirst ? entryBarber?.name : undefined}
     >
       <div
-        className="booking-modal-shell relative -mt-4 rounded-t-[1.75rem] border-b border-cut-black/10 bg-cut-soft-ivory text-cut-black shadow-[0_-12px_40px_rgba(0,0,0,0.18)]"
+        className="booking-modal-shell relative bg-cut-soft-ivory text-cut-black md:-mt-4 md:min-h-[55svh] md:rounded-t-[1.75rem] md:border-b md:border-cut-black/10 md:shadow-[0_-12px_40px_rgba(0,0,0,0.18)]"
         style={
           {
             ["--booking-bg"]: "#f4ebdd",
@@ -247,7 +248,7 @@ export default function BookServicesClient() {
             {ar ? "جاري تحميل الخدمات…" : "Loading services…"}
           </div>
         ) : (
-          <div className="px-4 pb-28 pt-5 sm:px-6">
+          <div className="px-3 pb-28 pt-2 sm:px-6 md:px-4 md:pt-5">
             <BookingServiceStep
               services={services}
               categories={categories}

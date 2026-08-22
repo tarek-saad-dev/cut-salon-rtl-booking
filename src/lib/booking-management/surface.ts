@@ -6,7 +6,7 @@ export const bookingMgmtSurface = {
     label: "text-cut-ivory/50",
     hint: "text-cut-ivory/30",
     input:
-      "rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-cut-ivory outline-none placeholder:text-cut-ivory/35 focus:border-cut-gold/40",
+      "rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-base text-cut-ivory outline-none placeholder:text-cut-ivory/35 focus:border-cut-gold/40 md:text-sm",
     primaryBtn:
       "rounded-xl bg-cut-gold px-4 py-3 text-sm font-bold text-black transition hover:brightness-105 disabled:opacity-50",
     secondaryText: "text-cut-ivory/60",
@@ -46,7 +46,7 @@ export const bookingMgmtSurface = {
     label: "text-cut-black/55",
     hint: "text-cut-black/40",
     input:
-      "rounded-xl border border-cut-black/15 bg-cut-ivory px-3 py-2.5 text-sm text-cut-black outline-none placeholder:text-cut-black/35 focus:border-cut-burgundy focus:ring-2 focus:ring-cut-burgundy/15",
+      "rounded-xl border border-cut-black/15 bg-cut-ivory px-3 py-2.5 text-base text-cut-black outline-none placeholder:text-cut-black/35 focus:border-cut-burgundy focus:ring-2 focus:ring-cut-burgundy/15 md:text-sm",
     primaryBtn:
       "rounded-xl bg-cut-burgundy px-4 py-3 text-sm font-bold text-cut-ivory transition hover:bg-cut-burgundy-dark disabled:opacity-50",
     secondaryText: "text-cut-black/65",

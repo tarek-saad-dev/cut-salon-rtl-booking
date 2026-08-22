@@ -154,8 +154,10 @@ export default function BookCartClient() {
       backHref={professionalsHref}
       backLabel={ar ? "رجوع للحلاقين" : "Back to professionals"}
       footer={false}
+      entryScroll={false}
+      heroTitle={ar ? "سلتك" : "Your cart"}
     >
-      <section className="relative -mt-4 min-h-[55svh] rounded-t-[1.75rem] bg-cut-soft-ivory pb-36 shadow-[0_-12px_40px_rgba(0,0,0,0.18)]">
+      <section className="relative bg-cut-soft-ivory pb-36 md:-mt-4 md:min-h-[55svh] md:rounded-t-[1.75rem] md:shadow-[0_-12px_40px_rgba(0,0,0,0.18)]">
         <BookDelayedWaitingOverlay
           busy={loading}
           delayMs={800}
@@ -163,7 +165,7 @@ export default function BookCartClient() {
           label={ar ? "جاري تحميل السلة…" : "Loading cart…"}
         />
 
-        <div className="border-b border-cut-black/10 px-5 py-5 sm:px-6">
+        <div className="hidden border-b border-cut-black/10 px-5 py-5 sm:px-6 md:block">
           <h1 className="text-[13px] font-black uppercase tracking-[0.16em] text-cut-black">
             {ar ? "سلتك" : "Your cart"}
           </h1>
