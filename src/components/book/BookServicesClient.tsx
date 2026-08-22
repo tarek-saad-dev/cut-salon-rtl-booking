@@ -18,6 +18,7 @@ import { normalizeBranchCode } from "@/lib/booking-api/branch-code";
 import { getCoreServiceIdSet, isCoreService } from "@/lib/bookingServiceGroups";
 import { readBookFlowDraft, saveBookFlowDraft } from "@/lib/book-flow-draft";
 import { clearBookEntryBarber, readBookEntryBarber } from "@/lib/book-flow-entry";
+import { resolveBookBranchHeroLabel } from "@/lib/booking/branch-label";
 
 type VisitKind = "individual" | "group";
 
@@ -213,6 +214,12 @@ export default function BookServicesClient() {
       footer={false}
       entryScroll={false}
       heroTitle={ar ? "اختر خدمتك الأساسية" : "Choose your core service"}
+      heroBranchLabel={resolveBookBranchHeroLabel(
+        branchCode,
+        selectedBranch?.branchName || selectedBranch?.shortName,
+        lang,
+      )}
+      heroBranchCode={branchCode || undefined}
       heroMeta={
         barberFirst
           ? ar

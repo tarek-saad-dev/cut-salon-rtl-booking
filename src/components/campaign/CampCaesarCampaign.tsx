@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { AnimatePresence } from "framer-motion";
 import { getActiveCampaign } from "@/config/campaigns";
 import { markCampaignDismissed } from "@/lib/campaignStorage";
@@ -17,10 +17,14 @@ import CampaignPageLoadCelebration from "./CampaignPageLoadCelebration";
 const HISTORY_EXPERIENCE = "cut-camp-caesar-experience";
 const HISTORY_OPENING = "cut-camp-caesar-opening";
 
+import { dispatchCampCaesarBook } from "@/lib/campaignEvents";
+
 export default function CampCaesarCampaign() {
   const config = getActiveCampaign();
   const isMobile = useIsMobile();
+  const pathname = usePathname();
   const router = useRouter();
+  const isBookRoute = pathname?.startsWith("/book") ?? false;
   const {
     active: celebrationActive,
     variant,
@@ -125,9 +129,21 @@ export default function CampCaesarCampaign() {
       ) {
         window.history.replaceState({}, "");
       }
-      router.push(
-        `/book?mode=nearest&branch=${encodeURIComponent(config.branchCode)}`,
-      );
+
+      const targetHref = `/book?mode=nearest&branch=${encodeURIComponent(config.branchCode)}`;
+
+      if (typeof window !== "undefined" && window.location.pathname.startsWith("/book")) {
+        dispatchCampCaesarBook(config.branchCode);
+        const current = `${window.location.pathname}${window.location.search}`;
+        if (current !== targetHref) {
+          router.replace(targetHref);
+        } else {
+          router.refresh();
+        }
+        return;
+      }
+
+      router.push(targetHref);
     },
     [config, router],
   );
@@ -140,10 +156,21 @@ export default function CampCaesarCampaign() {
     openCampBooking("opening_sheet");
   }, [openCampBooking]);
 
+  const handleCampaignDiscover = useCallback(
+    (source: string) => {
+      manualOpenRef.current = true;
+      if (isBookRoute) {
+        openCampBooking(`${source}_on_book`);
+        return;
+      }
+      openExperience(source);
+    },
+    [isBookRoute, openCampBooking, openExperience],
+  );
+
   const handleManualOpen = useCallback(() => {
-    manualOpenRef.current = true;
-    openExperience("floating_pill");
-  }, [openExperience]);
+    handleCampaignDiscover("floating_pill");
+  }, [handleCampaignDiscover]);
 
   if (!config) return null;
 
@@ -158,7 +185,7 @@ export default function CampCaesarCampaign() {
 
       <CampaignAnnouncement
         config={config}
-        onDiscover={() => openExperience("announcement_bar")}
+        onDiscover={() => handleCampaignDiscover("announcement_bar")}
         introPhase={introPhase}
         introActive={introActive}
       />
@@ -192,7 +219,7 @@ export default function CampCaesarCampaign() {
       </AnimatePresence>
 
       <CampaignFloatingPill
-        visible={showPill && !openingOpen && !experienceOpen}
+        visible={(showPill || isBookRoute) && !openingOpen && !experienceOpen}
         introActive={introActive}
         onOpen={handleManualOpen}
       />

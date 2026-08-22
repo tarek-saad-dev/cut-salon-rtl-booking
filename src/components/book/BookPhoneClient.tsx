@@ -23,6 +23,7 @@ import {
   saveBookFlowDraft,
   type BookFlowDraft,
 } from "@/lib/book-flow-draft";
+import { resolveBookBranchHeroLabel } from "@/lib/booking/branch-label";
 
 type LookupStatus = "idle" | "loading" | "found" | "new" | "error";
 
@@ -235,6 +236,12 @@ export default function BookPhoneClient() {
       footer={false}
       entryScroll={false}
       heroTitle={ar ? "أدخل رقم موبايلك" : "Enter your mobile number"}
+      heroBranchLabel={resolveBookBranchHeroLabel(
+        branchCode,
+        selectedBranch?.branchName || selectedBranch?.shortName,
+        lang,
+      )}
+      heroBranchCode={branchCode || undefined}
     >
       <section className="relative bg-cut-soft-ivory pb-36 md:-mt-4 md:min-h-[55svh] md:rounded-t-[1.75rem] md:shadow-[0_-12px_40px_rgba(0,0,0,0.18)]">
         <BookDelayedWaitingOverlay

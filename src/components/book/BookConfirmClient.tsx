@@ -24,6 +24,7 @@ import { normalizeBranchCode } from "@/lib/booking-api/branch-code";
 import { normalizeEgyptianPhone } from "@/lib/booking-management/display";
 import { saveBookFlowConfirmation } from "@/lib/book-flow-confirmation";
 import { clearBookFlowDraft, readBookFlowDraft, saveBookFlowDraft } from "@/lib/book-flow-draft";
+import { resolveBookBranchHeroLabel } from "@/lib/booking/branch-label";
 import { saveClient } from "@/lib/clientStorage";
 
 function serviceLabel(service: BookingService, lang: "ar" | "en") {
@@ -372,6 +373,12 @@ export default function BookConfirmClient() {
       footer={false}
       entryScroll={false}
       heroTitle={ar ? "راجع وأكّد" : "Review & confirm"}
+      heroBranchLabel={resolveBookBranchHeroLabel(
+        branchCode,
+        selectedBranch?.branchName || selectedBranch?.shortName,
+        lang,
+      )}
+      heroBranchCode={branchCode || undefined}
     >
       {submitting ? (
         <div

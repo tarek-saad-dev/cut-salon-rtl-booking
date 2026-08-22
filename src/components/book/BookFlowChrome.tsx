@@ -10,6 +10,7 @@ import {
   ExternalLink,
   Gift,
   Languages,
+  MapPin,
   Menu,
   Phone,
   Sparkles,
@@ -21,9 +22,64 @@ import { BookCompactProgress } from "@/components/book/BookCompactProgress";
 import { useBookCompactMode } from "@/components/book/useBookCompactMode";
 import { useLanguage } from "@/context/LanguageContext";
 import { useMobileNav } from "@/context/MobileNavContext";
+import { getBranchVisual } from "@/lib/booking/branch-visuals";
 import { navigationLabels } from "@/lib/i18n/navigation";
 
 const WHATSAPP_URL = "https://wa.me/201012126899";
+
+function HeroBranchBadge({
+  label,
+  branchCode,
+  compact = false,
+  variant = "dark",
+  ar,
+}: {
+  label: string;
+  branchCode?: string;
+  compact?: boolean;
+  variant?: "dark" | "light";
+  ar: boolean;
+}) {
+  const accent = getBranchVisual(branchCode).accent;
+  const isLight = variant === "light";
+
+  return (
+    <div
+      className={`inline-flex max-w-full items-center gap-1.5 rounded-full border backdrop-blur-sm ${
+        compact ? "px-2 py-0.5" : "px-2.5 py-1"
+      } ${isLight ? "bg-cut-ivory/90" : "bg-cut-black/40"}`}
+      style={{
+        borderColor: `${accent}${isLight ? "55" : "66"}`,
+        boxShadow: isLight
+          ? `inset 0 1px 0 rgba(255,255,255,0.6)`
+          : `0 0 0 1px ${accent}22, inset 0 1px 0 rgba(252,249,237,0.06)`,
+      }}
+    >
+      <span
+        className={`shrink-0 rounded-full ${compact ? "h-1.5 w-1.5" : "h-2 w-2"}`}
+        style={{ backgroundColor: accent }}
+        aria-hidden
+      />
+      <MapPin
+        className={`shrink-0 ${compact ? "h-3 w-3" : "h-3.5 w-3.5"}`}
+        style={{ color: accent }}
+        strokeWidth={2}
+        aria-hidden
+      />
+      <span
+        className={`truncate font-bold ${
+          isLight ? "text-cut-black" : "text-cut-warm-beige"
+        } ${
+          compact
+            ? "text-[10px] tracking-wide"
+            : `text-[11px] tracking-wide sm:text-xs ${ar ? "" : "uppercase tracking-[0.12em]"}`
+        }`}
+      >
+        {label}
+      </span>
+    </div>
+  );
+}
 
 export type BookFlowChromeProps = {
   children: ReactNode;
@@ -33,6 +89,10 @@ export type BookFlowChromeProps = {
   footer?: boolean;
   /** Primary title — hero overlay on mobile, hero center on desktop. */
   heroTitle?: string;
+  /** Branch name shown above the step title when a branch is locked in. */
+  heroBranchLabel?: string;
+  /** Branch code for accent styling on the branch badge. */
+  heroBranchCode?: string;
   /** Supporting line — desktop hero only. */
   heroMeta?: string;
   entryScroll?: boolean;
@@ -94,6 +154,8 @@ export function BookFlowChrome({
   backLabel,
   footer = true,
   heroTitle,
+  heroBranchLabel,
+  heroBranchCode,
   heroMeta,
   entryScroll = true,
   compact = true,
@@ -250,6 +312,27 @@ export function BookFlowChrome({
   const navItemClass =
     "flex min-h-[3.25rem] w-full items-center border-b border-cut-bronze py-3.5 text-start text-[1.05rem] font-semibold tracking-wide text-cut-ivory transition hover:text-cut-warm-beige focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-cut-warm-beige";
 
+  const heroHeadingBlock = (
+    <div
+      className={`flex flex-col items-start md:items-center ${
+        heroBranchLabel ? "gap-3" : "gap-1.5"
+      }`}
+    >
+      {heroBranchLabel ? (
+        <HeroBranchBadge
+          label={heroBranchLabel}
+          branchCode={heroBranchCode}
+          ar={ar}
+        />
+      ) : null}
+      {heroTitle ? (
+        <h1 className="truncate font-display text-[1.05rem] font-bold leading-tight text-cut-ivory md:text-[clamp(1.75rem,5.2vw,2.5rem)] md:leading-tight">
+          {heroTitle}
+        </h1>
+      ) : null}
+    </div>
+  );
+
   return (
     <main
       dir={dir}
@@ -263,7 +346,11 @@ export function BookFlowChrome({
     >
       {/* ── Mobile collapsed scroll strip (back lives in GlobalMobileNav) ── */}
       {compact && heroCollapsed && heroTitle ? (
-        <div className="flex h-10 shrink-0 items-center gap-2 border-b border-cut-black/10 bg-cut-soft-ivory/95 px-3 backdrop-blur-sm md:hidden">
+        <div
+          className={`flex shrink-0 items-center gap-2 border-b border-cut-black/10 bg-cut-soft-ivory/95 px-3 backdrop-blur-sm md:hidden ${
+            heroBranchLabel ? "min-h-11 py-1" : "h-10"
+          }`}
+        >
           <div className="flex min-w-0 flex-1 items-center gap-2">
             {avatarSrc ? (
               <div className="h-7 w-7 shrink-0 overflow-hidden rounded-full border border-cut-black/10">
@@ -274,7 +361,20 @@ export function BookFlowChrome({
                 />
               </div>
             ) : null}
-            <p className="truncate text-[13px] font-bold text-cut-black">{heroTitle}</p>
+            <div className="min-w-0 flex-1">
+              {heroBranchLabel ? (
+                <div className="mb-1.5">
+                  <HeroBranchBadge
+                    label={heroBranchLabel}
+                    branchCode={heroBranchCode}
+                    compact
+                    variant="light"
+                    ar={ar}
+                  />
+                </div>
+              ) : null}
+              <p className="truncate text-[13px] font-bold text-cut-black">{heroTitle}</p>
+            </div>
           </div>
           {hasStepProgress && stepIndex != null && stepTotal != null ? (
             <span className="shrink-0 text-[11px] font-semibold tabular-nums text-cut-black/45">
@@ -297,19 +397,19 @@ export function BookFlowChrome({
             className="absolute inset-0 h-full w-full object-cover object-[center_15%] opacity-40"
           />
           <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(5,5,5,0.55)_0%,rgba(23,4,6,0.72)_100%)]" />
-          <div className="relative z-10 flex h-full flex-col justify-end px-4 pb-3 pt-2">
+          <div
+            className={`relative z-10 flex h-full flex-col justify-end px-4 pb-3 ${
+              heroBranchLabel ? "pt-4" : "pt-2"
+            }`}
+          >
             <div className="flex items-end justify-between gap-2">
               <div className="min-w-0 flex-1">
-                {heroTitle ? (
-                  <h1 className="truncate font-display text-[1.05rem] font-bold leading-tight text-cut-ivory">
-                    {heroTitle}
-                  </h1>
-                ) : null}
+                {heroHeadingBlock}
                 {stepLine ? (
                   <p className="mt-0.5 text-[11px] font-medium text-cut-soft-ivory/75">
                     {stepLine}
                   </p>
-                ) : heroMeta ? (
+                ) : heroMeta && !heroBranchLabel ? (
                   <p className="mt-0.5 truncate text-[11px] text-cut-soft-ivory/70">
                     {heroMeta}
                   </p>
@@ -564,13 +664,11 @@ export function BookFlowChrome({
             )
           : null}
 
-        {heroTitle ? (
+        {heroTitle || heroBranchLabel ? (
           <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center px-5 sm:px-8">
-            <div className="mx-auto max-w-lg text-center">
-              <h1 className="font-display text-[clamp(1.75rem,5.2vw,2.5rem)] leading-tight text-cut-ivory">
-                {heroTitle}
-              </h1>
-              {heroMeta ? (
+            <div className="mx-auto flex max-w-lg flex-col items-center gap-3 text-center">
+              {heroHeadingBlock}
+              {heroMeta && !heroBranchLabel ? (
                 <p className="mt-3 text-[13px] font-medium leading-6 tracking-wide text-cut-soft-ivory/80 sm:text-sm">
                   {heroMeta}
                 </p>

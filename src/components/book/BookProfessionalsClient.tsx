@@ -16,6 +16,7 @@ import {
 } from "@/lib/booking-api";
 import { normalizeBranchCode } from "@/lib/booking-api/branch-code";
 import { readBookFlowDraft, saveBookFlowDraft } from "@/lib/book-flow-draft";
+import { resolveBookBranchHeroLabel } from "@/lib/booking/branch-label";
 
 type Selection = "nearest" | number;
 
@@ -160,7 +161,8 @@ export default function BookProfessionalsClient() {
       footer={false}
       entryScroll={false}
       heroTitle={ar ? "اختر الحلاق" : "Select a professional"}
-      heroMeta={branchLabel ?? undefined}
+      heroBranchLabel={resolveBookBranchHeroLabel(branchCode, branchLabel, lang)}
+      heroBranchCode={branchCode || undefined}
     >
       <section className="relative bg-cut-soft-ivory pb-28 md:-mt-4 md:rounded-t-[1.75rem] md:shadow-[0_-12px_40px_rgba(0,0,0,0.18)]">
         <BookDelayedWaitingOverlay

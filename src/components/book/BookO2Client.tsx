@@ -21,6 +21,7 @@ import { BookingNavFooter } from "@/components/BookingNavFooter";
 import { useLanguage } from "@/context/LanguageContext";
 import { useBookO2Session, type BookO2Step } from "@/hooks/useBookO2Session";
 import type { PublicBranch } from "@/lib/booking-api";
+import { resolveBookBranchHeroLabel } from "@/lib/booking/branch-label";
 
 function stepIndex(step: BookO2Step, visible: BookO2Step[]) {
   const i = visible.indexOf(step);
@@ -127,6 +128,17 @@ export default function BookO2Client() {
     <div className="hidden md:block">{node}</div>
   );
 
+  const branchHeroLabel = s.branchCode
+    ? resolveBookBranchHeroLabel(
+        s.branchCode,
+        publicBranches.find(
+          (b) =>
+            String(b.branchCode).toUpperCase() === String(s.branchCode).toUpperCase(),
+        )?.branchName,
+        lang,
+      )
+    : undefined;
+
   return (
     <BookFlowChrome
       backHref={chromeBack.href}
@@ -135,9 +147,11 @@ export default function BookO2Client() {
       footer={s.step === "intent"}
       entryScroll={false}
       heroTitle={title}
+      heroBranchLabel={branchHeroLabel}
+      heroBranchCode={s.branchCode ?? undefined}
       heroMeta={
-        s.branchName
-          ? s.branchName
+        branchHeroLabel
+          ? undefined
           : ar
             ? "CUT Salon · الإسكندرية"
             : "CUT Salon · Alexandria"

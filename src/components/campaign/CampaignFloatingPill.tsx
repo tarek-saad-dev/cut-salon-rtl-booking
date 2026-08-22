@@ -48,7 +48,7 @@ export default function CampaignFloatingPill({
       onClick={onOpen}
       aria-label="Camp Caesar new location — 50% off first visit"
       dir="ltr"
-      className={`fixed z-40 left-4 flex items-center gap-2 rounded-full
+      className={`fixed z-[58] left-4 flex items-center gap-2 rounded-full
         border border-cut-bronze/30 bg-cut-espresso/95 backdrop-blur-md
         text-cut-ivory shadow-[0_4px_24px_rgba(0,0,0,0.45)]
         hover:border-cut-bronze/50 hover:bg-cut-wine-black/95 transition-all active:scale-[0.97]

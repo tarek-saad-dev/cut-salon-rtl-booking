@@ -19,6 +19,7 @@ import {
 } from "@/lib/booking-api";
 import { normalizeBranchCode } from "@/lib/booking-api/branch-code";
 import { readBookFlowDraft, saveBookFlowDraft } from "@/lib/book-flow-draft";
+import { resolveBookBranchHeroLabel } from "@/lib/booking/branch-label";
 
 function parseHour(time: string): number {
   const [h] = time.split(":").map(Number);
@@ -282,6 +283,12 @@ export default function BookTimeClient() {
       footer={false}
       entryScroll={false}
       heroTitle={ar ? "اختر ميعاد الخدمة" : "Select service time"}
+      heroBranchLabel={resolveBookBranchHeroLabel(
+        branchCode,
+        selectedBranch?.branchName || selectedBranch?.shortName,
+        lang,
+      )}
+      heroBranchCode={branchCode || undefined}
     >
       <section className="relative bg-cut-soft-ivory pb-10 md:-mt-4 md:min-h-[55svh] md:rounded-t-[1.75rem] md:shadow-[0_-12px_40px_rgba(0,0,0,0.18)]">
         <div className="hidden items-center justify-between gap-3 border-b border-cut-black/10 px-5 py-5 sm:px-6 md:flex">

@@ -10,6 +10,7 @@ import { useLanguage } from "@/context/LanguageContext";
 import { getServices, type BookingService } from "@/lib/booking-api";
 import { normalizeBranchCode } from "@/lib/booking-api/branch-code";
 import { readBookFlowDraft, saveBookFlowDraft } from "@/lib/book-flow-draft";
+import { resolveBookBranchHeroLabel } from "@/lib/booking/branch-label";
 
 function serviceLabel(service: BookingService, lang: "ar" | "en") {
   if (lang === "ar") return (service.nameAr || service.name || service.nameEn || "").trim();
@@ -156,6 +157,12 @@ export default function BookCartClient() {
       footer={false}
       entryScroll={false}
       heroTitle={ar ? "سلتك" : "Your cart"}
+      heroBranchLabel={resolveBookBranchHeroLabel(
+        branchCode,
+        selectedBranch?.branchName || selectedBranch?.shortName,
+        lang,
+      )}
+      heroBranchCode={branchCode || undefined}
     >
       <section className="relative bg-cut-soft-ivory pb-36 md:-mt-4 md:min-h-[55svh] md:rounded-t-[1.75rem] md:shadow-[0_-12px_40px_rgba(0,0,0,0.18)]">
         <BookDelayedWaitingOverlay

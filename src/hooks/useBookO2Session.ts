@@ -39,6 +39,7 @@ import {
 } from "@/lib/bookingV2/occupyLocal";
 import type { AvailabilityMatrix, BookingV2Bootstrap } from "@/lib/bookingV2/types";
 import { trackBookingError } from "@/lib/bookingV2/metrics";
+import { CAMP_CAESAR_BOOK_EVENT } from "@/lib/campaignEvents";
 
 export type BookO2Step =
   | "intent"
@@ -136,6 +137,31 @@ export function useBookO2Session() {
       return next;
     });
   }, []);
+
+  useEffect(() => {
+    const onCampCaesarBook = (event: Event) => {
+      const code = (event as CustomEvent<{ branchCode?: string }>).detail?.branchCode?.trim();
+      if (!code) return;
+
+      stepHistoryRef.current = [];
+      setMode("nearest");
+      setEmpId(null);
+      setBarberName("");
+      setBarberImage(null);
+      setBranchCode(code);
+      setServiceIds([]);
+      setSelectedDate(undefined);
+      setSelectedSlot(undefined);
+      setPlan(null);
+      setConfirmStatus("idle");
+      setConfirmError(null);
+      setStep("services");
+      router.replace(buildBookHref({ mode: "nearest", branch: code }));
+    };
+
+    window.addEventListener(CAMP_CAESAR_BOOK_EVENT, onCampCaesarBook);
+    return () => window.removeEventListener(CAMP_CAESAR_BOOK_EVENT, onCampCaesarBook);
+  }, [router]);
 
   const syncUrlForStep = useCallback(
     (target: BookO2Step, opts?: { empId?: number | null; branchCode?: string | null }) => {
