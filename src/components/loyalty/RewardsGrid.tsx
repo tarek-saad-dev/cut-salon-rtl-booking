@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Gift, Scissors, Sparkles, Star, Crown, Lock, Loader2, X } from "lucide-react";
 import type { LoyaltyReward } from "./loyaltyData";
+import { redeemClientReward } from "./clientLoyaltyApi";
 
 // ─── Icon map ────────────────────────────────────────────────────────────────
 const iconMap: Record<string, React.ReactNode> = {
@@ -140,33 +141,10 @@ function RewardCard({
   const handleRedeem = async () => {
     setLoading(true);
     setError(null);
-    const apiBase = (process.env.NEXT_PUBLIC_BOOKING_API_BASE_URL ?? "").replace(/\/$/, "");
     try {
-      const res = await fetch(
-        `${apiBase}/api/public/client/loyalty/rewards/${encodeURIComponent(reward.id)}/redeem?clientId=${encodeURIComponent(clientId)}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ confirm: true }),
-        }
-      );
-      const data: unknown = await res.json().catch(() => null);
-      if (
-        !res.ok ||
-        (data !== null && typeof data === "object" && (data as Record<string, unknown>).ok === false)
-      ) {
-        const msg =
-          data !== null && typeof data === "object"
-            ? ((data as Record<string, unknown>).error as string | undefined) ??
-            ((data as Record<string, unknown>).message as string | undefined) ??
-            "فشل استبدال المكافأة"
-            : "فشل استبدال المكافأة";
-        setError(msg);
-        return;
-      }
-      const typed = data as { redeemCode?: string; newBalance?: number };
+      const data = await redeemClientReward(clientId, reward.id);
       setShowConfirm(false);
-      onRedeemed(reward.id, typed.redeemCode, typed.newBalance);
+      onRedeemed(reward.id, data.redeemCode, data.newBalance);
     } catch (e) {
       setError(e instanceof Error ? e.message : "حدث خطأ غير متوقع");
     } finally {

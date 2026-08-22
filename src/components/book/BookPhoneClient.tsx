@@ -9,6 +9,7 @@ import { useBranch } from "@/context/BranchContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { normalizeBranchCode } from "@/lib/booking-api/branch-code";
 import { saveClient } from "@/lib/clientStorage";
+import { lookupClientByMobile } from "@/lib/clientWebsiteApi";
 import {
   BOOK_PHONE_COUNTRIES,
   detectPhoneCountry,
@@ -150,15 +151,9 @@ export default function BookPhoneClient() {
       const controller = new AbortController();
       const kill = setTimeout(() => controller.abort(), 2500);
       try {
-        const res = await fetch(
-          `/api/client/lookup?mobile=${encodeURIComponent(digits)}`,
-          { signal: controller.signal },
-        );
-        const data = (await res.json()) as {
-          ok?: boolean;
-          found?: boolean;
-          client?: { id?: number; name?: string; mobile?: string };
-        };
+        const data = await lookupClientByMobile(digits, {
+          signal: controller.signal,
+        });
         if (cancelled) return;
         if (data.ok && data.found && data.client?.name) {
           const name = String(data.client.name).trim();

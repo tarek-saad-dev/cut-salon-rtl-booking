@@ -37,6 +37,7 @@ import { getCoreServiceIdSet } from "@/lib/bookingServiceGroups";
 import { useBookingFlow, type BookingUiStep } from "@/hooks/useBookingFlow";
 import { useBookingTranslations } from "@/hooks/useBookingTranslations";
 import { saveClient } from "@/lib/clientStorage";
+import { lookupClientByMobile } from "@/lib/clientWebsiteApi";
 import { getBranchAccent } from "@/lib/branchTheme";
 import { saveBookFlowConfirmation } from "@/lib/book-flow-confirmation";
 import { clearBookFlowDraft } from "@/lib/book-flow-draft";
@@ -489,15 +490,9 @@ const BookingModal = ({
       const controller = new AbortController();
       const kill = setTimeout(() => controller.abort(), 2500);
       try {
-        const res = await fetch(
-          `/api/client/lookup?mobile=${encodeURIComponent(digits)}`,
-          { signal: controller.signal },
-        );
-        const data = (await res.json()) as {
-          ok?: boolean;
-          found?: boolean;
-          client?: { id?: number; name?: string; mobile?: string };
-        };
+        const data = await lookupClientByMobile(digits, {
+          signal: controller.signal,
+        });
         if (cancelled) return;
         if (data.ok && data.found && data.client?.name) {
           const name = String(data.client.name).trim();

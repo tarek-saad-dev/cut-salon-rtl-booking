@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { useRouter } from "next/navigation";
 import { saveClient, clearClient } from "@/lib/clientStorage";
+import { lookupClientByMobile, updateClientProfile } from "@/lib/clientWebsiteApi";
 import { User, Phone, Edit3, Check, X, Loader2, LogOut, Mail, MapPin } from "lucide-react";
 
 interface ClientData {
@@ -42,8 +43,7 @@ function ClientPageInner() {
     setLoginLoading(true);
     setLoginError(null);
     try {
-      const res = await fetch(`/api/client/lookup?mobile=${encodeURIComponent(digits)}`);
-      const data = await res.json();
+      const data = await lookupClientByMobile(digits);
       if (data.ok && data.found) {
         setClient(data.client);
         setEditForm(data.client);
@@ -74,12 +74,7 @@ function ClientPageInner() {
     setSaveError(null);
     setSaveSuccess(false);
     try {
-      const res = await fetch("/api/client/update", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ clientId: client.id, ...editForm }),
-      });
-      const data = await res.json();
+      const data = await updateClientProfile({ clientId: client.id, ...editForm });
       if (data.ok) {
         setClient({ ...client, ...editForm } as ClientData);
         setSaveSuccess(true);

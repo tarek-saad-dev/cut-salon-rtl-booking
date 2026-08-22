@@ -1,16 +1,7 @@
 // ─── CUT CLUB — Client Loyalty API Layer ─────────────────────────────────────
 // TODO: Replace hardcoded clientId with authenticated client session / OTP token later.
 
-// ── Base URL (same server as booking API) ─────────────────────────────────────
-const API_BASE = (process.env.NEXT_PUBLIC_BOOKING_API_BASE_URL ?? "").replace(
-  /\/$/,
-  "",
-);
-
-function buildLoyaltyUrl(path: string): string {
-  const cleanPath = path.startsWith("/") ? path : `/${path}`;
-  return `${API_BASE}${cleanPath}`;
-}
+import { buildCasherPublicApiUrl } from "@/lib/casherPublicApiUrl";
 
 // ── Generic fetch helper ──────────────────────────────────────────────────────
 async function apiGet<T>(url: string): Promise<T> {
@@ -169,7 +160,7 @@ export async function fetchClientLoyaltyDashboard(
   clientId: string | number,
 ): Promise<ClientLoyaltyDashboardResponse> {
   return apiGet<ClientLoyaltyDashboardResponse>(
-    buildLoyaltyUrl(
+    buildCasherPublicApiUrl(
       `/api/public/client/loyalty/me?clientId=${encodeURIComponent(clientId)}`,
     ),
   );
@@ -198,7 +189,7 @@ export async function fetchClientLoyaltyActivity(
   }
 
   return apiGet<ActivityPageResponse>(
-    buildLoyaltyUrl(`/api/public/client/loyalty/activity?${params.toString()}`),
+    buildCasherPublicApiUrl(`/api/public/client/loyalty/activity?${params.toString()}`),
   );
 }
 
@@ -206,7 +197,7 @@ export async function fetchClientLoyaltyRewards(
   clientId: string | number,
 ): Promise<{ ok: true; rewards: ApiLoyaltyReward[] }> {
   return apiGet<{ ok: true; rewards: ApiLoyaltyReward[] }>(
-    buildLoyaltyUrl(
+    buildCasherPublicApiUrl(
       `/api/public/client/loyalty/rewards?clientId=${encodeURIComponent(clientId)}`,
     ),
   );
@@ -217,7 +208,7 @@ export async function redeemClientReward(
   rewardId: string | number,
 ): Promise<RedeemRewardResponse> {
   const res = await fetch(
-    buildLoyaltyUrl(
+    buildCasherPublicApiUrl(
       `/api/public/client/loyalty/rewards/${encodeURIComponent(rewardId)}/redeem?clientId=${encodeURIComponent(clientId)}`,
     ),
     {
@@ -248,7 +239,7 @@ export async function fetchClientReferral(
   clientId: string | number,
 ): Promise<{ ok: true; referral: ApiReferralInfo }> {
   return apiGet<{ ok: true; referral: ApiReferralInfo }>(
-    buildLoyaltyUrl(
+    buildCasherPublicApiUrl(
       `/api/public/client/referral?clientId=${encodeURIComponent(clientId)}`,
     ),
   );
