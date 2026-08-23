@@ -466,7 +466,7 @@ const BookingModal = ({
       new CustomEvent("cut:blocking-overlay", { detail: { open } }),
     );
   }, [open]);
-
+// test
   const [confettiTrigger, setConfettiTrigger] = useState(0);
   const [copied, setCopied] = useState(false);
   const [lookupStatus, setLookupStatus] = useState<ClientLookupStatus>("idle");
