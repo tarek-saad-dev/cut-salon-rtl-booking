@@ -22,6 +22,7 @@ import { useLanguage } from "@/context/LanguageContext";
 import { useBookO2Session, type BookO2Step } from "@/hooks/useBookO2Session";
 import type { PublicBranch } from "@/lib/booking-api";
 import { resolveBookBranchHeroLabel } from "@/lib/booking/branch-label";
+import { formatStaleSlotNotice } from "@/lib/bookingV2/recoverStaleSlot";
 
 function stepIndex(step: BookO2Step, visible: BookO2Step[]) {
   const i = visible.indexOf(step);
@@ -290,6 +291,12 @@ export default function BookO2Client() {
                 {s.matrixStatus === "empty" ? (
                   <p className="mt-3 text-sm text-cut-black/55 md:mt-6">
                     {ar ? "مفيش مواعيد متاحة حالياً." : "No available times right now."}
+                  </p>
+                ) : null}
+
+                {s.staleSlotNotice ? (
+                  <p className="mt-3 text-sm text-cut-burgundy md:mt-6" role="status">
+                    {formatStaleSlotNotice(lang, s.staleSlotNotice)}
                   </p>
                 ) : null}
 

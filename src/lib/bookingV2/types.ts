@@ -136,6 +136,13 @@ export interface AvailabilityMatrix {
   etag?: string | null;
   fetchedAt: number;
   stale?: boolean;
+  /**
+   * Server epoch ms when this 14-day matrix was generated.
+   * Authoritative MinNotice anchor — not browser Date.now().
+   */
+  generatedAtMs?: number;
+  /** performance.now() (or equivalent) when this payload was received locally. */
+  receivedAtMonoMs?: number;
 }
 
 export interface AvailabilityRequest {

@@ -3,6 +3,13 @@ import {
   timeToMinutes,
   assertBusinessDate,
 } from "./businessDate";
+import {
+  estimateServerNowMs,
+  isSlotLocallyEligible,
+  slotStartEpochMs,
+  SALON_TIME_ZONE,
+  type EstimateServerNowInput,
+} from "./serverTime";
 import type {
   BusinessDate,
   FreeRange,
@@ -23,9 +30,13 @@ export interface GenerateStartsOptions {
   empName?: string | null;
   branchCode: BranchCode;
   minNoticeMinutes?: number;
-  now?: Date;
-  nowMinutesFromMidnight?: number;
-  todayBusinessDate?: BusinessDate;
+  /**
+   * Authoritative server-time clock from the 14-day matrix.
+   * When present, MinNotice uses exact ms (not minute-truncated wall time).
+   */
+  clock?: EstimateServerNowInput | null;
+  estimatedServerNowMs?: number;
+  timeZone?: string;
 }
 
 function windowsToRanges(free: FreeWindow[]): FreeRange[] {
@@ -43,10 +54,23 @@ function windowsToRanges(free: FreeWindow[]): FreeRange[] {
     .filter(Boolean) as FreeRange[];
 }
 
+function resolveEstimatedServerNowMs(options: GenerateStartsOptions): number | null {
+  if (typeof options.estimatedServerNowMs === "number" && Number.isFinite(options.estimatedServerNowMs)) {
+    return options.estimatedServerNowMs;
+  }
+  if (options.clock && Number.isFinite(options.clock.generatedAtMs)) {
+    return estimateServerNowMs(options.clock);
+  }
+  return null;
+}
+
 /**
  * Hawai shared contract: FreeRanges + duration + slotInterval → start times.
  * Half-open ranges [startMin, endMin). Overnight uses minutes ≥ 1440.
  * BusinessDate stays fixed; dayOffset derived from startMin only.
+ *
+ * MinNotice is exact-ms vs the matrix server-time anchor. This is UX protection
+ * only — POST /plan remains the strong_fresh authority.
  */
 export function generateStartsFromFree(options: GenerateStartsOptions): GeneratedSlot[] {
   const {
@@ -57,8 +81,7 @@ export function generateStartsFromFree(options: GenerateStartsOptions): Generate
     empName,
     branchCode,
     minNoticeMinutes = 0,
-    now = new Date(),
-    todayBusinessDate,
+    timeZone = SALON_TIME_ZONE,
   } = options;
 
   assertBusinessDate(businessDate, "generateStartsFromFree");
@@ -69,23 +92,9 @@ export function generateStartsFromFree(options: GenerateStartsOptions): Generate
       ? options.freeRanges
       : windowsToRanges(options.free ?? []);
 
-  const today = todayBusinessDate;
-  const applyNotice = today != null && businessDate === today && minNoticeMinutes > 0;
+  const estimatedServerNow = resolveEstimatedServerNowMs(options);
+  const applyNotice = estimatedServerNow != null;
 
-  let nowMinutes = options.nowMinutesFromMidnight;
-  if (applyNotice && nowMinutes == null) {
-    const parts = new Intl.DateTimeFormat("en-GB", {
-      timeZone: "Africa/Cairo",
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-    }).formatToParts(now);
-    const hour = Number(parts.find((p) => p.type === "hour")?.value ?? "0");
-    const minute = Number(parts.find((p) => p.type === "minute")?.value ?? "0");
-    nowMinutes = hour * 60 + minute;
-  }
-
-  const earliestStart = applyNotice ? (nowMinutes ?? 0) + minNoticeMinutes : 0;
   const out: GeneratedSlot[] = [];
   const seen = new Set<string>();
 
@@ -95,7 +104,18 @@ export function generateStartsFromFree(options: GenerateStartsOptions): Generate
     if (!(winEnd > winStart)) continue;
 
     for (let start = winStart; start + durationMinutes <= winEnd; start += intervalMinutes) {
-      if (start < earliestStart) continue;
+      if (applyNotice) {
+        const slotStartMs = slotStartEpochMs(businessDate, start, timeZone);
+        if (
+          !isSlotLocallyEligible({
+            slotStartMs,
+            estimatedServerNowMs: estimatedServerNow,
+            minNoticeMinutes,
+          })
+        ) {
+          continue;
+        }
+      }
 
       const dayOffset: 0 | 1 = start >= 24 * 60 ? 1 : 0;
       const time = minutesToTime(start) as LocalTime;

@@ -18,6 +18,23 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  async headers() {
+    return [
+      {
+        // Public booking entry must never be frozen for a year in the CDN/RSC cache.
+        source: "/book",
+        headers: [
+          { key: "Cache-Control", value: "private, no-store, max-age=0, must-revalidate" },
+        ],
+      },
+      {
+        source: "/book/:path*",
+        headers: [
+          { key: "Cache-Control", value: "private, no-store, max-age=0, must-revalidate" },
+        ],
+      },
+    ];
+  },
 };
 
 export default nextConfig;

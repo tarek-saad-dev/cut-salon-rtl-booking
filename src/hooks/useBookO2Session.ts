@@ -29,7 +29,7 @@ import {
 import { getCoreServiceIdSet } from "@/lib/bookingServiceGroups";
 import { saveBookFlowConfirmation } from "@/lib/book-flow-confirmation";
 import { buildBookHref } from "@/lib/book-o2/buildBookHref";
-import { localDateToBusinessDate } from "@/lib/bookingV2/businessDate";
+import { businessDateToLocalDate, localDateToBusinessDate } from "@/lib/bookingV2/businessDate";
 import { findBootstrapBarber } from "@/lib/bookingV2/catalogMap";
 import {
   applyLocalOccupancyToAllCachedMatrices,
@@ -37,6 +37,11 @@ import {
   revalidateAvailabilityBusinessDate,
   slotStartMin,
 } from "@/lib/bookingV2/occupyLocal";
+import {
+  isRecoverablePlanAvailabilityError,
+  recoverStaleMinNoticeSlot,
+  type StaleSlotNotice,
+} from "@/lib/bookingV2/recoverStaleSlot";
 import type { AvailabilityMatrix, BookingV2Bootstrap } from "@/lib/bookingV2/types";
 import { trackBookingError } from "@/lib/bookingV2/metrics";
 import { CAMP_CAESAR_BOOK_EVENT } from "@/lib/campaignEvents";
@@ -127,6 +132,7 @@ export function useBookO2Session() {
     "idle" | "planning" | "creating" | "error"
   >("idle");
   const [confirmError, setConfirmError] = useState<string | null>(null);
+  const [staleSlotNotice, setStaleSlotNotice] = useState<StaleSlotNotice | null>(null);
   const confirmInFlightRef = useRef(false);
   const matrixScopeKeyRef = useRef<string | null>(null);
   const stepHistoryRef = useRef<BookO2Step[]>([]);
@@ -506,11 +512,13 @@ export function useBookO2Session() {
     setSelectedDate(date);
     setSelectedSlot(undefined);
     setPlan(null);
+    setStaleSlotNotice(null);
   }, []);
 
   const selectSlot = useCallback((slot: AvailableSlot) => {
     setSelectedSlot(slot);
     setPlan(null);
+    setStaleSlotNotice(null);
     if (slot.branchCode) setBranchCode(String(slot.branchCode));
     goToStep("details");
   }, [goToStep]);
@@ -543,11 +551,11 @@ export function useBookO2Session() {
     confirmInFlightRef.current = true;
     setConfirmStatus("planning");
     setConfirmError(null);
+    const dateStr =
+      selectedSlot.businessDate && /^\d{4}-\d{2}-\d{2}$/.test(selectedSlot.businessDate)
+        ? selectedSlot.businessDate
+        : localDateToBusinessDate(selectedDate);
     try {
-      const dateStr =
-        selectedSlot.businessDate && /^\d{4}-\d{2}-\d{2}$/.test(selectedSlot.businessDate)
-          ? selectedSlot.businessDate
-          : localDateToBusinessDate(selectedDate);
       const res = await createBookingPlan({
         branchCode: String(effectiveBranchCode),
         customer: { name, phone },
@@ -563,6 +571,60 @@ export function useBookO2Session() {
       setConfirmStatus("idle");
       goToStep("review");
     } catch (err) {
+      const code = err instanceof BookingApiError ? err.code : undefined;
+      if (err instanceof BookingApiError && isRecoverablePlanAvailabilityError(code) && scope) {
+        trackBookingError("plan_failure", {
+          message: err.message,
+          httpStatus: err.httpStatus,
+          code,
+        });
+        try {
+          const recovered = await recoverStaleMinNoticeSlot({
+            loadMatrix: () => loadV2Matrix(scope, 14, { force: true }),
+            fromBusinessDate: dateStr,
+            durationMinutes,
+            intervalMinutes,
+            minNoticeMinutes,
+            mode,
+            empId,
+            branchCode,
+          });
+          setMatrix(recovered.matrix);
+          const hasAny = recovered.matrix.matrix.some((d) =>
+            d.branches.some((b) =>
+              b.employees.some(
+                (e) =>
+                  e.status !== "day_off" &&
+                  e.status !== "closed" &&
+                  ((e.freeRanges?.length ?? 0) > 0 || (e.free?.length ?? 0) > 0),
+              ),
+            ),
+          );
+          setMatrixStatus(hasAny ? "ready" : "empty");
+          if (recovered.nextLegacySlot && recovered.nextSlot) {
+            setSelectedSlot(recovered.nextLegacySlot);
+            setSelectedDate(businessDateToLocalDate(recovered.nextSlot.businessDate));
+            if (recovered.nextSlot.branchCode) {
+              setBranchCode(String(recovered.nextSlot.branchCode));
+            }
+          } else {
+            setSelectedSlot(undefined);
+          }
+          setPlan(null);
+          setStaleSlotNotice({
+            kind: code === "MIN_NOTICE_NOT_MET" ? "min_notice_expired" : "plan_unavailable",
+            previousTime: selectedSlot.time,
+            nextTime: recovered.nextSlot?.time ?? null,
+          });
+          setConfirmStatus("idle");
+          setConfirmError(null);
+          goToStep("schedule");
+        } catch {
+          setConfirmStatus("error");
+          setConfirmError(err.message);
+        }
+        return;
+      }
       setConfirmStatus("error");
       const message = err instanceof BookingApiError ? err.message : "plan_failed";
       trackBookingError("plan_failure", {
@@ -586,6 +648,11 @@ export function useBookO2Session() {
     customerName,
     notes,
     goToStep,
+    scope,
+    durationMinutes,
+    intervalMinutes,
+    minNoticeMinutes,
+    branchCode,
   ]);
 
   const confirmCreate = useCallback(async () => {
@@ -808,6 +875,7 @@ export function useBookO2Session() {
     plan,
     confirmStatus,
     confirmError,
+    staleSlotNotice,
     catalogLoading: bootstrapStatus === "loading" && !catalog,
     maxServices: MAX_SERVICES,
     isPhoneReady: () => normalizeEgyptianPhone(customerPhone) != null,

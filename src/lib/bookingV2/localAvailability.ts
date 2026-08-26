@@ -1,5 +1,5 @@
 import { generateStartsFromFree } from "./generateStartsFromFree";
-import { todayBusinessDate } from "./businessDate";
+import { monotonicNowMs, type EstimateServerNowInput } from "./serverTime";
 import type {
   AvailabilityMatrix,
   BranchCode,
@@ -54,6 +54,19 @@ function dayHasBookableFree(
   return false;
 }
 
+export function matrixServerClock(
+  matrix: AvailabilityMatrix | null | undefined,
+  nowMonoMs?: number,
+): EstimateServerNowInput | null {
+  if (matrix == null || matrix.generatedAtMs == null) return null;
+  const nowMono = nowMonoMs ?? monotonicNowMs();
+  return {
+    generatedAtMs: matrix.generatedAtMs,
+    receivedAtMonoMs: matrix.receivedAtMonoMs ?? nowMono,
+    nowMonoMs: nowMono,
+  };
+}
+
 export function generateSlotsForBusinessDate(options: {
   matrix: AvailabilityMatrix;
   businessDate: BusinessDate;
@@ -64,6 +77,8 @@ export function generateSlotsForBusinessDate(options: {
   empId?: number | null;
   /** nearest: keep all employees; specific: filter empId when provided */
   mode: "specific" | "nearest";
+  /** Override monotonic now for tests; defaults to performance.now(). */
+  nowMonoMs?: number;
 }): GeneratedSlot[] {
   const {
     matrix,
@@ -74,6 +89,7 @@ export function generateSlotsForBusinessDate(options: {
     branchCode,
     empId,
     mode,
+    nowMonoMs,
   } = options;
 
   const day = matrix.matrix.find((d) => d.businessDate === businessDate);
@@ -81,7 +97,7 @@ export function generateSlotsForBusinessDate(options: {
 
   const branchFilter = branchCode ? String(branchCode).toUpperCase() : null;
   const slots: GeneratedSlot[] = [];
-  const today = todayBusinessDate();
+  const clock = matrixServerClock(matrix, nowMonoMs);
 
   for (const branch of day.branches) {
     if (branchFilter && String(branch.branchCode).toUpperCase() !== branchFilter) continue;
@@ -102,7 +118,7 @@ export function generateSlotsForBusinessDate(options: {
         empName: emp.empName,
         branchCode: branch.branchCode,
         minNoticeMinutes,
-        todayBusinessDate: today,
+        clock,
       });
       slots.push(...generated);
     }
@@ -124,6 +140,36 @@ export function generateSlotsForBusinessDate(options: {
   }
 
   return slots;
+}
+
+/**
+ * Existing nearest-selection: first remaining locally eligible start
+ * on/after the selected business date (already MinNotice-filtered).
+ */
+export function pickNearestEligibleSlot(options: {
+  matrix: AvailabilityMatrix;
+  fromBusinessDate: BusinessDate;
+  durationMinutes: number;
+  intervalMinutes: number;
+  minNoticeMinutes?: number;
+  branchCode?: BranchCode | null;
+  empId?: number | null;
+  mode: "specific" | "nearest";
+  nowMonoMs?: number;
+}): GeneratedSlot | null {
+  const dates = options.matrix.matrix
+    .map((d) => d.businessDate)
+    .filter((d) => d >= options.fromBusinessDate)
+    .sort((a, b) => a.localeCompare(b));
+
+  for (const businessDate of dates) {
+    const slots = generateSlotsForBusinessDate({
+      ...options,
+      businessDate,
+    });
+    if (slots[0]) return slots[0];
+  }
+  return null;
 }
 
 /** Map GeneratedSlot → legacy AvailableSlot shape used by BookingTimeSlots / plan write. */

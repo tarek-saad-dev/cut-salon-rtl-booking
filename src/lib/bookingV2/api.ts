@@ -2,6 +2,7 @@ import { cachePeekEtag, swrFetch, cacheGet } from "./cache";
 import { trackBookingRequest } from "./metrics";
 import { addBusinessDays, todayBusinessDate } from "./businessDate";
 import { assertBookingApiBaseForRuntime } from "./feature";
+import { monotonicNowMs, pickEpochMs } from "./serverTime";
 import type {
   AvailabilityMatrix,
   AvailabilityRequest,
@@ -282,6 +283,8 @@ function normalizeAvailabilityPayload(
     etag,
     fetchedAt: Date.now(),
     stale: false,
+    generatedAtMs: pickEpochMs(root.generatedAtMs, root.generatedAt) ?? Date.now(),
+    receivedAtMonoMs: monotonicNowMs(),
   };
 }
 

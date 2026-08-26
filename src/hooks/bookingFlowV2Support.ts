@@ -104,16 +104,19 @@ export function resolveV2Scope(input: {
 export async function loadV2Matrix(
   scope: AvailabilityScope,
   days = 14,
+  options?: { force?: boolean },
 ): Promise<AvailabilityMatrix> {
   const from = todayBusinessDate();
   const request = toAvailabilityRequest(scope, from, days);
-  const cached = getCachedAvailability(request);
-  if (cached && cached.matrix.length > 0 && !cached.stale) {
-    // Fresh enough — avoid immediate duplicate SWR on every effect re-run.
-    // Background refresh only if older than 60s.
-    if (Date.now() - cached.fetchedAt < 60_000) return cached;
+  if (!options?.force) {
+    const cached = getCachedAvailability(request);
+    if (cached && cached.matrix.length > 0 && !cached.stale) {
+      // Fresh enough — avoid immediate duplicate SWR on every effect re-run.
+      // Background refresh only if older than 60s.
+      if (Date.now() - cached.fetchedAt < 60_000) return cached;
+    }
   }
-  return getAvailabilityMatrix(request, { force: false });
+  return getAvailabilityMatrix(request, { force: options?.force ?? false });
 }
 
 export function deriveV2Days(
@@ -125,6 +128,7 @@ export function deriveV2Days(
     durationMinutes: number;
     intervalMinutes: number;
     minNoticeMinutes?: number;
+    nowMonoMs?: number;
   },
 ): { days: AvailableDay[]; multiBranchDays: BarberAvailableDay[] } {
   if (!matrix) return { days: [], multiBranchDays: [] };
@@ -140,6 +144,7 @@ export function deriveV2Days(
       branchCode: opts.branchCode,
       empId: opts.mode === "specific" ? opts.empId : null,
       mode: opts.mode,
+      nowMonoMs: opts.nowMonoMs,
     });
     return {
       date: day.businessDate,
@@ -165,6 +170,7 @@ export function deriveV2Days(
             branchCode: b.branchCode,
             empId: opts.mode === "specific" ? opts.empId : null,
             mode: opts.mode,
+            nowMonoMs: opts.nowMonoMs,
           });
           if (slots.length === 0) return null;
           return {
@@ -192,6 +198,7 @@ export function deriveV2Slots(
     durationMinutes: number;
     intervalMinutes: number;
     minNoticeMinutes?: number;
+    nowMonoMs?: number;
   },
 ): { slots: AvailableSlot[]; multiBranchSlots: BarberAvailableSlot[] } {
   if (!matrix || !selectedDate || opts.durationMinutes <= 0) {
@@ -207,6 +214,7 @@ export function deriveV2Slots(
     branchCode: opts.branchCode,
     empId: opts.mode === "specific" ? opts.empId : null,
     mode: opts.mode,
+    nowMonoMs: opts.nowMonoMs,
   });
 
   const slots = generated.map((s) => {

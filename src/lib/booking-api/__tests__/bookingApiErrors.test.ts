@@ -31,6 +31,26 @@ describe("parseBackendError", () => {
     expect(err.technicalMessage).toBe("Row locked by txn 42");
   });
 
+  it("maps MIN_NOTICE_NOT_MET instead of UNKNOWN_ERROR", () => {
+    const err = parseBackendError(
+      { ok: false, error: { code: "MIN_NOTICE_NOT_MET", message: "min notice" } },
+      409,
+      emptyMetadata,
+    );
+    expect(err.code).toBe("MIN_NOTICE_NOT_MET");
+    expect(err.message).not.toMatch(/غير متوقع/);
+  });
+
+  it("maps BOOKING_PLAN_UNAVAILABLE instead of UNKNOWN_ERROR", () => {
+    const err = parseBackendError(
+      { ok: false, error: { code: "BOOKING_PLAN_UNAVAILABLE" } },
+      409,
+      emptyMetadata,
+    );
+    expect(err.code).toBe("BOOKING_PLAN_UNAVAILABLE");
+    expect(err.message).not.toMatch(/غير متوقع/);
+  });
+
   it("handles missing error object in body", () => {
     const err = parseBackendError({ ok: false }, 500, emptyMetadata);
     expect(err.code).toBe("UNKNOWN_ERROR");

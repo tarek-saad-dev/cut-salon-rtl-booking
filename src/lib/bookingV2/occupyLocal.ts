@@ -85,7 +85,14 @@ export function applyLocalOccupancyToMatrix(
       }),
     };
   });
-  return { ...matrix, matrix: nextDays, fetchedAt: Date.now(), stale: false };
+  return {
+    ...matrix,
+    matrix: nextDays,
+    fetchedAt: Date.now(),
+    stale: false,
+    generatedAtMs: matrix.generatedAtMs,
+    receivedAtMonoMs: matrix.receivedAtMonoMs,
+  };
 }
 
 export function slotStartMin(slot: {
@@ -177,7 +184,14 @@ export function mergeDayIntoMatchingCaches(
     );
     cacheSet(
       key,
-      { ...entry.data, matrix, fetchedAt: Date.now(), stale: false },
+      {
+        ...entry.data,
+        matrix,
+        fetchedAt: Date.now(),
+        stale: false,
+        generatedAtMs: entry.data.generatedAtMs,
+        receivedAtMonoMs: entry.data.receivedAtMonoMs,
+      },
       entry.etag,
     );
   }

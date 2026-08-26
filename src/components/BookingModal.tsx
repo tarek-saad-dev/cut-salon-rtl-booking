@@ -65,6 +65,7 @@ import {
 } from "@/lib/booking-api";
 import { BookingPricePromoProvider } from "@/context/BookingPricePromoContext";
 import BookingPromoPrice from "@/components/booking/BookingPromoPrice";
+import { formatStaleSlotNotice } from "@/lib/bookingV2/recoverStaleSlot";
 
 type ClientLookupStatus = "idle" | "loading" | "found" | "new";
 
@@ -822,7 +823,17 @@ const BookingModal = ({
   };
 
   const renderMutationBanner = () => {
-    if (flow.mutationUi.kind === "idle") return null;
+    if (flow.mutationUi.kind === "idle") {
+      if (!flow.staleSlotNotice) return null;
+      return (
+        <div
+          className="mx-6 mt-4 p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-sm text-center"
+          role="status"
+        >
+          {formatStaleSlotNotice(lang, flow.staleSlotNotice)}
+        </div>
+      );
+    }
     if (flow.mutationUi.kind === "planning" || flow.mutationUi.kind === "creating") {
       return (
         <div

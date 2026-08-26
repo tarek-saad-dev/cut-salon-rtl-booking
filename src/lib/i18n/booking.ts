@@ -429,6 +429,14 @@ export const bookingCatalog = {
       ar: "تعذر التحقق من أحد الفروع — قد تكون المواعيد المعروضة غير مكتملة",
       en: "One branch couldn’t be checked — availability shown may be incomplete",
     },
+    slotJustBecameUnavailable: {
+      ar: "الميعاد {time} لسه ما عادش متاح. اختار ميعاد تاني.",
+      en: "{time} just became unavailable. Please pick another time.",
+    },
+    slotJustBecameUnavailablePickedNext: {
+      ar: "الميعاد {time} لسه ما عادش متاح. اخترنا أقرب ميعاد متاح: {next}.",
+      en: "{time} just became unavailable. We selected the next available time: {next}.",
+    },
   },
 } as const;
 

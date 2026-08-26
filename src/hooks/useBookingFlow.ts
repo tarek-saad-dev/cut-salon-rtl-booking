@@ -78,6 +78,11 @@ import {
 } from "@/lib/bookingV2/occupyLocal";
 import { deriveDayOffsetForLegacyWrite, localDateToBusinessDate } from "@/lib/bookingV2/businessDate";
 import {
+  isRecoverablePlanAvailabilityError,
+  recoverStaleMinNoticeSlot,
+  type StaleSlotNotice,
+} from "@/lib/bookingV2/recoverStaleSlot";
+import {
   bootstrapBarberForFlow,
   catalogFromBootstrap,
   deriveV2Days,
@@ -257,6 +262,7 @@ export function useBookingFlow(opts: {
   const [plan, setPlan] = useState<BookingPlan | null>(null);
   const [created, setCreated] = useState<BookingCreateResponse | null>(null);
   const [mutationUi, setMutationUi] = useState<FlowMutationUi>({ kind: "idle" });
+  const [staleSlotNotice, setStaleSlotNotice] = useState<StaleSlotNotice | null>(null);
   const [rateLimitTick, setRateLimitTick] = useState(0);
 
   /** Booking V2: bootstrap + matrix — SoT for modal availability when enabled. */
@@ -1587,6 +1593,7 @@ export function useBookingFlow(opts: {
     // Keep prior dayLocation visible until the new location resolves (no blank banner).
     setDayLocationLoading(true);
     setPlan(null);
+    setStaleSlotNotice(null);
 
     // Barber-first: day before services — continue to service, defer slots.
     if (isBarberFirst && serviceIds.length === 0) {
@@ -1695,6 +1702,7 @@ export function useBookingFlow(opts: {
     clearPlanSession();
     setSelectedSlot(slot);
     setPlan(null);
+    setStaleSlotNotice(null);
     setMutationUi({ kind: "idle" });
     // Commit slot branch into the booking draft (all_branches or cross-branch).
     const code = normalizeBranchCode(slot.branchCode);
@@ -1835,6 +1843,45 @@ export function useBookingFlow(opts: {
           });
           return;
         }
+        if (
+          bookingV2Enabled &&
+          v2Scope &&
+          isRecoverablePlanAvailabilityError(err.code)
+        ) {
+          try {
+            const recovered = await recoverStaleMinNoticeSlot({
+              loadMatrix: () => loadV2Matrix(v2Scope, 14, { force: true }),
+              fromBusinessDate: dateStr,
+              durationMinutes: v2DurationMinutes,
+              intervalMinutes: v2IntervalMinutes,
+              minNoticeMinutes: v2MinNotice,
+              mode: mode === "nearest" ? "nearest" : "specific",
+              empId: mode === "specific" ? barber?.id : null,
+              branchCode: v2BranchFilter,
+            });
+            if (controller.signal.aborted) return;
+            setV2Matrix(recovered.matrix);
+            if (recovered.nextLegacySlot && recovered.nextSlot) {
+              setSelectedSlot(recovered.nextLegacySlot);
+              setSelectedDate(parseYmdToLocalDate(recovered.nextSlot.businessDate));
+            } else {
+              setSelectedSlot(undefined);
+            }
+            clearPlanSession();
+            setPlan(null);
+            setStaleSlotNotice({
+              kind: err.code === "MIN_NOTICE_NOT_MET" ? "min_notice_expired" : "plan_unavailable",
+              previousTime: selectedSlot.time,
+              nextTime: recovered.nextSlot?.time ?? null,
+            });
+            setMutationUi({ kind: "idle" });
+            setStep("time");
+            return;
+          } catch {
+            setMutationUi({ kind: "error", message: err.message, code: err.code });
+            return;
+          }
+        }
         setMutationUi({ kind: "error", message: err.message, code: err.code });
         return;
       }
@@ -1851,6 +1898,12 @@ export function useBookingFlow(opts: {
     customerPhone,
     notes,
     mutationUi,
+    bookingV2Enabled,
+    v2Scope,
+    v2DurationMinutes,
+    v2IntervalMinutes,
+    v2MinNotice,
+    v2BranchFilter,
   ]);
 
   const confirmCreate = useCallback(async () => {
@@ -2248,6 +2301,7 @@ export function useBookingFlow(opts: {
     plan,
     created,
     mutationUi,
+    staleSlotNotice,
     rateLimitRemainingSeconds,
     requestPlan,
     confirmCreate,
