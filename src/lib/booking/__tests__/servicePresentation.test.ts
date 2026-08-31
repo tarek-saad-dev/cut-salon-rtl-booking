@@ -5,6 +5,7 @@ import {
   defaultServiceFilter,
   getServicePresentation,
   resolveFeaturedServices,
+  resolveMostPopularServices,
   serviceMatchesFilter,
 } from "@/lib/booking/service-presentation";
 import { getServiceVisual } from "@/lib/booking/service-visuals";
@@ -43,6 +44,19 @@ describe("service presentation + featured", () => {
       expect.arrayContaining([9, 10, 11]),
     );
     expect(featured[0].id).not.toBe(20);
+  });
+
+  it("most popular row uses hair cut + hair and beard combo, not beard-only", () => {
+    const popular = resolveMostPopularServices(catalog);
+    expect(popular.map((s) => s.id)).toEqual([9, 11]);
+
+    const withBeardOnlyApi = resolveMostPopularServices(catalog, {
+      services: [
+        { ...catalog[0]!, popularityRank: 2 },
+        { ...catalog[1]!, popularityRank: 1 },
+      ],
+    });
+    expect(withBeardOnlyApi.map((s) => s.id)).toEqual([9, 11]);
   });
 
   it("English presentation does not include Arabic description text", () => {

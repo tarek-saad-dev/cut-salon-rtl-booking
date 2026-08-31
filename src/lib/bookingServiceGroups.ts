@@ -85,7 +85,38 @@ export const OTHER_SERVICE_CATEGORIES: OtherServiceCategory[] = [
 
 const HAIRCUT_NAMES = ["Hair Cut", "Haircut", "Detailed Cut", "Detail Cut", "Advanced Cut", "Fade Cut", "Basic Cut"];
 const BEARD_CORE_NAMES = ["Beard Styling & Fade", "Beard Styling", "Beard"];
-const COMBO_NAMES = ["Haircut & Beard", "Hair & Beard", "Hair cut & Beard", "Hair and Beard"];
+export const HAIR_BEARD_COMBO_NAMES = [
+  "Haircut & Beard",
+  "Hair & Beard",
+  "Hair cut & Beard",
+  "Hair cut + Beard",
+  "Hair and Beard",
+  "شعر ودقن",
+  "قص شعر ودقن",
+];
+const COMBO_NAMES = HAIR_BEARD_COMBO_NAMES.filter((n) => !/[\u0600-\u06FF]/.test(n));
+
+/** Hair + beard combo — strict match so beard-only services are never included. */
+export function isHairBeardComboService(service: BookingService): boolean {
+  const labels = [service.name, service.nameEn, service.nameAr].filter(Boolean) as string[];
+  return labels.some((label) => {
+    if (label.includes("شعر") && label.includes("دقن")) return true;
+    const norm = normalizeName(label);
+    for (const target of HAIR_BEARD_COMBO_NAMES) {
+      if (norm === normalizeName(target)) return true;
+    }
+    return norm.includes("hair") && norm.includes("beard");
+  });
+}
+
+/** Hair cut only — excludes beard-only and combo services. */
+export function isHairCutOnlyService(service: BookingService): boolean {
+  if (isHairBeardComboService(service)) return false;
+  const labels = [service.name, service.nameEn, service.nameAr].filter(Boolean) as string[];
+  const isBeardOnly = labels.some((label) => flexMatch(label, BEARD_CORE_NAMES));
+  if (isBeardOnly) return false;
+  return labels.some((label) => flexMatch(label, HAIRCUT_NAMES));
+}
 const SKINCARE_NAMES = ["Basic Skin Care", "Deep SkinCare", "Medical Skin Care"];
 const MASK_NAMES = ["Face Mask", "Gold Mask", "Coffee Mask", "peel-off Mask", "Hair Mask"];
 const HAIR_EXTRA_NAMES = [

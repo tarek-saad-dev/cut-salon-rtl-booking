@@ -5,7 +5,13 @@
 
 import type { BookingService } from "@/lib/booking-api";
 import { serviceNameAr, serviceNameEn } from "@/lib/booking-api";
-import { flexMatch, normalizeName, isCoreService } from "@/lib/bookingServiceGroups";
+import {
+  flexMatch,
+  normalizeName,
+  isCoreService,
+  isHairBeardComboService,
+  isHairCutOnlyService,
+} from "@/lib/bookingServiceGroups";
 
 export type BookingLang = "ar" | "en";
 
@@ -205,62 +211,55 @@ export function getServicePresentation(
   };
 }
 
-/** Hair Cut + Hair & Beard slots for the top "Most Popular" row (real catalog entities only). */
-const MOST_POPULAR_SLOT_NAMES: string[][] = [
-  ["Hair Cut", "Haircut", "Detailed Cut", "Detail Cut", "DetailedCut"],
-  [
-    "Haircut & Beard",
-    "Hair & Beard",
-    "Hair cut & Beard",
-    "Hair cut + Beard",
-    "Hair and Beard",
-    "شعر ودقن",
-  ],
-];
-
-function findServiceByNames(
-  services: BookingService[],
-  names: string[],
+function pickMostPopularSlot(
+  catalog: BookingService[],
+  candidates: BookingService[],
+  match: (service: BookingService) => boolean,
   used: Set<number>,
 ): BookingService | null {
-  for (const s of services) {
-    if (used.has(s.id)) continue;
-    const labels = [s.name, s.nameEn, s.nameAr].filter(Boolean) as string[];
-    if (labels.some((label) => flexMatch(label, names))) return s;
+  for (const pool of [candidates, catalog]) {
+    for (const s of pool) {
+      if (used.has(s.id)) continue;
+      if (match(s)) return s;
+    }
   }
   return null;
 }
 
 /**
  * Resolves the two top "Most Popular" services from the live catalog.
- * Prefers backend `mostPopular` ordering when provided; otherwise matches by known core names.
+ * Slot 1: hair cut. Slot 2: hair + beard combo (never beard-only).
+ * Backend `mostPopular` is used as a priority pool, but slots are always enforced.
  */
 export function resolveMostPopularServices(
   services: BookingService[],
   backendMostPopular?: { services: BookingService[] } | null,
 ): BookingService[] {
   const byId = new Map(services.map((s) => [s.id, s]));
-
-  if (backendMostPopular?.services?.length) {
-    const fromApi = backendMostPopular.services
-      .map((s) => byId.get(s.id))
+  const apiCandidates =
+    backendMostPopular?.services
+      ?.map((s) => byId.get(s.id))
       .filter((s): s is BookingService => s != null)
       .sort(
         (a, b) =>
           (a.popularityRank ?? 999) - (b.popularityRank ?? 999) || a.id - b.id,
-      );
-    if (fromApi.length > 0) return fromApi.slice(0, 2);
-  }
+      ) ?? [];
 
   const used = new Set<number>();
   const out: BookingService[] = [];
-  for (const names of MOST_POPULAR_SLOT_NAMES) {
-    const match = findServiceByNames(services, names, used);
-    if (match) {
-      out.push(match);
-      used.add(match.id);
-    }
+
+  const haircut = pickMostPopularSlot(services, apiCandidates, isHairCutOnlyService, used);
+  if (haircut) {
+    out.push(haircut);
+    used.add(haircut.id);
   }
+
+  const combo = pickMostPopularSlot(services, apiCandidates, isHairBeardComboService, used);
+  if (combo) {
+    out.push(combo);
+    used.add(combo.id);
+  }
+
   return out;
 }
 
