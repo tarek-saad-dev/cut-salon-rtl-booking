@@ -264,6 +264,7 @@ describe("Phase 1E BookingServiceStep", () => {
           totalPrice={200}
           totalDuration={30}
           onContinue={() => undefined}
+          onBrowseServices={() => undefined}
         />,
       ),
     );
@@ -287,7 +288,36 @@ describe("Phase 1E BookingServiceStep", () => {
       expect(onToggle).toHaveBeenCalledWith(9);
     } else {
       expect(document.querySelector("[data-cart-mobile-summary]")).toBeTruthy();
+      expect(document.querySelector("[data-cart-view-edit]")).toBeTruthy();
     }
+  });
+
+  it("opens mobile cart sheet from view/edit and removes a service", () => {
+    const onToggle = vi.fn();
+    render(
+      wrap(
+        <BookingServiceStep
+          services={catalog}
+          categories={categories}
+          selectedIds={[9, 20]}
+          onCoreSelect={() => undefined}
+          onToggleService={onToggle}
+          selectedCount={2}
+          totalPrice={300}
+          totalDuration={45}
+          onContinue={() => undefined}
+        />,
+      ),
+    );
+
+    expect(document.querySelector("[data-cart-mobile-modal]")).toBeNull();
+    fireEvent.click(document.querySelector("[data-cart-view-edit]")!);
+    expect(document.querySelector("[data-cart-mobile-modal]")).toBeTruthy();
+    expect(document.querySelectorAll("[data-cart-modal-items] [data-cart-item]").length).toBe(2);
+
+    const remove = screen.getAllByRole("button", { name: /Remove service from cart/i })[0];
+    fireEvent.click(remove!);
+    expect(onToggle).toHaveBeenCalled();
   });
 
   it("shows green added-to-cart toast when a service is newly selected", () => {

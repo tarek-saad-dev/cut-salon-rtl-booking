@@ -18,6 +18,7 @@ import { getServiceVisual } from "@/lib/booking/service-visuals";
 import { useBookingTranslations } from "@/hooks/useBookingTranslations";
 import BookingServiceImage from "./BookingServiceImage";
 import BookingPromoPrice from "@/components/booking/BookingPromoPrice";
+import BookingServiceCartSheet from "./BookingServiceCartSheet";
 
 interface BookingServiceCartProps {
   selectedServices: BookingService[];
@@ -54,6 +55,7 @@ export default function BookingServiceCart({
   const { t, format, lang, dir } = useBookingTranslations();
   const panelId = useId();
   const [expanded, setExpanded] = useState(false);
+  const [mobileCartOpen, setMobileCartOpen] = useState(false);
   const [pulse, setPulse] = useState(false);
   const [addedToast, setAddedToast] = useState<string | null>(null);
   const lastNonceRef = useRef<number | null>(null);
@@ -64,6 +66,7 @@ export default function BookingServiceCart({
   useEffect(() => {
     if (count === 0) {
       setExpanded(false);
+      setMobileCartOpen(false);
       setAddedToast(null);
       setPulse(false);
     }
@@ -119,8 +122,12 @@ export default function BookingServiceCart({
 
   const handleBrowseServices = () => {
     setExpanded(false);
+    setMobileCartOpen(false);
     onBrowseServices?.();
   };
+
+  const openMobileCart = () => setMobileCartOpen(true);
+  const closeMobileCart = () => setMobileCartOpen(false);
 
   return (
     <div
@@ -290,47 +297,68 @@ export default function BookingServiceCart({
 
         {count > 0 ? (
           <>
-            <div className="flex items-center gap-3 md:hidden" data-cart-mobile-summary>
-              <div className="min-w-0 flex-1">
-                {primaryPresentation && primaryService ? (
-                  <>
-                    <p className="truncate text-sm font-bold text-[var(--booking-text)]">
-                      {primaryPresentation.displayName}
-                    </p>
-                    <p className="text-[12px] text-[var(--booking-text-secondary)]">
-                      {count > 1 ? (
-                        <>
-                          <span>{countLabel}</span>
-                          <span className="text-[var(--booking-text-muted)]"> · </span>
-                        </>
-                      ) : null}
-                      {format.duration(
-                        count > 1 ? totalDuration : primaryService.durationMinutes,
-                      )}
-                      <span className="text-[var(--booking-text-muted)]"> · </span>
-                      <span className="font-semibold text-[var(--booking-text)] tabular-nums">
-                        <BookingPromoPrice
-                          amount={count > 1 ? totalPrice : primaryService.price}
-                          formatPrice={format.price}
-                        />
-                      </span>
-                    </p>
-                  </>
+            <div className="space-y-2 md:hidden" data-cart-mobile-summary>
+              <div className="flex items-center gap-3">
+                <div className="min-w-0 flex-1">
+                  {primaryPresentation && primaryService ? (
+                    <>
+                      <p className="truncate text-sm font-bold text-[var(--booking-text)]">
+                        {primaryPresentation.displayName}
+                      </p>
+                      <p className="text-[12px] text-[var(--booking-text-secondary)]">
+                        {count > 1 ? (
+                          <>
+                            <span>{countLabel}</span>
+                            <span className="text-[var(--booking-text-muted)]"> · </span>
+                          </>
+                        ) : null}
+                        {format.duration(
+                          count > 1 ? totalDuration : primaryService.durationMinutes,
+                        )}
+                        <span className="text-[var(--booking-text-muted)]"> · </span>
+                        <span className="font-semibold tabular-nums text-[var(--booking-text)]">
+                          <BookingPromoPrice
+                            amount={count > 1 ? totalPrice : primaryService.price}
+                            formatPrice={format.price}
+                          />
+                        </span>
+                      </p>
+                    </>
+                  ) : null}
+                </div>
+                {onContinue ? (
+                  <button
+                    type="button"
+                    onClick={onContinue}
+                    disabled={continueDisabled}
+                    className="inline-flex min-h-12 shrink-0 items-center justify-center gap-1.5 rounded-xl bg-[var(--booking-accent)] px-5 text-sm font-bold text-white disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--booking-accent)]"
+                    data-cart-continue
+                  >
+                    {t("service.nextStep")}
+                    <NextIcon className="h-4 w-4" aria-hidden />
+                  </button>
                 ) : null}
               </div>
-              {onContinue ? (
-                <button
-                  type="button"
-                  onClick={onContinue}
-                  disabled={continueDisabled}
-                  className="inline-flex min-h-12 shrink-0 items-center justify-center gap-1.5 rounded-xl bg-[var(--booking-accent)] px-5 text-sm font-bold text-white disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--booking-accent)]"
-                  data-cart-continue
-                >
-                  {t("service.nextStep")}
-                  <NextIcon className="h-4 w-4" aria-hidden />
-                </button>
-              ) : null}
+              <button
+                type="button"
+                onClick={openMobileCart}
+                className="inline-flex min-h-9 items-center gap-1.5 text-[12px] font-bold text-[var(--booking-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--booking-accent)]"
+                data-cart-view-edit
+              >
+                <ShoppingBag className="h-3.5 w-3.5" aria-hidden />
+                {t("service.cartViewEdit")}
+              </button>
             </div>
+
+            <BookingServiceCartSheet
+              open={mobileCartOpen}
+              onClose={closeMobileCart}
+              selectedServices={selectedServices}
+              totalPrice={totalPrice}
+              totalDuration={totalDuration}
+              onRemove={onRemove}
+              onBrowseServices={onBrowseServices ? handleBrowseServices : undefined}
+            />
 
             <button
               type="button"

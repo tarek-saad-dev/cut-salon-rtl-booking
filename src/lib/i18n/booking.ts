@@ -166,6 +166,7 @@ export const bookingCatalog = {
     countMany: { ar: "خدمات", en: "services" },
     cartTitle: { ar: "خدماتك", en: "Your visit" },
     cartView: { ar: "عرض السلة", en: "View cart" },
+    cartViewEdit: { ar: "عرض / تعديل", en: "View / edit" },
     cartHide: { ar: "إخفاء السلة", en: "Hide cart" },
     cartSubtotal: { ar: "الإجمالي", en: "Subtotal" },
     cartRemove: { ar: "إزالة", en: "Remove" },
