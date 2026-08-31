@@ -16,11 +16,13 @@ import {
   getQuickPickBadge,
   getServicePresentation,
   resolveFeaturedServices,
+  resolveMostPopularServices,
   type ServiceBadgeKey,
 } from "@/lib/booking/service-presentation";
 import { useBookingTranslations } from "@/hooks/useBookingTranslations";
 import BookingFeaturedServiceCard from "./BookingFeaturedServiceCard";
 import BookingCompactServiceCard from "./BookingCompactServiceCard";
+import BookingPopularServiceCard from "./BookingPopularServiceCard";
 import BookingServiceFilters, {
   type ServiceCategoryFilterId,
   type ServiceCategoryFilterOption,
@@ -29,11 +31,14 @@ import BookingServiceCart from "./BookingServiceCart";
 
 export const MOST_POPULAR_FILTER_ID = "most_popular";
 
+/** Initial services shown per category before "Show more". */
+const INITIAL_CATEGORY_VISIBLE = 5;
+
 export interface BookingServiceStepProps {
   services: BookingService[];
   /** Admin categories from GET /api/public/booking/services (preferred display shape). */
   categories?: BookingServiceCategory[];
-  /** Backend `mostPopular` block — shown first when present. */
+  /** Backend `mostPopular` block — enriches the top popular row when present. */
   mostPopular?: BookingMostPopularSection | null;
   selectedIds: number[];
   onCoreSelect: (id: number) => void;
@@ -79,11 +84,6 @@ function ServiceCardSkeleton() {
 function categoryLabel(cat: BookingServiceCategory, lang: "ar" | "en"): string {
   if (lang === "ar") return (cat.nameAr || cat.name || cat.nameEn || "").trim();
   return (cat.nameEn || cat.name || cat.nameAr || "").trim();
-}
-
-function mostPopularLabel(section: BookingMostPopularSection, lang: "ar" | "en"): string {
-  if (lang === "ar") return (section.titleAr || section.title || section.titleEn || "").trim();
-  return (section.titleEn || section.title || section.titleAr || "").trim();
 }
 
 /** Fallback when API categories are missing — group flat services by category fields. */
@@ -214,6 +214,7 @@ export default function BookingServiceStep({
     null,
   );
   const addedNonceRef = useRef(0);
+  const [showAllInCategory, setShowAllInCategory] = useState(false);
   const visible = useMemo(() => services.filter(isServiceVisible), [services]);
   const visibleIds = useMemo(() => new Set(visible.map((s) => s.id)), [visible]);
 
@@ -233,48 +234,48 @@ export default function BookingServiceStep({
       .sort((a, b) => a.sortOrder - b.sortOrder || a.id.localeCompare(b.id));
   }, [categoriesProp, visible, visibleIds]);
 
-  const mostPopular = useMemo(() => {
-    if (!mostPopularProp?.services?.length) return null;
-    const servicesInView = mostPopularProp.services
-      .filter((s) => visibleIds.has(s.id) && isServiceVisible(s))
-      .sort(
-        (a, b) =>
-          (a.popularityRank ?? 999) - (b.popularityRank ?? 999) || a.id - b.id,
-      );
-    if (servicesInView.length === 0) return null;
-    return { ...mostPopularProp, services: servicesInView };
-  }, [mostPopularProp, visibleIds]);
+  const mostPopularServices = useMemo(() => {
+    const normalizedBackend =
+      mostPopularProp?.services?.length
+        ? {
+            services: mostPopularProp.services
+              .filter((s) => visibleIds.has(s.id) && isServiceVisible(s))
+              .sort(
+                (a, b) =>
+                  (a.popularityRank ?? 999) - (b.popularityRank ?? 999) || a.id - b.id,
+              ),
+          }
+        : null;
+    return resolveMostPopularServices(visible, normalizedBackend);
+  }, [mostPopularProp, visible, visibleIds]);
+
+  const popularIds = useMemo(
+    () => new Set(mostPopularServices.map((s) => s.id)),
+    [mostPopularServices],
+  );
 
   const featured = useMemo(() => resolveFeaturedServices(visible), [visible]);
   const featuredIds = useMemo(() => new Set(featured.map((s) => s.id)), [featured]);
-  const popularIds = useMemo(
-    () => new Set(mostPopular?.services.map((s) => s.id) ?? []),
-    [mostPopular],
-  );
 
   const filterOptions = useMemo((): ServiceCategoryFilterOption[] => {
-    const opts: ServiceCategoryFilterOption[] = [];
-    if (mostPopular) {
-      opts.push({
-        id: MOST_POPULAR_FILTER_ID,
-        label: mostPopularLabel(mostPopular, lang) || t("service.filterPopular"),
-      });
-    }
-    for (const cat of categories) {
-      opts.push({ id: cat.id, label: categoryLabel(cat, lang) || cat.id });
-    }
-    return opts;
-  }, [categories, mostPopular, lang, t]);
+    return categories
+      .map((cat) => ({
+        id: cat.id,
+        label: categoryLabel(cat, lang) || cat.id,
+        remaining: cat.services.filter((s) => !popularIds.has(s.id)).length,
+      }))
+      .filter((cat) => cat.remaining > 0)
+      .map(({ id, label }) => ({ id, label }));
+  }, [categories, lang, popularIds]);
 
   const filterIds = useMemo(() => filterOptions.map((f) => f.id), [filterOptions]);
 
   const defaultFilterId = useMemo((): ServiceCategoryFilterId => {
-    if (mostPopular) return MOST_POPULAR_FILTER_ID;
-    return categories[0]?.id ?? MOST_POPULAR_FILTER_ID;
-  }, [mostPopular, categories]);
+    return filterOptions[0]?.id ?? categories[0]?.id ?? "all";
+  }, [filterOptions, categories]);
 
   const [activeFilter, setActiveFilter] = useState<ServiceCategoryFilterId>(() => {
-    if (initialFilter) return initialFilter;
+    if (initialFilter && initialFilter !== MOST_POPULAR_FILTER_ID) return initialFilter;
     return defaultFilterId;
   });
 
@@ -286,18 +287,24 @@ export default function BookingServiceStep({
     }
   }, [filterIds, activeFilter, defaultFilterId, onFilterChange]);
 
+  useEffect(() => {
+    setShowAllInCategory(false);
+  }, [activeFilter]);
+
   const setFilter = (id: ServiceCategoryFilterId) => {
     setActiveFilter(id);
     onFilterChange?.(id);
   };
 
   const sections = useMemo(() => {
-    if (activeFilter === MOST_POPULAR_FILTER_ID) return [];
-    return categories.filter((c) => c.id === activeFilter);
-  }, [categories, activeFilter]);
-
-  const showMostPopular =
-    Boolean(mostPopular) && activeFilter === MOST_POPULAR_FILTER_ID;
+    return categories
+      .filter((c) => c.id === activeFilter)
+      .map((cat) => ({
+        ...cat,
+        services: cat.services.filter((s) => !popularIds.has(s.id)),
+      }))
+      .filter((cat) => cat.services.length > 0);
+  }, [categories, activeFilter, popularIds]);
 
   const hasMainSelected = selectedIds.some((id) => {
     const s = visible.find((x) => x.id === id);
@@ -319,9 +326,8 @@ export default function BookingServiceStep({
   const servicesScrollRef = useRef<HTMLDivElement>(null);
 
   const browseServicesFromCart = () => {
-    // Leave most-popular-only view so the guest can pick from a full category list.
     const firstCategory = categories[0]?.id;
-    if (firstCategory && activeFilter === MOST_POPULAR_FILTER_ID) {
+    if (firstCategory && activeFilter !== firstCategory) {
       setFilter(firstCategory);
     }
     const el = servicesScrollRef.current;
@@ -360,6 +366,10 @@ export default function BookingServiceStep({
 
   const selectionTypeFor = (service: BookingService): "radio" | "checkbox" =>
     isCoreService(service) ? "radio" : "checkbox";
+
+  const scrollBottomPadding = onContinue
+    ? "pb-[max(7.5rem,calc(env(safe-area-inset-bottom)+6.5rem))] md:pb-6"
+    : "pb-4";
 
   if (isLoading) {
     return (
@@ -412,13 +422,12 @@ export default function BookingServiceStep({
   }
 
   const showAddons = selectedIds.length > 0 && addons.length > 0;
-  const showCategoryHeadings = true;
 
   return (
     <div className="flex flex-col min-h-0 flex-1 bg-[var(--booking-bg)]" dir={dir} data-service-step="ready">
       <div
         ref={servicesScrollRef}
-        className="flex-1 overflow-y-auto p-5 md:p-6 pb-4 space-y-5"
+        className={`flex-1 overflow-y-auto p-5 md:p-6 space-y-5 ${scrollBottomPadding}`}
         data-services-scroll
       >
         {!hideIntro ? (
@@ -430,13 +439,7 @@ export default function BookingServiceStep({
           </div>
         ) : null}
 
-        <BookingServiceFilters
-          filters={filterOptions}
-          active={activeFilter}
-          onChange={setFilter}
-        />
-
-        {showMostPopular && mostPopular ? (
+        {mostPopularServices.length > 0 ? (
           <section
             aria-labelledby="most-popular-heading"
             data-service-category={MOST_POPULAR_FILTER_ID}
@@ -446,55 +449,88 @@ export default function BookingServiceStep({
               id="most-popular-heading"
               className="text-[13px] font-bold uppercase tracking-widest text-[var(--booking-text-muted)] mb-2.5"
             >
-              {mostPopularLabel(mostPopular, lang) || t("service.filterPopular")}
+              {t("service.filterPopular")}
             </h4>
-            <ServiceGrid
-              services={mostPopular.services}
-              featuredIds={popularIds}
-              selectedIds={selectedIds}
-              selectService={selectService}
-              selectionTypeFor={selectionTypeFor}
-              badgeLabel={badgeLabel}
-              lang={lang}
-              showFeaturedFirst
-            />
+            <div
+              className="grid grid-cols-2 gap-2 sm:grid-cols-2"
+              role="radiogroup"
+              aria-labelledby="most-popular-heading"
+            >
+              {mostPopularServices.map((s, i) => (
+                <BookingPopularServiceCard
+                  key={`popular-${s.id}`}
+                  service={s}
+                  presentation={getServicePresentation(s, lang)}
+                  selected={selectedIds.includes(s.id)}
+                  selectionType={selectionTypeFor(s)}
+                  onSelect={() => selectService(s)}
+                  priorityImage={i === 0}
+                />
+              ))}
+            </div>
           </section>
         ) : null}
 
-        {sections.map((cat) => {
-          const heading = categoryLabel(cat, lang) || cat.name;
-          return (
-            <section
-              key={cat.id}
-              aria-labelledby={`cat-${cat.id}-heading`}
-              data-service-category={cat.id}
-            >
-              {showCategoryHeadings ? (
-                <h4
-                  id={`cat-${cat.id}-heading`}
-                  className="text-[13px] font-bold uppercase tracking-widest text-[var(--booking-text-muted)] mb-2.5"
-                >
-                  {heading}
-                </h4>
-              ) : (
-                <h4 id={`cat-${cat.id}-heading`} className="sr-only">
-                  {heading}
-                </h4>
-              )}
-              <ServiceGrid
-                services={cat.services}
-                featuredIds={featuredIds}
-                selectedIds={selectedIds}
-                selectService={selectService}
-                selectionTypeFor={selectionTypeFor}
-                badgeLabel={badgeLabel}
-                lang={lang}
-                compactHeading={t("service.moreServices")}
-                showFeaturedFirst
-              />
-            </section>
-          );
-        })}
+        <section aria-labelledby="all-services-heading" data-all-services>
+          <h4
+            id="all-services-heading"
+            className="text-[13px] font-bold uppercase tracking-widest text-[var(--booking-text-muted)] mb-3"
+          >
+            {t("service.allServicesHeading")}
+          </h4>
+
+          <BookingServiceFilters
+            filters={filterOptions}
+            active={activeFilter}
+            onChange={setFilter}
+          />
+
+          {sections.map((cat) => {
+            const heading = categoryLabel(cat, lang) || cat.name;
+            const hasMore = cat.services.length > INITIAL_CATEGORY_VISIBLE;
+            const servicesInView = showAllInCategory
+              ? cat.services
+              : cat.services.slice(0, INITIAL_CATEGORY_VISIBLE);
+
+            return (
+              <div
+                key={cat.id}
+                className="mt-4"
+                data-service-category={cat.id}
+              >
+                <section aria-labelledby={`cat-${cat.id}-heading`}>
+                  <h5
+                    id={`cat-${cat.id}-heading`}
+                    className="sr-only"
+                  >
+                    {heading}
+                  </h5>
+                  <ServiceGrid
+                    services={servicesInView}
+                    featuredIds={featuredIds}
+                    selectedIds={selectedIds}
+                    selectService={selectService}
+                    selectionTypeFor={selectionTypeFor}
+                    badgeLabel={badgeLabel}
+                    lang={lang}
+                    compactHeading={t("service.moreServices")}
+                    showFeaturedFirst
+                  />
+                  {hasMore && !showAllInCategory ? (
+                    <button
+                      type="button"
+                      onClick={() => setShowAllInCategory(true)}
+                      className="mt-3 w-full min-h-11 rounded-xl border border-dashed border-[var(--booking-border)] bg-[var(--booking-surface)]/60 px-4 text-sm font-bold text-[var(--booking-text-secondary)] hover:border-[var(--booking-accent)] hover:text-[var(--booking-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--booking-accent)]"
+                      data-show-more-services
+                    >
+                      {t("service.showMoreServices")}
+                    </button>
+                  ) : null}
+                </section>
+              </div>
+            );
+          })}
+        </section>
 
         {showAddons && (
           <section aria-labelledby="addons-heading" data-addons-section>

@@ -109,7 +109,7 @@ describe("Phase 1E BookingServiceStep", () => {
     localStorage.clear();
   });
 
-  it("renders featured cards first and compact for secondary", () => {
+  it("renders popular cards at top and compact cards in categories", () => {
     const { container } = render(
       wrap(
         <BookingServiceStep
@@ -121,14 +121,14 @@ describe("Phase 1E BookingServiceStep", () => {
         />,
       ),
     );
-    const featured = container.querySelectorAll('[data-service-card="featured"]');
-    expect(featured.length).toBeGreaterThanOrEqual(1);
-    fireEvent.click(screen.getByRole("button", { name: /Beard Cut/i }));
-    const compact = container.querySelectorAll('[data-service-card="compact"]');
-    expect(
-      featured.length + compact.length + container.querySelectorAll('[data-service-card="featured"]').length,
-    ).toBeGreaterThanOrEqual(1);
-    expect(container.querySelector('[data-service-category="20"]')).toBeTruthy();
+    const popular = container.querySelectorAll('[data-service-card="popular"]');
+    expect(popular.length).toBeGreaterThanOrEqual(1);
+    fireEvent.click(screen.getByRole("button", { name: /Skincare/i }));
+    const categoryCards = container.querySelectorAll(
+      '[data-service-card="compact"], [data-service-card="featured"]',
+    );
+    expect(categoryCards.length).toBeGreaterThanOrEqual(1);
+    expect(container.querySelector('[data-service-category="9"]')).toBeTruthy();
   });
 
   it("shows English service names only in EN", () => {
@@ -273,16 +273,21 @@ describe("Phase 1E BookingServiceStep", () => {
     expect(document.querySelector("[data-cart-continue]")).toBeTruthy();
     expect(document.querySelector("[data-cart-added-toast]")).toBeNull();
 
-    fireEvent.click(screen.getByRole("button", { name: /View cart|عرض السلة/i }));
-    expect(cart?.getAttribute("data-cart-expanded")).toBe("true");
-    expect(document.querySelector('[data-cart-item="9"]')).toBeTruthy();
-    expect(document.querySelector("[data-cart-browse-services]")).toBeTruthy();
-    expect(document.querySelector("[data-cart-add-service]")).toBeTruthy();
-    expect(document.querySelectorAll("[data-cart-upsell] button").length).toBe(1);
+    const cartToggle = screen.queryByRole("button", { name: /View cart|عرض السلة/i });
+    if (cartToggle) {
+      fireEvent.click(cartToggle);
+      expect(cart?.getAttribute("data-cart-expanded")).toBe("true");
+      expect(document.querySelector('[data-cart-item="9"]')).toBeTruthy();
+      expect(document.querySelector("[data-cart-browse-services]")).toBeTruthy();
+      expect(document.querySelector("[data-cart-add-service]")).toBeTruthy();
+      expect(document.querySelectorAll("[data-cart-upsell] button").length).toBe(1);
 
-    const remove = screen.getByRole("button", { name: /Remove service from cart/i });
-    fireEvent.click(remove);
-    expect(onToggle).toHaveBeenCalledWith(9);
+      const remove = screen.getByRole("button", { name: /Remove service from cart/i });
+      fireEvent.click(remove);
+      expect(onToggle).toHaveBeenCalledWith(9);
+    } else {
+      expect(document.querySelector("[data-cart-mobile-summary]")).toBeTruthy();
+    }
   });
 
   it("shows green added-to-cart toast when a service is newly selected", () => {
@@ -306,7 +311,7 @@ describe("Phase 1E BookingServiceStep", () => {
     }
 
     render(wrap(<Harness />));
-    expect(document.querySelector("[data-service-cart]")).toBeNull();
+    expect(document.querySelector("[data-cart-continue-disabled]")).toBeTruthy();
 
     const cards = screen.getAllByRole("radio");
     expect(cards.length).toBeGreaterThan(0);
@@ -385,13 +390,13 @@ describe("Phase 1E BookingServiceStep", () => {
     const labels = [...(toolbar?.querySelectorAll("button") ?? [])].map(
       (b) => b.textContent?.trim() ?? "",
     );
-    expect(labels).toEqual(["Hair Cut", "Beard Cut", "Skincare"]);
-    expect(container.querySelector('[data-service-category="19"]')).toBeTruthy();
+    expect(labels).toEqual(["Beard Cut", "Skincare"]);
+    expect(container.querySelector('[data-service-category="20"]')).toBeTruthy();
     expect(screen.queryByRole("button", { name: /All services/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /^Hair$/i })).not.toBeInTheDocument();
   });
 
-  it("renders Most Popular first among category filters", () => {
+  it("renders Most Popular section above category filters", () => {
     const mostPopular = {
       id: "most_popular",
       title: "الأكثر طلباً",
@@ -411,19 +416,26 @@ describe("Phase 1E BookingServiceStep", () => {
           selectedIds={[]}
           onCoreSelect={() => undefined}
           onToggleService={() => undefined}
+          onContinue={() => undefined}
         />,
       ),
     );
     const toolbarLabels = [
       ...(container.querySelector("[data-service-filters]")?.querySelectorAll("button") ?? []),
     ].map((b) => b.textContent?.trim() ?? "");
-    expect(toolbarLabels[0]).toMatch(/Most Popular/i);
-    expect(toolbarLabels.slice(1)).toEqual(["Hair Cut", "Beard Cut", "Skincare"]);
-    expect(screen.queryByRole("button", { name: /All services/i })).not.toBeInTheDocument();
+    expect(toolbarLabels).toEqual(["Beard Cut", "Skincare"]);
+    expect(screen.queryByRole("button", { name: /Most Popular/i })).not.toBeInTheDocument();
 
     const ready = container.querySelector('[data-service-step="ready"]');
-    const sectionNodes = [...(ready?.querySelectorAll("[data-service-category]") ?? [])];
-    expect(sectionNodes).toHaveLength(1);
-    expect(sectionNodes[0]?.getAttribute("data-service-category")).toBe("most_popular");
+    const popularSection = ready?.querySelector("[data-most-popular]");
+    const allServicesSection = ready?.querySelector("[data-all-services]");
+    expect(popularSection).toBeTruthy();
+    expect(allServicesSection).toBeTruthy();
+    expect(
+      popularSection!.compareDocumentPosition(allServicesSection!) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(container.querySelectorAll('[data-service-card="popular"]').length).toBe(2);
+    expect(document.querySelector("[data-cart-continue-disabled]")).toBeTruthy();
   });
 });

@@ -205,6 +205,65 @@ export function getServicePresentation(
   };
 }
 
+/** Hair Cut + Hair & Beard slots for the top "Most Popular" row (real catalog entities only). */
+const MOST_POPULAR_SLOT_NAMES: string[][] = [
+  ["Hair Cut", "Haircut", "Detailed Cut", "Detail Cut", "DetailedCut"],
+  [
+    "Haircut & Beard",
+    "Hair & Beard",
+    "Hair cut & Beard",
+    "Hair cut + Beard",
+    "Hair and Beard",
+    "شعر ودقن",
+  ],
+];
+
+function findServiceByNames(
+  services: BookingService[],
+  names: string[],
+  used: Set<number>,
+): BookingService | null {
+  for (const s of services) {
+    if (used.has(s.id)) continue;
+    const labels = [s.name, s.nameEn, s.nameAr].filter(Boolean) as string[];
+    if (labels.some((label) => flexMatch(label, names))) return s;
+  }
+  return null;
+}
+
+/**
+ * Resolves the two top "Most Popular" services from the live catalog.
+ * Prefers backend `mostPopular` ordering when provided; otherwise matches by known core names.
+ */
+export function resolveMostPopularServices(
+  services: BookingService[],
+  backendMostPopular?: { services: BookingService[] } | null,
+): BookingService[] {
+  const byId = new Map(services.map((s) => [s.id, s]));
+
+  if (backendMostPopular?.services?.length) {
+    const fromApi = backendMostPopular.services
+      .map((s) => byId.get(s.id))
+      .filter((s): s is BookingService => s != null)
+      .sort(
+        (a, b) =>
+          (a.popularityRank ?? 999) - (b.popularityRank ?? 999) || a.id - b.id,
+      );
+    if (fromApi.length > 0) return fromApi.slice(0, 2);
+  }
+
+  const used = new Set<number>();
+  const out: BookingService[] = [];
+  for (const names of MOST_POPULAR_SLOT_NAMES) {
+    const match = findServiceByNames(services, names, used);
+    if (match) {
+      out.push(match);
+      used.add(match.id);
+    }
+  }
+  return out;
+}
+
 export function resolveFeaturedServices(services: BookingService[]): BookingService[] {
   const scored = services
     .map((s, index) => {
