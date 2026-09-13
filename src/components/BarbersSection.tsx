@@ -19,6 +19,7 @@ import { useBarberCardPrefetch } from "@/hooks/useBarberCardPrefetch";
 import { landingCopy } from "@/lib/i18n/landing";
 import { tx } from "@/lib/i18n/tx";
 import type { Language } from "@/lib/i18n/types";
+import { buildBookHref } from "@/lib/book-o2/buildBookHref";
 
 type DisplayBarber = BarberBookingInfo & {
   buttonText: string;
@@ -131,7 +132,9 @@ const BarberCard = ({
 };
 
 type GroomBookingDetail = {
-  serviceMatches: string[];
+  packageId?: number;
+  addonProIds?: number[];
+  serviceMatches?: string[];
   serviceIds?: number[];
   note: string;
 };
@@ -165,8 +168,13 @@ const BarbersSection = () => {
     router.push(`/book?mode=barber&empId=${barber.id}`);
   };
 
-  const openNearestBooking = (_groom?: GroomBookingDetail | null) => {
-    router.push("/book?mode=nearest");
+  const openNearestBooking = (groom?: GroomBookingDetail | null) => {
+    router.push(
+      buildBookHref({
+        mode: "nearest",
+        serviceIds: groom?.serviceIds?.length ? groom.serviceIds : undefined,
+      }),
+    );
   };
 
   useEffect(() => {
@@ -204,7 +212,13 @@ const BarbersSection = () => {
     };
     const handleBookGroom = (e: Event) => {
       const detail = (e as CustomEvent<GroomBookingDetail>).detail;
-      if (!detail?.serviceMatches?.length && !detail?.serviceIds?.length) return;
+      if (
+        !detail?.serviceMatches?.length &&
+        !detail?.serviceIds?.length &&
+        detail?.packageId == null
+      ) {
+        return;
+      }
       setGroomBooking(detail);
       openNearestBooking(detail);
     };

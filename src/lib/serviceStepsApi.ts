@@ -71,13 +71,25 @@ const PUBLIC_STEPS_PATHS = (serviceId: number | string) => [
   `/api/public/booking/services/${serviceId}/steps`,
 ];
 
+export class ServiceStepsUnavailableError extends Error {
+  readonly status: number;
+
+  constructor(message = "Service steps are not available on the public API yet", status = 404) {
+    super(message);
+    this.name = "ServiceStepsUnavailableError";
+    this.status = status;
+  }
+}
+
 export async function getServiceSteps(serviceId: number | string): Promise<ServiceStep[]> {
   const apiBase = getBookingApiBaseUrl();
+  let lastStatus = 404;
   let lastError: Error | null = null;
 
   for (const path of PUBLIC_STEPS_PATHS(serviceId)) {
     try {
       const response = await fetch(`${apiBase}${path}`, { cache: "no-store" });
+      lastStatus = response.status;
       if (response.status === 404) continue;
       const data: unknown = await response.json().catch(() => null);
       if (!response.ok) {
@@ -90,7 +102,11 @@ export async function getServiceSteps(serviceId: number | string): Promise<Servi
     }
   }
 
-  throw lastError ?? new Error("Unable to load service steps");
+  if (lastStatus === 404 && !lastError) {
+    throw new ServiceStepsUnavailableError();
+  }
+
+  throw lastError ?? new ServiceStepsUnavailableError();
 }
 
 export function serviceCatalogHasSteps(service: {
