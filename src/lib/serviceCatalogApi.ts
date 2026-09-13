@@ -11,6 +11,10 @@ export type ServiceCatalogService = {
   isActive: boolean;
   salesCount: number;
   categoryId: number;
+  /** Present when the public catalog includes procedure stages */
+  hasSteps?: boolean | null;
+  stepCount?: number | null;
+  steps?: unknown;
 };
 
 export type ServiceCatalogCategory = {
