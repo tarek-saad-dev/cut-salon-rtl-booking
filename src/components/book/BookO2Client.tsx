@@ -23,6 +23,7 @@ import { useBookO2Session, type BookO2Step } from "@/hooks/useBookO2Session";
 import type { PublicBranch } from "@/lib/booking-api";
 import { resolveBookBranchHeroLabel } from "@/lib/booking/branch-label";
 import { formatStaleSlotNotice } from "@/lib/bookingV2/recoverStaleSlot";
+import type { GroomCartModel } from "@/lib/book-o2/groomHandoff";
 
 function stepIndex(step: BookO2Step, visible: BookO2Step[]) {
   const i = visible.indexOf(step);
@@ -235,8 +236,16 @@ export default function BookO2Client() {
 
             {s.step === "services" ? (
               <section className="flex min-h-0 flex-col md:min-h-[50svh]">
-                {s.catalogLoading ? (
+                {s.catalogLoading || s.groomHydrationStatus === "loading" ? (
                   <SkeletonRows />
+                ) : s.groomCart ? (
+                  <GroomPackageBookingPanel
+                    ar={ar}
+                    cart={s.groomCart}
+                    error={s.groomHydrationError}
+                    onContinue={s.goSchedule}
+                    onBack={goBack}
+                  />
                 ) : (
                   <BookingServiceSelect
                     services={s.services}
@@ -247,7 +256,7 @@ export default function BookO2Client() {
                     onToggleService={s.toggleService}
                     isLoading={false}
                     isError={s.bootstrapStatus === "error"}
-                    totalPrice={s.selectedServices.reduce((sum, x) => sum + x.price, 0)}
+                    totalPrice={s.displayTotalPrice}
                     totalDuration={s.durationMinutes}
                     selectedCount={s.selectedServices.length}
                     onContinue={s.goSchedule}
@@ -256,7 +265,7 @@ export default function BookO2Client() {
                     hideIntro
                   />
                 )}
-                {s.serviceIds.length === 0
+                {!s.groomCart && s.serviceIds.length === 0
                   ? desktopOnlyFooter(
                       <BookingNavFooter
                         onBack={goBack}
@@ -432,10 +441,23 @@ export default function BookO2Client() {
                       : "Nearest barber"
                     : s.barberName
                 }
-                serviceLines={s.selectedServices.map((x) => ({
-                  name: x.nameAr || x.nameEn || x.name,
-                  durationLabel: `${x.durationMinutes} ${ar ? "د" : "m"}`,
-                }))}
+                serviceLines={
+                  s.groomCart
+                    ? [
+                        {
+                          name: `${s.groomCart.nameEn || s.groomCart.nameAr || "Groom package"} (${s.groomCart.included.length} ${ar ? "خدمات" : "services"})`,
+                          durationLabel: `${s.groomCart.packageDurationMinutes ?? 0} ${ar ? "د" : "m"}`,
+                        },
+                        ...s.groomCart.addons.map((addon) => ({
+                          name: addon.nameEn || addon.nameAr || `Service ${addon.proId}`,
+                          durationLabel: `${addon.durationMinutes ?? 0} ${ar ? "د" : "m"}`,
+                        })),
+                      ]
+                    : s.selectedServices.map((x) => ({
+                        name: x.nameAr || x.nameEn || x.name,
+                        durationLabel: `${x.durationMinutes} ${ar ? "د" : "m"}`,
+                      }))
+                }
                 appointmentDateLabel={
                   s.selectedDate
                     ? s.selectedDate.toLocaleDateString(ar ? "ar-EG" : "en-GB", {
@@ -448,8 +470,8 @@ export default function BookO2Client() {
                 appointmentTimeLabel={s.selectedSlot?.time || ""}
                 customerName={s.customerName}
                 customerPhone={s.customerPhone}
-                totalDurationLabel={`${s.plan.totalDurationMinutes ?? s.durationMinutes} ${ar ? "دقيقة" : "min"}`}
-                totalPriceLabel={`${s.plan.totalPrice ?? 0} ${ar ? "جنيه" : "EGP"}`}
+                totalDurationLabel={`${s.groomCart?.totalDurationMinutes ?? s.plan.totalDurationMinutes ?? s.durationMinutes} ${ar ? "دقيقة" : "min"}`}
+                totalPriceLabel={`${s.groomCart?.totalPrice ?? s.plan.totalPrice ?? 0} ${ar ? "جنيه" : "EGP"}`}
                 mutationBanner={
                   s.confirmStatus === "creating" ? (
                     <div className="flex items-center justify-center gap-2 text-sm">
@@ -552,6 +574,112 @@ function SkeletonRows({ compact = false }: { compact?: boolean }) {
           }`}
         />
       ))}
+    </div>
+  );
+}
+
+function money(amount: number, ar: boolean) {
+  const formatted = amount.toLocaleString("en-US");
+  return ar ? `${formatted} ج.م` : `EGP ${formatted}`;
+}
+
+function GroomPackageBookingPanel({
+  ar,
+  cart,
+  error,
+  onContinue,
+  onBack,
+}: {
+  ar: boolean;
+  cart: GroomCartModel;
+  error: string | null;
+  onContinue: () => void;
+  onBack: () => void;
+}) {
+  const packageName = ar
+    ? cart.nameAr ?? cart.nameEn ?? "باكدج العريس"
+    : cart.nameEn ?? cart.nameAr ?? "Groom package";
+
+  return (
+    <div className="flex min-h-0 flex-1 flex-col">
+      <h2 className="hidden text-xl font-black text-cut-black md:block">
+        {ar ? "باكدج العريس" : "Groom package"}
+      </h2>
+      <p className="mt-2 text-sm text-cut-black/55 md:mt-3">
+        {ar
+          ? "السعر من الباكدج نفسه، مش مجموع الخدمات الفردية."
+          : "Price comes from the package — not a sum of ala-carte services."}
+      </p>
+
+      {error ? (
+        <p className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
+          {error}
+        </p>
+      ) : null}
+
+      <article className="mt-5 rounded-2xl border border-cut-burgundy/20 bg-cut-ivory p-4 md:p-5">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-cut-burgundy/70">
+              Package #{cart.packageId}
+            </p>
+            <h3 className="mt-1 text-lg font-black text-cut-black">{packageName}</h3>
+            <p className="mt-1 text-sm text-cut-black/55">
+              {cart.included.length} {ar ? "خدمات مشمولة" : "included services"}
+            </p>
+          </div>
+          <p className="text-lg font-black text-cut-burgundy">{money(cart.packagePrice, ar)}</p>
+        </div>
+        <ul className="mt-4 space-y-1.5 border-t border-cut-black/10 pt-3 text-sm text-cut-black/70">
+          {cart.included.map((item) => (
+            <li key={item.proId}>
+              {ar ? item.nameAr ?? item.nameEn : item.nameEn ?? item.nameAr}
+            </li>
+          ))}
+        </ul>
+      </article>
+
+      {cart.addons.length > 0 ? (
+        <div className="mt-4">
+          <p className="text-sm font-bold text-cut-black">{ar ? "إضافات" : "Add-ons"}</p>
+          <ul className="mt-2 space-y-2">
+            {cart.addons.map((addon) => (
+              <li
+                key={addon.proId}
+                className="flex items-center justify-between rounded-xl border border-cut-black/10 bg-white px-4 py-3 text-sm"
+              >
+                <span className="font-semibold text-cut-black">
+                  {ar ? addon.nameAr ?? addon.nameEn : addon.nameEn ?? addon.nameAr}
+                </span>
+                <span className="font-black text-cut-burgundy">{money(addon.price, ar)}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
+      <div className="mt-6 flex items-end justify-between border-t border-cut-black/10 pt-4">
+        <div>
+          <p className="text-xs text-cut-black/45">
+            {cart.totalDurationMinutes} {ar ? "دقيقة" : "min"}
+          </p>
+          <p className="text-2xl font-black text-cut-black">{money(cart.totalPrice, ar)}</p>
+        </div>
+      </div>
+
+      <div className="sticky bottom-0 z-10 -mx-3 mt-6 border-t border-cut-burgundy/15 bg-cut-soft-ivory/95 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur-sm md:-mx-8 md:px-8">
+        <button
+          type="button"
+          disabled={Boolean(error)}
+          onClick={onContinue}
+          className="flex w-full items-center justify-center rounded-2xl bg-cut-burgundy py-3.5 text-[15px] font-black text-cut-ivory shadow-[0_10px_28px_rgba(74,0,15,0.38)] transition hover:bg-cut-burgundy-dark disabled:cursor-not-allowed disabled:bg-cut-burgundy/40 disabled:shadow-none"
+        >
+          {ar ? "متابعة لاختيار الموعد" : "Continue to schedule"}
+        </button>
+      </div>
+      <div className="mt-3 md:mt-4">
+        <BookingNavFooter onBack={onBack} backLabel={ar ? "رجوع" : "Back"} />
+      </div>
     </div>
   );
 }

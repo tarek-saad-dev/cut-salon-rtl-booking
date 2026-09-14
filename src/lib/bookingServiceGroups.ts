@@ -21,6 +21,7 @@ export function flexMatch(serviceName: string, targetNames: string[]): boolean {
 }
 
 export function isServiceVisible(s: BookingService): boolean {
+  if (s.groomContextOnly) return false;
   const name = s.name?.trim();
   const price = s.price;
   return Boolean(name) && Number(price) > 0;

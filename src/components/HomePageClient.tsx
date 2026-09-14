@@ -7,6 +7,7 @@ import BookingCTA from "@/components/BookingCTA";
 import BenefitsSection from "@/components/BenefitsSection";
 import HowItWorksSection from "@/components/HowItWorksSection";
 import FooterSection from "@/components/FooterSection";
+import HomeUpcomingBookingsPopup from "@/components/home/HomeUpcomingBookingsPopup";
 
 /**
  * Single home composition for all languages.
@@ -15,6 +16,7 @@ import FooterSection from "@/components/FooterSection";
 export default function HomePageClient() {
   return (
     <main className="min-h-screen bg-cut-black">
+      <HomeUpcomingBookingsPopup />
       <HeroSection />
       <ArabicServicesSection />
       <BarbersSection />

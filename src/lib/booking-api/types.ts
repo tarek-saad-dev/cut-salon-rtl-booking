@@ -102,6 +102,11 @@ export interface BookingService {
   badgeKey?: string | null;
   shortDescriptionAr?: string | null;
   shortDescriptionEn?: string | null;
+  /**
+   * Resolvable for package/add-on booking but hidden from the generic
+   * “All Services” browser (e.g. groom home visit tiers).
+   */
+  groomContextOnly?: boolean;
 }
 
 // ─── Barbers ─────────────────────────────────────────────────────────────────

@@ -45,6 +45,15 @@ import {
 import type { AvailabilityMatrix, BookingV2Bootstrap } from "@/lib/bookingV2/types";
 import { trackBookingError } from "@/lib/bookingV2/metrics";
 import { CAMP_CAESAR_BOOK_EVENT } from "@/lib/campaignEvents";
+import { getPackageById, type ApiPackage } from "@/lib/packagesApi";
+import {
+  buildGroomCartModel,
+  groomCartToResolvableServices,
+  parseIdListParam,
+  readGroomBookHandoff,
+  saveGroomBookHandoff,
+  type GroomCartModel,
+} from "@/lib/book-o2/groomHandoff";
 
 export type BookO2Step =
   | "intent"
@@ -84,10 +93,12 @@ export function useBookO2Session() {
   const modeParam = searchParams.get("mode");
   const empIdParam = parseEmpId(searchParams.get("empId"));
   const branchParam = (searchParams.get("branch") || "").trim() || null;
-  const servicesParam = (searchParams.get("services") || "")
-    .split(",")
-    .map((s) => Number(s))
-    .filter((n) => Number.isFinite(n) && n > 0);
+  const servicesParam = parseIdListParam(searchParams.get("services"));
+  const packageIdParam = (() => {
+    const n = Number(searchParams.get("packageId"));
+    return Number.isFinite(n) && n > 0 ? n : null;
+  })();
+  const addonsParam = parseIdListParam(searchParams.get("addons"));
 
   const initialStep = ((): BookO2Step => {
     if (modeParam === "nearest") return branchParam ? "services" : "branch";
@@ -111,6 +122,14 @@ export function useBookO2Session() {
   const [barberName, setBarberName] = useState<string>("");
   const [barberImage, setBarberImage] = useState<string | null>(null);
   const [serviceIds, setServiceIds] = useState<number[]>(servicesParam);
+  const [packageId, setPackageId] = useState<number | null>(packageIdParam);
+  const [addonProIds, setAddonProIds] = useState<number[]>(addonsParam);
+  const [groomPack, setGroomPack] = useState<ApiPackage | null>(null);
+  const [groomCart, setGroomCart] = useState<GroomCartModel | null>(null);
+  const [groomHydrationStatus, setGroomHydrationStatus] = useState<
+    "idle" | "loading" | "ready" | "error"
+  >(packageIdParam ? "loading" : "idle");
+  const [groomHydrationError, setGroomHydrationError] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [selectedSlot, setSelectedSlot] = useState<AvailableSlot | undefined>();
   const [customerName, setCustomerName] = useState("");
@@ -173,12 +192,17 @@ export function useBookO2Session() {
     (target: BookO2Step, opts?: { empId?: number | null; branchCode?: string | null }) => {
       const nextEmp = opts?.empId === undefined ? empId : opts.empId;
       const nextBranch = opts?.branchCode === undefined ? branchCode : opts.branchCode;
+      const packageOpts = {
+        packageId,
+        addonProIds: addonProIds.length ? addonProIds : undefined,
+        serviceIds: serviceIds.length ? serviceIds : undefined,
+      };
       if (target === "intent") {
         router.replace("/book");
         return;
       }
       if (target === "branch") {
-        router.replace(buildBookHref({ mode: "branch" }));
+        router.replace(buildBookHref({ mode: "branch", ...packageOpts }));
         return;
       }
       if (target === "barber") {
@@ -186,6 +210,7 @@ export function useBookO2Session() {
           buildBookHref({
             mode: "barber",
             empId: nextEmp && nextEmp > 0 ? nextEmp : null,
+            ...packageOpts,
           }),
         );
         return;
@@ -193,17 +218,26 @@ export function useBookO2Session() {
       if (target === "services") {
         if (nextEmp && nextEmp > 0) {
           router.replace(
-            buildBookHref({ mode: "barber", empId: nextEmp, branch: nextBranch }),
+            buildBookHref({
+              mode: "barber",
+              empId: nextEmp,
+              branch: nextBranch,
+              ...packageOpts,
+            }),
           );
         } else {
           router.replace(
-            buildBookHref({ mode: "nearest", branch: nextBranch }),
+            buildBookHref({
+              mode: "nearest",
+              branch: nextBranch,
+              ...packageOpts,
+            }),
           );
         }
       }
       // schedule / details / review keep current query intent
     },
-    [router, empId, branchCode],
+    [router, empId, branchCode, packageId, addonProIds, serviceIds],
   );
 
   const goBack = useCallback(() => {
@@ -264,19 +298,140 @@ export function useBookO2Session() {
     [bootstrap],
   );
 
-  const services: BookingService[] = catalog?.services ?? [];
+  const catalogServices: BookingService[] = catalog?.services ?? [];
   const categories: BookingServiceCategory[] = catalog?.categories ?? [];
   const barbers: PublicBarber[] = catalog?.barbers ?? [];
   const branches = bootstrap?.branches ?? [];
 
-  const selectedServices = useMemo(
-    () => services.filter((s) => serviceIds.includes(s.id)),
-    [services, serviceIds],
-  );
-  const durationMinutes = useMemo(
-    () => selectedServices.reduce((sum, s) => sum + (s.durationMinutes || 0), 0),
-    [selectedServices],
-  );
+  // Merge package-resolvable overlays (hidden from All Services via groomContextOnly).
+  const services: BookingService[] = useMemo(() => {
+    if (!groomCart) return catalogServices;
+    const byId = new Map(catalogServices.map((s) => [s.id, s]));
+    for (const overlay of groomCartToResolvableServices(groomCart)) {
+      const existing = byId.get(overlay.id);
+      if (existing) {
+        byId.set(overlay.id, {
+          ...existing,
+          // Keep catalog price for standalone browsing; cart uses package pricing.
+          groomContextOnly: existing.groomContextOnly || overlay.groomContextOnly,
+        });
+        continue;
+      }
+      byId.set(overlay.id, {
+        id: overlay.id,
+        name: overlay.name,
+        nameAr: overlay.nameAr,
+        nameEn: overlay.nameEn,
+        price: overlay.price,
+        durationMinutes: overlay.durationMinutes,
+        categoryName: overlay.categoryName,
+        isBookableOnline: overlay.isBookableOnline,
+        groomContextOnly: overlay.groomContextOnly,
+      });
+    }
+    return [...byId.values()];
+  }, [catalogServices, groomCart]);
+
+  const selectedServices = useMemo(() => {
+    if (groomCart) {
+      // Package cart: surface add-ons as priced lines; package priced separately in UI.
+      return groomCart.addons.map((addon) => ({
+        id: addon.proId,
+        name: addon.nameEn ?? addon.nameAr ?? `Service ${addon.proId}`,
+        nameAr: addon.nameAr,
+        nameEn: addon.nameEn,
+        price: addon.price,
+        durationMinutes: addon.durationMinutes ?? 0,
+        categoryName:
+          addon.mutuallyExclusiveGroup === "home_visit" ? "Home Visit" : "Groom Add-on",
+        isBookableOnline: true,
+        groomContextOnly: true,
+      })) satisfies BookingService[];
+    }
+    return services.filter((s) => serviceIds.includes(s.id));
+  }, [groomCart, services, serviceIds]);
+
+  const durationMinutes = useMemo(() => {
+    if (groomCart) return groomCart.totalDurationMinutes;
+    return selectedServices.reduce((sum, s) => sum + (s.durationMinutes || 0), 0);
+  }, [groomCart, selectedServices]);
+
+  const displayTotalPrice = useMemo(() => {
+    if (groomCart) return groomCart.totalPrice;
+    return selectedServices.reduce((sum, s) => sum + s.price, 0);
+  }, [groomCart, selectedServices]);
+
+  // Restore package handoff from sessionStorage when URL lacks packageId (refresh / back).
+  useEffect(() => {
+    if (packageId) return;
+    const stored = readGroomBookHandoff();
+    if (!stored?.packageId) return;
+    setPackageId(stored.packageId);
+    if (!addonProIds.length && stored.addonProIds.length) {
+      setAddonProIds(stored.addonProIds);
+    }
+    if (!serviceIds.length && stored.serviceIds.length) {
+      setServiceIds(stored.serviceIds);
+    }
+    if (stored.note && !notes) setNotes(stored.note);
+    setGroomHydrationStatus("loading");
+  }, [packageId, addonProIds.length, serviceIds.length, notes]);
+
+  // Hydrate authoritative package from Cashier packages API.
+  useEffect(() => {
+    if (!packageId) {
+      setGroomPack(null);
+      setGroomCart(null);
+      setGroomHydrationStatus("idle");
+      setGroomHydrationError(null);
+      return;
+    }
+    let cancelled = false;
+    setGroomHydrationStatus("loading");
+    setGroomHydrationError(null);
+    getPackageById(packageId)
+      .then((pack) => {
+        if (cancelled) return;
+        const cart = buildGroomCartModel(pack, addonProIds);
+        if (cart.unresolvedAddonProIds.length) {
+          console.error(
+            "[groom-handoff] unresolved addon ProIDs",
+            cart.unresolvedAddonProIds,
+            { packageId },
+          );
+          setGroomHydrationError(
+            `Unable to resolve add-on services: ${cart.unresolvedAddonProIds.join(", ")}`,
+          );
+          setGroomHydrationStatus("error");
+          setGroomPack(pack);
+          setGroomCart(cart);
+          return;
+        }
+        setGroomPack(pack);
+        setGroomCart(cart);
+        setServiceIds(cart.serviceIds);
+        setGroomHydrationStatus("ready");
+        saveGroomBookHandoff({
+          packageId: cart.packageId,
+          addonProIds: cart.addons.map((a) => a.proId),
+          serviceIds: cart.serviceIds,
+          note: notes || null,
+        });
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        console.error("[groom-handoff] package hydration failed", err);
+        setGroomHydrationError(
+          err instanceof Error ? err.message : "Unable to load groom package",
+        );
+        setGroomHydrationStatus("error");
+      });
+    return () => {
+      cancelled = true;
+    };
+    // notes intentionally excluded — do not re-hydrate on every keystroke
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [packageId, addonProIds]);
   const intervalMinutes =
     catalog?.config?.settings.slotIntervalMinutes ??
     bootstrap?.settings.slotIntervalMinutes ??
@@ -424,6 +579,11 @@ export function useBookO2Session() {
     setMode("nearest");
     setEmpId(null);
     setBarberName("");
+    setPackageId(null);
+    setAddonProIds([]);
+    setGroomCart(null);
+    setGroomPack(null);
+    setServiceIds([]);
     router.replace(buildBookHref({ mode: "nearest", branch: branchCode }));
     goToStep(branchCode ? "services" : "branch");
   }, [router, branchCode, goToStep]);
@@ -431,12 +591,22 @@ export function useBookO2Session() {
   const selectIntentBranch = useCallback(() => {
     setMode("nearest");
     setEmpId(null);
+    setPackageId(null);
+    setAddonProIds([]);
+    setGroomCart(null);
+    setGroomPack(null);
+    setServiceIds([]);
     router.replace(buildBookHref({ mode: "branch" }));
     goToStep("branch");
   }, [router, goToStep]);
 
   const selectIntentBarber = useCallback(() => {
     setMode("specific");
+    setPackageId(null);
+    setAddonProIds([]);
+    setGroomCart(null);
+    setGroomPack(null);
+    setServiceIds([]);
     router.replace(buildBookHref({ mode: "barber" }));
     goToStep("barber");
   }, [router, goToStep]);
@@ -444,15 +614,22 @@ export function useBookO2Session() {
   const selectBranch = useCallback(
     (code: string) => {
       setBranchCode(code);
+      const packageOpts = {
+        packageId,
+        addonProIds: addonProIds.length ? addonProIds : undefined,
+        serviceIds: serviceIds.length ? serviceIds : undefined,
+      };
       if (mode === "specific" && empId) {
-        router.replace(buildBookHref({ mode: "barber", empId, branch: code }));
+        router.replace(
+          buildBookHref({ mode: "barber", empId, branch: code, ...packageOpts }),
+        );
         goToStep("services");
         return;
       }
-      router.replace(buildBookHref({ mode: "nearest", branch: code }));
+      router.replace(buildBookHref({ mode: "nearest", branch: code, ...packageOpts }));
       goToStep("services");
     },
-    [mode, empId, router, goToStep],
+    [mode, empId, router, goToStep, packageId, addonProIds, serviceIds],
   );
 
   const selectBarber = useCallback(
@@ -524,9 +701,11 @@ export function useBookO2Session() {
   }, [goToStep]);
 
   const goSchedule = useCallback(() => {
-    if (serviceIds.length === 0) return;
+    const ids = groomCart?.serviceIds ?? serviceIds;
+    if (ids.length === 0) return;
+    if (groomHydrationStatus === "error") return;
     goToStep("schedule");
-  }, [serviceIds.length, goToStep]);
+  }, [groomCart?.serviceIds, serviceIds, groomHydrationStatus, goToStep]);
 
   const effectiveBranchCode =
     (selectedSlot?.branchCode ? String(selectedSlot.branchCode) : null) ||
@@ -535,9 +714,11 @@ export function useBookO2Session() {
 
   const requestPlan = useCallback(async () => {
     if (confirmInFlightRef.current || bookO2WriteLock) return;
-    if (!effectiveBranchCode || !selectedDate || !selectedSlot || serviceIds.length === 0) {
+    if (!effectiveBranchCode || !selectedDate || !selectedSlot) {
       return;
     }
+    const planServiceIds = groomCart?.serviceIds ?? serviceIds;
+    if (planServiceIds.length === 0) return;
     if (mode === "specific" && !empId) return;
     const phone = normalizeEgyptianPhone(customerPhone);
     const name = customerName.trim();
@@ -556,16 +737,28 @@ export function useBookO2Session() {
         ? selectedSlot.businessDate
         : localDateToBusinessDate(selectedDate);
     try {
+      const groomNote =
+        groomCart != null
+          ? JSON.stringify({
+              source: "groom-experience",
+              packageId: groomCart.packageId,
+              addonProIds: groomCart.addons.map((a) => a.proId),
+              packagePrice: groomCart.packagePrice,
+              totalPrice: groomCart.totalPrice,
+            })
+          : null;
+      const mergedNotes = [notes.trim(), groomNote].filter(Boolean).join("\n") || undefined;
+
       const res = await createBookingPlan({
         branchCode: String(effectiveBranchCode),
         customer: { name, phone },
         mode,
         empId: mode === "specific" ? empId ?? undefined : undefined,
-        serviceIds,
+        serviceIds: groomCart?.serviceIds ?? serviceIds,
         date: dateStr,
         time: selectedSlot.time,
         dayOffset: selectedSlot.dayOffset ?? 0,
-        notes: notes.trim() || undefined,
+        notes: mergedNotes,
       });
       setPlan(res.data);
       setConfirmStatus("idle");
@@ -642,6 +835,7 @@ export function useBookO2Session() {
     selectedDate,
     selectedSlot,
     serviceIds,
+    groomCart,
     mode,
     empId,
     customerPhone,
@@ -853,6 +1047,13 @@ export function useBookO2Session() {
     serviceIds,
     selectedServices,
     durationMinutes,
+    displayTotalPrice,
+    packageId,
+    addonProIds,
+    groomCart,
+    groomPack,
+    groomHydrationStatus,
+    groomHydrationError,
     selectedDate,
     selectedSlot,
     customerName,

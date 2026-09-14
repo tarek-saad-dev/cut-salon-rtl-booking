@@ -5,6 +5,8 @@ export function buildBookHref(intent: {
   empId?: number | null;
   branch?: string | null;
   serviceIds?: number[];
+  packageId?: number | null;
+  addonProIds?: number[];
 }): string {
   const params = new URLSearchParams();
   const empId =
@@ -24,6 +26,12 @@ export function buildBookHref(intent: {
   }
 
   if (intent.branch) params.set("branch", intent.branch);
+  if (intent.packageId != null && Number.isFinite(intent.packageId) && intent.packageId > 0) {
+    params.set("packageId", String(intent.packageId));
+  }
+  if (intent.addonProIds?.length) {
+    params.set("addons", intent.addonProIds.join(","));
+  }
   if (intent.serviceIds?.length) {
     params.set("services", intent.serviceIds.join(","));
   }

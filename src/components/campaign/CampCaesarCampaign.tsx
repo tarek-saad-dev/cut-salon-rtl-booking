@@ -55,20 +55,11 @@ export default function CampCaesarCampaign() {
     return () => window.removeEventListener("cut:blocking-overlay", handler);
   }, []);
 
-  // Auto-show opening sheet immediately on first mount (once per full page load)
+  // Opening sheet is manual-only (announcement bar / floating pill) — no auto popup on page load
   useEffect(() => {
     if (!config || autoShowAttempted.current) return;
-
     autoShowAttempted.current = true;
-
-    if (manualOpenRef.current) return;
-    if (blockingRef.current) {
-      setShowPill(true);
-      return;
-    }
-    setOpeningOpen(true);
-    trackCampaignEvent("camp_caesar_campaign_view", { source: "auto_open" });
-    window.history.pushState({ [HISTORY_OPENING]: true }, "");
+    setShowPill(true);
   }, [config]);
 
   // Browser back closes campaign layers

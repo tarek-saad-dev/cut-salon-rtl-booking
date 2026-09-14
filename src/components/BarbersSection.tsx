@@ -20,6 +20,7 @@ import { landingCopy } from "@/lib/i18n/landing";
 import { tx } from "@/lib/i18n/tx";
 import type { Language } from "@/lib/i18n/types";
 import { buildBookHref } from "@/lib/book-o2/buildBookHref";
+import { saveGroomBookHandoff } from "@/lib/book-o2/groomHandoff";
 
 type DisplayBarber = BarberBookingInfo & {
   buttonText: string;
@@ -169,9 +170,19 @@ const BarbersSection = () => {
   };
 
   const openNearestBooking = (groom?: GroomBookingDetail | null) => {
+    if (groom?.packageId && groom.serviceIds?.length) {
+      saveGroomBookHandoff({
+        packageId: groom.packageId,
+        addonProIds: groom.addonProIds ?? [],
+        serviceIds: groom.serviceIds,
+        note: groom.note,
+      });
+    }
     router.push(
       buildBookHref({
         mode: "nearest",
+        packageId: groom?.packageId ?? null,
+        addonProIds: groom?.addonProIds,
         serviceIds: groom?.serviceIds?.length ? groom.serviceIds : undefined,
       }),
     );

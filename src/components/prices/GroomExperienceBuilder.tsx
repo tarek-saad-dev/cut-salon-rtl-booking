@@ -25,6 +25,7 @@ import {
   type GroomOptionalGroup,
 } from "@/lib/packagesApi";
 import { buildBookHref } from "@/lib/book-o2/buildBookHref";
+import { saveGroomBookHandoff } from "@/lib/book-o2/groomHandoff";
 
 type Props = { language: Language };
 
@@ -484,6 +485,13 @@ export default function GroomExperienceBuilder({ language }: Props) {
       totals,
     });
 
+    saveGroomBookHandoff({
+      packageId: payload.packageId,
+      addonProIds: payload.addonProIds,
+      serviceIds: payload.serviceIds,
+      note: payload.note,
+    });
+
     window.dispatchEvent(
       new CustomEvent("cut:book-groom", {
         detail: {
@@ -495,7 +503,14 @@ export default function GroomExperienceBuilder({ language }: Props) {
       }),
     );
 
-    router.push(buildBookHref({ mode: "nearest", serviceIds: payload.serviceIds }));
+    router.push(
+      buildBookHref({
+        mode: "nearest",
+        packageId: payload.packageId,
+        addonProIds: payload.addonProIds,
+        serviceIds: payload.serviceIds,
+      }),
+    );
   };
 
   return (
