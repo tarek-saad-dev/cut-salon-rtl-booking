@@ -16,6 +16,8 @@ export interface PlanSession {
   mode: BookingMode;
   empId: number | null;
   serviceIds: number[];
+  packageId: number | null;
+  addonProIds: number[];
   date: string;
   time: string;
   dayOffset: number;
@@ -50,7 +52,12 @@ function readFromBacking(): PlanSession | null {
     if (!raw) return null;
     const parsed = JSON.parse(raw) as PlanSession;
     if (!parsed.planToken || !parsed.branchCode) return null;
-    return parsed;
+    return {
+      ...parsed,
+      packageId: parsed.packageId ?? null,
+      addonProIds: Array.isArray(parsed.addonProIds) ? parsed.addonProIds : [],
+      serviceIds: Array.isArray(parsed.serviceIds) ? parsed.serviceIds : [],
+    };
   } catch (e) {
     void e;
     return null;
@@ -64,6 +71,8 @@ export function savePlanSession(
     mode: BookingMode;
     empId?: number | null;
     serviceIds: number[];
+    packageId?: number | null;
+    addonProIds?: number[];
     date: string;
     time: string;
     dayOffset?: number;
@@ -79,7 +88,9 @@ export function savePlanSession(
     branchCode: params.branchCode,
     mode: params.mode,
     empId: params.empId ?? null,
-    serviceIds: [...params.serviceIds].sort(),
+    serviceIds: [...params.serviceIds].sort((a, b) => a - b),
+    packageId: params.packageId ?? null,
+    addonProIds: [...(params.addonProIds ?? [])].sort((a, b) => a - b),
     date: params.date,
     time: params.time,
     dayOffset: params.dayOffset ?? 0,
@@ -125,6 +136,8 @@ export function isPlanMatchingSelection(params: {
   mode: BookingMode;
   empId?: number | null;
   serviceIds: number[];
+  packageId?: number | null;
+  addonProIds?: number[];
   dayOffset?: number;
   date: string;
   time: string;
@@ -132,13 +145,17 @@ export function isPlanMatchingSelection(params: {
   const session = getPlanSession();
   if (!session) return false;
 
-  const sortedIds = [...params.serviceIds].sort();
+  const sortedIds = [...params.serviceIds].sort((a, b) => a - b);
+  const sortedAddons = [...(params.addonProIds ?? [])].sort((a, b) => a - b);
+  const sessionAddons = [...(session.addonProIds ?? [])].sort((a, b) => a - b);
   return (
     session.branchCode === params.branchCode &&
     session.mode === params.mode &&
     session.date === params.date &&
     session.time === params.time &&
     JSON.stringify(session.serviceIds) === JSON.stringify(sortedIds) &&
+    (session.packageId ?? null) === (params.packageId ?? null) &&
+    JSON.stringify(sessionAddons) === JSON.stringify(sortedAddons) &&
     session.dayOffset === (params.dayOffset ?? 0) &&
     session.empId === (params.empId ?? null)
   );

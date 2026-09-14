@@ -138,6 +138,8 @@ export async function createBookingPlan(
       mode: params.mode,
       empId: params.empId,
       serviceIds: params.serviceIds,
+      packageId: params.packageId,
+      addonProIds: params.addonProIds,
       date: params.date,
       time: params.time,
       dayOffset: params.dayOffset,
@@ -322,6 +324,8 @@ export async function submitBookingFromPlan(params: {
   time: string;
   dayOffset?: number;
   serviceIds: number[];
+  packageId?: number | null;
+  addonProIds?: number[];
   mode: "specific" | "nearest";
   empId?: number;
   signal?: AbortSignal;
@@ -358,6 +362,8 @@ export async function submitBookingFromPlan(params: {
       mode: params.mode,
       empId: params.empId,
       serviceIds: params.serviceIds,
+      packageId: params.packageId,
+      addonProIds: params.addonProIds,
       date: params.date,
       time: params.time,
       dayOffset: params.dayOffset,
@@ -409,6 +415,10 @@ export async function submitBookingFromPlan(params: {
     notes: params.notes,
     planToken: session.planToken,
     clientRequestId,
+    ...(params.packageId != null && params.packageId > 0
+      ? { packageId: params.packageId }
+      : {}),
+    ...(params.addonProIds?.length ? { addonProIds: params.addonProIds } : {}),
   };
 
   try {

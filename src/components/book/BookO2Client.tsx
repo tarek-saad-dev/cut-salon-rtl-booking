@@ -470,8 +470,8 @@ export default function BookO2Client() {
                 appointmentTimeLabel={s.selectedSlot?.time || ""}
                 customerName={s.customerName}
                 customerPhone={s.customerPhone}
-                totalDurationLabel={`${s.groomCart?.totalDurationMinutes ?? s.plan.totalDurationMinutes ?? s.durationMinutes} ${ar ? "دقيقة" : "min"}`}
-                totalPriceLabel={`${s.groomCart?.totalPrice ?? s.plan.totalPrice ?? 0} ${ar ? "جنيه" : "EGP"}`}
+                totalDurationLabel={`${s.plan.totalDurationMinutes ?? s.groomCart?.totalDurationMinutes ?? s.durationMinutes} ${ar ? "دقيقة" : "min"}`}
+                totalPriceLabel={`${s.plan.totalPrice ?? s.groomCart?.totalPrice ?? 0} ${ar ? "جنيه" : "EGP"}`}
                 mutationBanner={
                   s.confirmStatus === "creating" ? (
                     <div className="flex items-center justify-center gap-2 text-sm">

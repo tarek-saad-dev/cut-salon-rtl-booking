@@ -312,6 +312,8 @@ export interface CheckSlotRequest {
   empId?: number;
   dayOffset?: number;
   source?: "public" | "operations" | "admin";
+  packageId?: number;
+  addonProIds?: number[];
 }
 
 export interface CheckSlotResponse {
@@ -355,6 +357,8 @@ export interface CreateBookingRequest {
   mode: "specific" | "nearest";
   empId: number;
   notes?: string;
+  packageId?: number;
+  addonProIds?: number[];
 }
 
 export interface CreatedBooking {
@@ -423,6 +427,8 @@ export interface BookingPlanRequest {
   mode: "specific" | "nearest";
   empId?: number;
   notes?: string;
+  packageId?: number;
+  addonProIds?: number[];
 }
 
 export interface BookingPlanItem {

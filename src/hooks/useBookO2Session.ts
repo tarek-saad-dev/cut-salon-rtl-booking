@@ -737,28 +737,27 @@ export function useBookO2Session() {
         ? selectedSlot.businessDate
         : localDateToBusinessDate(selectedDate);
     try {
-      const groomNote =
-        groomCart != null
-          ? JSON.stringify({
-              source: "groom-experience",
-              packageId: groomCart.packageId,
-              addonProIds: groomCart.addons.map((a) => a.proId),
-              packagePrice: groomCart.packagePrice,
-              totalPrice: groomCart.totalPrice,
-            })
-          : null;
-      const mergedNotes = [notes.trim(), groomNote].filter(Boolean).join("\n") || undefined;
-
       const res = await createBookingPlan({
         branchCode: String(effectiveBranchCode),
         customer: { name, phone },
         mode,
         empId: mode === "specific" ? empId ?? undefined : undefined,
-        serviceIds: groomCart?.serviceIds ?? serviceIds,
+        serviceIds: planServiceIds,
+        ...(groomCart
+          ? {
+              packageId: groomCart.packageId,
+              addonProIds: groomCart.addons.map((a) => a.proId),
+            }
+          : packageId
+            ? {
+                packageId,
+                addonProIds: addonProIds.length ? addonProIds : undefined,
+              }
+            : {}),
         date: dateStr,
         time: selectedSlot.time,
         dayOffset: selectedSlot.dayOffset ?? 0,
-        notes: mergedNotes,
+        notes: notes.trim() || undefined,
       });
       setPlan(res.data);
       setConfirmStatus("idle");
@@ -836,6 +835,8 @@ export function useBookO2Session() {
     selectedSlot,
     serviceIds,
     groomCart,
+    packageId,
+    addonProIds,
     mode,
     empId,
     customerPhone,
@@ -874,7 +875,13 @@ export function useBookO2Session() {
         date: dateStr,
         time: selectedSlot?.time || "",
         dayOffset: selectedSlot?.dayOffset ?? 0,
-        serviceIds,
+        serviceIds: groomCart?.serviceIds ?? serviceIds,
+        packageId: groomCart?.packageId ?? packageId,
+        addonProIds: groomCart
+          ? groomCart.addons.map((a) => a.proId)
+          : addonProIds.length
+            ? addonProIds
+            : undefined,
         mode,
         empId: mode === "specific" ? empId ?? undefined : undefined,
       });
@@ -1018,6 +1025,9 @@ export function useBookO2Session() {
     customerPhone,
     notes,
     serviceIds,
+    groomCart,
+    packageId,
+    addonProIds,
     branches,
     barberName,
     router,

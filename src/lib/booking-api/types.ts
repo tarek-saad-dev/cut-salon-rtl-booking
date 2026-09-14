@@ -225,6 +225,9 @@ export interface CheckSlotRequest {
   mode: "specific" | "nearest";
   empId?: number;
   dayOffset?: number;
+  /** Groom package booking — authoritative when present. */
+  packageId?: number;
+  addonProIds?: number[];
 }
 
 export interface CheckSlotResponse {
@@ -244,6 +247,10 @@ export interface BookingPlanRequest {
   mode: "specific" | "nearest";
   empId?: number;
   notes?: string;
+  /** Groom package booking — authoritative package identity when present. */
+  packageId?: number;
+  /** Optional groom add-ons (e.g. home visit). */
+  addonProIds?: number[];
 }
 
 export interface BookingPlanItem {
@@ -293,6 +300,9 @@ export interface BookingCreateRequest {
   notes?: string;
   planToken: string;
   clientRequestId: string;
+  /** Groom package booking — must match the plan that issued planToken. */
+  packageId?: number;
+  addonProIds?: number[];
 }
 
 export interface BookingCreateResponse {
