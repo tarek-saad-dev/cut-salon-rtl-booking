@@ -938,7 +938,10 @@ export function useBookO2Session() {
       }
 
       if (selectedDate && selectedSlot && durationMinutes > 0) {
-        const occEmpId = selectedSlot.empId ?? empId;
+        // Nearest/any_barber: server may assign a different emp than the FreeMask
+        // that generated the displayed slot — always prefer create response empId.
+        const occEmpId =
+          result.booking.empId ?? selectedSlot.empId ?? empId ?? null;
         if (!occEmpId) {
           /* cannot occupy without employee */
         } else {

@@ -214,6 +214,80 @@ describe("Booking V2 client integration helpers", () => {
     expect(after.some((s) => s.time === "16:00")).toBe(false);
   });
 
+  it("nearest create occupies server-assigned emp, not the FreeMask display emp", () => {
+    // UI nearest slot came from Emp A (lower id); server assigned Emp B.
+    const matrix: AvailabilityMatrix = {
+      ok: true,
+      fromBusinessDate: "2026-08-21",
+      toBusinessDate: "2026-09-03",
+      days: 14,
+      scope: { mode: "nearest", branchCodes: ["GLEEM"] },
+      slotIntervalMinutes: 15,
+      matrix: [
+        {
+          businessDate: "2026-08-21",
+          branches: [
+            {
+              branchCode: "GLEEM",
+              employees: [
+                {
+                  empId: 5,
+                  empName: "A",
+                  status: "available",
+                  free: [],
+                  freeRanges: [{ startMin: 16 * 60, endMin: 18 * 60 }],
+                },
+                {
+                  empId: 25,
+                  empName: "B",
+                  status: "available",
+                  free: [],
+                  freeRanges: [{ startMin: 16 * 60, endMin: 18 * 60 }],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+      fetchedAt: Date.now(),
+    };
+    const key = availabilityCacheKey({
+      mode: "nearest",
+      branchCodes: ["GLEEM"],
+      fromBusinessDate: "2026-08-21",
+      toBusinessDate: "2026-09-03",
+      days: 14,
+    });
+    cacheSet(key, matrix, null);
+
+    const displaySlot = generateSlotsForBusinessDate({
+      matrix,
+      businessDate: "2026-08-21",
+      durationMinutes: 30,
+      intervalMinutes: 15,
+      mode: "nearest",
+    }).find((s) => s.time === "16:00");
+    expect(displaySlot?.empId).toBe(5); // local nearest picks lowest empId
+
+    // Create response assigned Emp 25 — occupancy must target 25, not 5.
+    const serverAssignedEmpId = 25;
+    applyLocalOccupancyToAllCachedMatrices({
+      empId: serverAssignedEmpId,
+      businessDate: "2026-08-21",
+      startMin: 16 * 60,
+      durationMinutes: 30,
+      branchCode: "GLEEM",
+    });
+
+    const updated = cacheGet<AvailabilityMatrix>(key)?.data!;
+    const empA = updated.matrix[0]!.branches[0]!.employees.find((e) => e.empId === 5)!;
+    const empB = updated.matrix[0]!.branches[0]!.employees.find((e) => e.empId === 25)!;
+    expect(empA.freeRanges).toEqual([{ startMin: 16 * 60, endMin: 18 * 60 }]);
+    expect(empB.freeRanges.some((r) => r.startMin <= 16 * 60 && r.endMin > 16 * 60)).toBe(
+      false,
+    );
+  });
+
   it("applyLocalOccupancyToMatrix is pure and idempotent for same interval", () => {
     const matrix = sampleMatrix();
     const once = applyLocalOccupancyToMatrix(matrix, {

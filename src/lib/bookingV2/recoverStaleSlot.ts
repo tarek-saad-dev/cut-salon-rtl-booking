@@ -1,7 +1,12 @@
 /**
  * Recoverable stale-slot handling after /plan 409.
- * One 14-day matrix refresh, then existing nearest-selection. No polling.
+ * One forced 14-day matrix refresh, then existing nearest-selection. No polling.
+ *
+ * When /plan rejects a locally generated slot, the generic matrix must not be
+ * reused as trusted authority for the replacement pick — mark untrusted first,
+ * then force-refresh once.
  */
+import { markAvailabilityCachesUntrusted } from "./cache";
 import {
   pickNearestEligibleSlot,
   toLegacyAvailableSlot,
@@ -37,6 +42,7 @@ export interface RecoverStaleSlotResult {
 export async function recoverStaleMinNoticeSlot(
   input: RecoverStaleSlotInput,
 ): Promise<RecoverStaleSlotResult> {
+  markAvailabilityCachesUntrusted();
   const matrix = await input.loadMatrix();
   const nextSlot = pickNearestEligibleSlot({
     matrix,

@@ -311,6 +311,11 @@ export interface BookingCreateResponse {
   date: string;
   time: string;
   barberName: string;
+  /**
+   * Authoritative assigned employee from create (nearest/any_barber may differ
+   * from the empId that generated the locally displayed slot).
+   */
+  empId?: number | null;
   services: string[];
   totalPrice?: number;
   totalDurationMinutes?: number;

@@ -205,13 +205,29 @@ function normalizeCreateResponse(raw: CreateApiResponse): BookingCreateResponse 
 
   const nestedRec = nested as Record<string, unknown> | null;
   const srcRec = src as Record<string, unknown>;
-  const barber = srcRec.barber as { nameAr?: string; nameEn?: string; name?: string } | undefined;
+  const barber = srcRec.barber as {
+    empId?: number;
+    nameAr?: string;
+    nameEn?: string;
+    name?: string;
+  } | undefined;
   const branch = srcRec.branch as { branchCode?: string; branchName?: string } | undefined;
 
   // Prefer calendarDate for customer-facing display when workDate differs (overnight).
   const date = String(
     srcRec.calendarDate ?? srcRec.date ?? srcRec.workDate ?? "",
   ).trim();
+
+  const assignedEmpRaw = barber?.empId ?? srcRec.empId ?? nestedRec?.empId;
+  const assignedEmpId =
+    typeof assignedEmpRaw === "number" && Number.isFinite(assignedEmpRaw) && assignedEmpRaw > 0
+      ? assignedEmpRaw
+      : typeof assignedEmpRaw === "string" &&
+          assignedEmpRaw.trim() &&
+          Number.isFinite(Number(assignedEmpRaw)) &&
+          Number(assignedEmpRaw) > 0
+        ? Number(assignedEmpRaw)
+        : null;
 
   return {
     bookingCode: String(
@@ -225,6 +241,7 @@ function normalizeCreateResponse(raw: CreateApiResponse): BookingCreateResponse 
     barberName: String(
       srcRec.barberName ?? barber?.nameAr ?? barber?.name ?? barber?.nameEn ?? "",
     ).trim(),
+    empId: assignedEmpId,
     services,
     totalPrice:
       (srcRec.totalPrice as number | undefined) ??

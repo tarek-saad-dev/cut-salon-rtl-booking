@@ -1956,7 +1956,9 @@ export function useBookingFlow(opts: {
             selectedSlot.durationMinutes && selectedSlot.durationMinutes > 0
               ? selectedSlot.durationMinutes
               : v2DurationMinutes;
+          // Authoritative assigned emp from create (nearest may differ from UI slot emp).
           const occEmpId =
+            result.booking.empId ??
             selectedSlot.empId ??
             (mode === "specific" ? barber?.id : null) ??
             null;

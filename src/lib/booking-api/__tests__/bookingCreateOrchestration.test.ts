@@ -198,6 +198,7 @@ describe("Create Orchestration", () => {
     if (result.outcome !== "success") return;
     expect(result.booking.bookingCode).toBe("BK-AP69KY");
     expect(result.booking.barberName).toBe("عمر");
+    expect(result.booking.empId).toBe(25);
     expect(result.booking.branchName).toBe("جليم – سابا باشا");
     expect(result.booking.date).toBe("2026-07-31");
     expect(result.booking.time).toBe("21:15");

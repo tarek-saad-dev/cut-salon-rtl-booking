@@ -45,6 +45,19 @@ export function cacheKeys(prefix?: string): string[] {
 }
 
 /**
+ * Mark cached availability matrices as untrusted (e.g. after /plan rejects a
+ * locally-generated slot). Instant display may still read them, but the 60s
+ * freshness shortcut must not treat them as authoritative for replacements.
+ */
+export function markAvailabilityCachesUntrusted(): void {
+  for (const key of cacheKeys("booking-v2:availability:")) {
+    const entry = cacheGet<{ stale?: boolean }>(key);
+    if (!entry) continue;
+    cacheSet(key, { ...entry.data, stale: true }, entry.etag);
+  }
+}
+
+/**
  * Stale-while-revalidate helper.
  * Returns cached data immediately (if any), then refreshes in background.
  */

@@ -305,6 +305,46 @@ describe("MinNotice stale-slot recovery + request counts", () => {
     expect(result.nextSlot?.time).not.toBe("21:30");
   });
 
+  it("plan-unavailable recovery marks cached matrices untrusted before forced refresh", async () => {
+    const { cacheClear, cacheSet, cacheGet, markAvailabilityCachesUntrusted } = await import(
+      "@/lib/bookingV2/cache"
+    );
+    const { availabilityCacheKey } = await import("@/lib/bookingV2/api");
+    cacheClear();
+    const key = availabilityCacheKey({
+      mode: "specific",
+      empId: 5,
+      branchCodes: ["GLEEM"],
+      fromBusinessDate: DAY,
+      toBusinessDate: DAY,
+      days: 1,
+    });
+    const staleMatrix = eveningMatrix({ branchCode: "GLEEM", generatedAtMs: cairoAt(21, 0) });
+    cacheSet(key, { ...staleMatrix, stale: false }, null);
+    expect(cacheGet(key)?.data.stale).toBe(false);
+
+    markAvailabilityCachesUntrusted();
+    expect(cacheGet(key)?.data.stale).toBe(true);
+
+    let loads = 0;
+    await recoverStaleMinNoticeSlot({
+      loadMatrix: async () => {
+        loads += 1;
+        return eveningMatrix({ branchCode: "GLEEM", generatedAtMs: cairoAt(21, 15, 8, 305) });
+      },
+      fromBusinessDate: DAY,
+      durationMinutes: 15,
+      intervalMinutes: 15,
+      minNoticeMinutes: MIN_NOTICE,
+      mode: "specific",
+      empId: 5,
+      branchCode: "GLEEM",
+      nowMonoMs: RECEIVED_MONO,
+    });
+    expect(loads).toBe(1);
+    cacheClear();
+  });
+
   it("normal successful flow uses exactly one 14-day availability matrix", () => {
     const generatedAtMs = cairoAt(21, 15, 8, 305);
     let availabilityRequests = 0;
