@@ -11,7 +11,6 @@ import { useCampaignPageLoadCelebration } from "@/hooks/useCampaignPageLoadCeleb
 import CampaignAnnouncement from "./CampaignAnnouncement";
 import CampCaesarOpeningSheet from "./CampCaesarOpeningSheet";
 import CampCaesarExperience from "./CampCaesarExperience";
-import CampaignFloatingPill from "./CampaignFloatingPill";
 import CampaignPageLoadCelebration from "./CampaignPageLoadCelebration";
 
 const HISTORY_EXPERIENCE = "cut-camp-caesar-experience";
@@ -35,10 +34,8 @@ export default function CampCaesarCampaign() {
 
   const [openingOpen, setOpeningOpen] = useState(false);
   const [experienceOpen, setExperienceOpen] = useState(false);
-  const [showPill, setShowPill] = useState(false);
   const [blockingCount, setBlockingCount] = useState(0);
 
-  const autoShowAttempted = useRef(false);
   const manualOpenRef = useRef(false);
   const blockingRef = useRef(false);
 
@@ -55,21 +52,11 @@ export default function CampCaesarCampaign() {
     return () => window.removeEventListener("cut:blocking-overlay", handler);
   }, []);
 
-  // Opening sheet is manual-only (announcement bar / floating pill) — no auto popup on page load
-  useEffect(() => {
-    if (!config || autoShowAttempted.current) return;
-    autoShowAttempted.current = true;
-    setShowPill(true);
-  }, [config]);
-
   // Browser back closes campaign layers
   useEffect(() => {
     const onPopState = () => {
       if (experienceOpen) setExperienceOpen(false);
-      else if (openingOpen) {
-        setOpeningOpen(false);
-        setShowPill(true);
-      }
+      else if (openingOpen) setOpeningOpen(false);
     };
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);
@@ -80,7 +67,6 @@ export default function CampCaesarCampaign() {
     markCampaignDismissed(config.campaignId);
     trackCampaignEvent("camp_caesar_campaign_dismiss");
     setOpeningOpen(false);
-    setShowPill(true);
     if (window.history.state?.[HISTORY_OPENING]) {
       window.history.back();
     }
@@ -99,7 +85,6 @@ export default function CampCaesarCampaign() {
 
   const closeExperience = useCallback(() => {
     setExperienceOpen(false);
-    setShowPill(true);
     if (window.history.state?.[HISTORY_EXPERIENCE]) {
       window.history.back();
     }
@@ -112,7 +97,6 @@ export default function CampCaesarCampaign() {
       markCampaignDismissed(config.campaignId);
       setExperienceOpen(false);
       setOpeningOpen(false);
-      setShowPill(false);
       // Clear campaign history markers without history.back() racing router.push
       if (
         typeof window !== "undefined" &&
@@ -159,10 +143,6 @@ export default function CampCaesarCampaign() {
     [isBookRoute, openCampBooking, openExperience],
   );
 
-  const handleManualOpen = useCallback(() => {
-    handleCampaignDiscover("floating_pill");
-  }, [handleCampaignDiscover]);
-
   if (!config) return null;
 
   return (
@@ -208,12 +188,6 @@ export default function CampCaesarCampaign() {
           />
         )}
       </AnimatePresence>
-
-      <CampaignFloatingPill
-        visible={(showPill || isBookRoute) && !openingOpen && !experienceOpen}
-        introActive={introActive}
-        onOpen={handleManualOpen}
-      />
     </>
   );
 }

@@ -760,10 +760,6 @@
   pointer-events: none;
 }
 
-.campaign-floating-pill--intro {
-  animation: campaign-pill-intro 1.55s ease-out forwards;
-}
-
 @keyframes campaign-page-celebration-fade {
   0% { opacity: 0; }
   8% { opacity: 1; }
@@ -907,28 +903,9 @@
   100% { background-position: -200% 0; opacity: 0; }
 }
 
-@keyframes campaign-pill-intro {
-  0% {
-    opacity: 0;
-    transform: translateY(18px) scale(0.96);
-  }
-  18% {
-    opacity: 1;
-    transform: translateY(0) scale(1.02);
-  }
-  55% {
-    transform: translateY(0) scale(1);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
   .campaign-page-celebration,
-  .campaign-announcement--intro::after,
-  .campaign-floating-pill--intro {
+  .campaign-announcement--intro::after {
     animation: none !important;
   }
   .campaign-page-celebration,
