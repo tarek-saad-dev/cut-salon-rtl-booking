@@ -1,146 +1,127 @@
-# CUT Salon Client Control Plane
+# CUT Salon Client — Codex-first Control Plane
 
-## Purpose
+## Operator model
 
-This repository uses a small control plane so Tarek can operate development from ChatGPT while Cursor Cloud Agents perform implementation, independent review, and review fixes.
+Tarek talks to ChatGPT in normal language. ChatGPT is the human-facing control console.
 
-GitHub remains the durable source of truth.
+GitHub is the durable source of truth. The self-hosted Codex runner performs implementation, review, and finding fixes. Codex never merges and never deploys production.
 
-## Roles
+## Flow
 
-### ChatGPT — operator console
+1. ChatGPT creates a scoped GitHub issue.
+2. ChatGPT writes an `EXECUTE` command envelope to `codex-control`.
+3. GitHub-hosted authorization validates the owner, live issue state, and exact target SHA.
+4. The self-hosted CUT Client runner executes Codex without a repository write token.
+5. A GitHub-hosted finalizer applies the generated patch, pushes `codex/issue-<number>`, and opens/updates a draft PR.
+6. ChatGPT requests `REVIEW` when useful.
+7. Codex reviews the exact current PR head independently.
+8. If material findings exist, ChatGPT requests `FIX_FINDINGS`.
+9. Codex fixes only the latest unresolved findings on the same branch.
+10. Review repeats until `READY_FOR_TAREK`.
+11. Tarek explicitly says `اعتمد`, `ادمج`, or `نزّل production`.
+12. ChatGPT revalidates the exact head/review and merges.
+13. Existing `deploy-vps.yml` deploys `main` to cutsaloon.com.
+14. ChatGPT reports the deployment result.
 
-ChatGPT may:
-- create GitHub issues from Tarek's natural-language requests
-- trigger Cursor automations by posting exact control comments
-- inspect issues, PRs, review comments, commits, and GitHub Actions
-- request fixes when review finds material issues
-- report status back to Tarek
-- merge a PR only after Tarek explicitly approves production in chat
-- inspect the resulting production deployment and report the outcome
+## Command transport
 
-ChatGPT must not merge merely because a reviewer reports PASS.
+Primary machine transport is the dedicated `codex-control` branch.
 
-### Command Router — builder
+ChatGPT writes:
 
-Triggered by issue comments.
+```json
+{
+  "action": "EXECUTE",
+  "number": 12,
+  "requested_by": "tarek-saad-dev",
+  "request_id": "issue-12-execute-1"
+}
+```
 
-`DEV_ACTION: EXECUTE`
-- read the issue and repository rules
-- create one task branch from current `main`
-- implement only the issue scope
-- run targeted tests and required verification
-- open/update one PR against `main`
-- report evidence
-- never merge
-- never deploy production
+Allowed actions:
 
-`DEV_ACTION: STATUS`
-- inspect the issue and linked PR
-- report status only
-- do not change code
+- `EXECUTE`
+- `REVIEW`
+- `FIX_FINDINGS`
 
-### PR Review Gate — independent reviewer
+The workflow checks out its executable control script from trusted `main`, not from the command branch.
 
-Triggered when a PR is opened and when new commits are pushed.
+Exact owner comments using `DEV_ACTION: EXECUTE|REVIEW|FIX_FINDINGS` remain a fallback.
 
-It:
-- reviews the actual diff and issue scope
-- checks tests/evidence and production-data safety
-- reports `PASS` or `CHANGES_REQUIRED`
-- never edits code
-- never pushes
-- never merges
-- never deploys
+## Public repository security
 
-### Fix Agent
+The self-hosted runner must never execute arbitrary fork PR code.
 
-Triggered by a top-level PR comment:
+The workflow enforces:
 
-`DEV_ACTION: FIX_FINDINGS`
+- command actor must be `tarek-saad-dev`
+- EXECUTE only on issues authored by `tarek-saad-dev`
+- REVIEW/FIX only on same-repository `codex/issue-*` PR branches
+- PR base must be `main`
+- self-hosted checkout uses `persist-credentials: false`
+- Codex child process has GitHub/ACTIONS write-capable tokens removed from its environment
+- GitHub mutation occurs only from a GitHub-hosted finalizer
+- no automatic merge
+- no production dispatch
 
-It:
-- fixes only the latest material review findings
-- works on the same task branch
-- reruns targeted verification
-- pushes the fix
-- lets the Review Gate review the new commit
-- never merges or deploys
+## Verification gate
 
-## Lifecycle
+The control script uses:
 
-`PLANNED -> BUILDING -> REVIEW -> FIXING -> REVIEW -> READY_FOR_TAREK -> MERGED`
+- `npm ci`
+- `npm test` when defined
+- `npm run typecheck` when defined
+- `npm run build` when defined
 
-### READY_FOR_TAREK
+CUT Client currently has tests/build but no dedicated `typecheck` script, so the generic runner records `TYPECHECK=SKIP` rather than inventing a new project command.
 
-Use this state only when all are true:
+Mutation flows must use tests/mocks/fixtures. Never prove a frontend change by creating/cancelling/rescheduling a real production booking.
 
-- requested scope is complete
-- targeted tests pass, or pre-existing failures are clearly identified
-- `npm run build` passes when relevant
-- runtime/browser smoke passes when relevant
-- no production business-data mutation was used as a test shortcut
-- latest independent review has no material findings
-- PR is open against `main`
-- the current PR head is safe to deploy immediately
+## Review output
+
+```text
+CODEX_REVIEW
+
+REVIEW_STATUS: PASS | CHANGES_REQUIRED
+
+MATERIAL_FINDINGS:
+- ...
+
+NON_BLOCKING_NOTES:
+- ...
+
+TEST_EVIDENCE:
+...
+
+STATE: REVIEW | READY_FOR_TAREK
+NEXT_ACTION: ...
+```
+
+`READY_FOR_TAREK` is valid only for the exact reviewed head and only when that head is safe to merge/deploy immediately.
+
+## Fail-closed behavior
+
+The control plane stops without code publication when it detects:
+
+- `USAGE_LIMIT`
+- `AUTH`
+- `SANDBOX`
+- forbidden environment/secrets-file changes
+- other Codex execution errors
+
+For builder/fix failures, partial workspace edits are discarded before publication.
 
 ## Production approval
 
-Current deployment semantics:
-
-```
-Tarek says "اعتمد" in ChatGPT
-        ↓
-ChatGPT re-checks current PR head + latest review
-        ↓
-ChatGPT merges the PR
-        ↓
-push to main
-        ↓
-.github/workflows/deploy-vps.yml
-        ↓
-production deploy to cutsaloon.com
-        ↓
-ChatGPT reads GitHub Actions result
+```text
+Tarek: "اعتمد"
+→ ChatGPT re-checks exact PR head + latest review
+→ ChatGPT merges
+→ push to main
+→ deploy-vps.yml
+→ production deployment
+→ health check
+→ ChatGPT reports result
 ```
 
-Cursor agents must never perform the merge.
-
-## Status format
-
-Before merge:
-
-```
-STATE: PLANNED / BUILDING / REVIEW / FIXING / READY_FOR_TAREK
-CURRENT_PR:
-HEAD_SHA:
-TESTS:
-BUILD:
-SMOKE:
-REVIEW_STATUS:
-BLOCKERS:
-NEXT_ACTION:
-```
-
-After merge:
-
-```
-STATE: MERGED
-MERGE_SHA:
-PRODUCTION_DEPLOY: SUCCESS / FAILURE / IN_PROGRESS / UNKNOWN
-PRODUCTION_RUN:
-```
-
-## Testing policy
-
-Normal default:
-
-1. targeted Vitest tests around changed behavior
-2. `npm run build` for production-impacting changes
-3. local browser/runtime smoke for changed UI flows
-
-Because the app points at Casher APIs, mutation flows must use mocks or non-production-safe fixtures. Never create/cancel/reschedule a real customer booking simply to prove a frontend change.
-
-## Future preview phase
-
-A later task may introduce a dev/preview deployment before production approval. Until then, human approval in ChatGPT authorizes merge directly to production.
+A control-plane run can never authorize production deployment by itself.

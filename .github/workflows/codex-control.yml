@@ -1,0 +1,149 @@
+name: CUT Client Codex Control
+
+on:
+  push:
+    branches:
+      - codex-control
+  issue_comment:
+    types:
+      - created
+
+permissions:
+  contents: read
+  issues: read
+  pull-requests: read
+
+jobs:
+  authorize:
+    if: github.event_name == 'issue_comment' || (github.event_name == 'push' && github.ref_name == 'codex-control')
+    runs-on: ubuntu-latest
+    outputs:
+      allowed: ${{ steps.authorize.outputs.allowed }}
+      action: ${{ steps.authorize.outputs.action }}
+      target_sha: ${{ steps.authorize.outputs.target_sha }}
+      target_ref: ${{ steps.authorize.outputs.target_ref }}
+      issue_title: ${{ steps.authorize.outputs.issue_title }}
+      target_number: ${{ steps.authorize.outputs.target_number }}
+    steps:
+      - name: Checkout trusted control plane
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: false
+
+      - name: Authorize command
+        id: authorize
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          ACTOR: ${{ github.actor }}
+          BODY: ${{ github.event.comment.body }}
+          NUMBER: ${{ github.event.issue.number }}
+          PR_URL: ${{ github.event.issue.pull_request.url }}
+          EVENT_NAME: ${{ github.event_name }}
+          CONTROL_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          if [[ "$EVENT_NAME" == "issue_comment" ]]; then
+            bash ./.github/scripts/codex-control.sh authorize
+          else
+            gh api "repos/$REPO/contents/.github/codex-command.json?ref=$CONTROL_SHA"               --jq '.content' | tr -d '\n' | base64 -d > /tmp/codex-command.json
+            COMMAND_FILE=/tmp/codex-command.json               bash ./.github/scripts/codex-control.sh authorize-control
+          fi
+
+      - name: Upload authorized context
+        if: steps.authorize.outputs.allowed == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: control-context
+          path: control-context/
+          if-no-files-found: error
+          retention-days: 1
+
+  codex:
+    needs: authorize
+    if: needs.authorize.outputs.allowed == 'true'
+    runs-on:
+      - self-hosted
+      - codex
+      - cut-client
+    timeout-minutes: 60
+    steps:
+      - name: Checkout exact authorized target
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.authorize.outputs.target_sha }}
+          fetch-depth: 0
+          persist-credentials: false
+          clean: true
+
+      - name: Download authorized context
+        uses: actions/download-artifact@v4
+        with:
+          name: control-context
+          path: ${{ runner.temp }}/control-context
+
+      - name: Load trusted control script
+        run: |
+          git fetch origin main --no-tags
+          git show origin/main:.github/scripts/codex-control.sh > "$RUNNER_TEMP/codex-control.sh"
+          chmod 700 "$RUNNER_TEMP/codex-control.sh"
+
+      - name: Run Codex safely
+        env:
+          CONTROL_ACTION: ${{ needs.authorize.outputs.action }}
+          CONTROL_CONTEXT_DIR: ${{ runner.temp }}/control-context
+          CODEX_OUTPUT_DIR: ${{ runner.temp }}/codex-output
+        run: |
+          "$RUNNER_TEMP/codex-control.sh" run
+
+      - name: Upload Codex result
+        uses: actions/upload-artifact@v4
+        with:
+          name: codex-output
+          path: ${{ runner.temp }}/codex-output/
+          if-no-files-found: error
+          retention-days: 1
+
+  finalize:
+    needs:
+      - authorize
+      - codex
+    if: needs.authorize.outputs.allowed == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: write
+      issues: write
+      pull-requests: write
+    steps:
+      - name: Checkout exact target
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.authorize.outputs.target_sha }}
+          fetch-depth: 0
+
+      - name: Load trusted control script
+        run: |
+          git fetch origin main --no-tags
+          git show origin/main:.github/scripts/codex-control.sh > "$RUNNER_TEMP/codex-control.sh"
+          chmod 700 "$RUNNER_TEMP/codex-control.sh"
+
+      - name: Download Codex result
+        uses: actions/download-artifact@v4
+        with:
+          name: codex-output
+          path: ${{ runner.temp }}/codex-output
+
+      - name: Publish result
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          NUMBER: ${{ needs.authorize.outputs.target_number }}
+          CONTROL_ACTION: ${{ needs.authorize.outputs.action }}
+          TARGET_SHA: ${{ needs.authorize.outputs.target_sha }}
+          TARGET_REF: ${{ needs.authorize.outputs.target_ref }}
+          ISSUE_TITLE: ${{ needs.authorize.outputs.issue_title }}
+          CODEX_OUTPUT_DIR: ${{ runner.temp }}/codex-output
+        run: |
+          "$RUNNER_TEMP/codex-control.sh" finalize

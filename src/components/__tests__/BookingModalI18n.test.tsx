@@ -90,6 +90,12 @@ vi.mock("@/context/BranchContext", () => ({
   BranchProvider: ({ children }: { children: ReactNode }) => children,
 }));
 
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({
+    push: vi.fn(),
+  }),
+}));
+
 vi.mock("@/components/ConfettiBurst", () => ({
   default: () => null,
 }));
@@ -129,13 +135,16 @@ describe("BookingModalI18n", () => {
       ),
     );
 
+    const englishHeader = bookingCatalog.header.bookWith.en.replace("{name}", "Ahmed");
     await waitFor(() => {
-      expect(screen.getByText(bookingCatalog.service.title.en)).toBeTruthy();
+      expect(screen.getAllByText(englishHeader).length).toBeGreaterThan(0);
     });
     expect(
-      screen.getAllByText(bookingCatalog.header.bookWith.en.replace("{name}", "Ahmed")).length,
-    ).toBeGreaterThan(0);
-    expect(screen.queryByText(bookingCatalog.service.title.ar)).toBeNull();
+      screen.getByRole("button", { name: bookingCatalog.header.closeAria.en }),
+    ).toBeTruthy();
+    expect(
+      screen.queryByText(bookingCatalog.header.bookWith.ar.replace("{name}", "Ahmed")),
+    ).toBeNull();
     expect(document.querySelector('[dir="ltr"][lang="en"]')).toBeTruthy();
   });
 
@@ -188,20 +197,22 @@ describe("BookingModalI18n", () => {
       ),
     );
 
+    const englishHeader = bookingCatalog.header.bookWith.en.replace("{name}", "Mahmoud");
+    const arabicHeader = bookingCatalog.header.bookWith.ar.replace("{name}", "Mahmoud");
+
     await waitFor(() => {
-      expect(screen.getByText(bookingCatalog.service.title.en)).toBeTruthy();
+      expect(screen.getAllByText(englishHeader).length).toBeGreaterThan(0);
     });
     expect(document.querySelector('[dir="ltr"][lang="en"]')).toBeTruthy();
 
     screen.getByRole("button", { name: "toggle-lang", hidden: true }).click();
 
     await waitFor(() => {
-      expect(screen.getByText(bookingCatalog.service.title.ar)).toBeTruthy();
+      expect(screen.getAllByText(arabicHeader).length).toBeGreaterThan(0);
     });
     expect(document.querySelector('[dir="rtl"][lang="ar"]')).toBeTruthy();
     expect(
       screen.getByRole("button", { name: bookingCatalog.header.closeAria.ar }),
     ).toBeTruthy();
-    expect(screen.getByText(bookingCatalog.service.title.ar)).toBeTruthy();
   });
 });
