@@ -1,83 +1,110 @@
-# Install This Control Plane on Another Project
+# Install the Codex Control Plane on Another Repository
 
-The minimal model is intentionally small.
+This is the reusable onboarding sequence proven first on Zalina and then adapted for CUT Client.
 
-## One-time setup
+## Shared VPS prerequisites
 
-1. Add an `AGENTS.md` describing:
-   - project commands
-   - test/build/runtime rules
-   - production/staging safety
-   - what merge means for deployment
+One VPS may host multiple repository-level GitHub runner instances under the same Linux user, for example `codex-agent`.
 
-2. Add a short control-plane document defining:
-   - lifecycle
-   - READY_FOR_TAREK gate
-   - human production approval
-   - status format
+Shared once per VPS:
 
-3. Create one Cursor Cloud Environment for the repository.
-   - Install dependencies with the project's normal package-manager command.
-   - Add only the runtime secrets required for safe development/testing.
-   - Do not add production mutation credentials unless the workflow explicitly needs them and has a safe gate.
+- Codex CLI installed
+- `codex login` completed under `codex-agent`
+- bubblewrap/AppArmor working for Codex sandboxing
+- Node/runtime tooling required by the projects
 
-4. Create three Cursor automations:
-   - Command Router
-   - PR Review Gate
-   - Fix Agent
+Do not share one repository-level runner registration across repositories. Create a separate runner instance/working directory per repository.
 
-5. Use GitHub issue = task scope and PR = implementation/review evidence.
+Example layout:
 
-## Generic commands
+```text
+/home/codex-agent/runners/
+  zalina/
+  cut-client/
+  drvowa/
+  whatsapp-bot/
+  casher/
+```
 
-For repositories other than legacy DRVO/Casher control planes:
+## Repository files
 
-- `DEV_ACTION: EXECUTE`
-- `DEV_ACTION: STATUS`
-- `DEV_ACTION: FIX_FINDINGS`
+Every project gets:
 
-These commands are primarily machine-to-machine controls. Tarek can normally speak to ChatGPT in natural language.
+```text
+AGENTS.md
+docs/agent-control-plane/CONTROL-PLANE.md
+docs/agent-control-plane/GOLDEN-TEMPLATE.md
+.github/scripts/codex-control.sh
+.github/workflows/codex-control.yml
+```
 
-## Daily operation
+Keep the production deployment workflow separate when possible.
 
-Example:
+## Repository-specific configuration
 
-Tarek:
-`ظبط عرض الخدمات في الموبايل وخلي الأكثر طلبًا أوضح`
+Adapt only:
 
-ChatGPT:
-- creates a scoped issue
-- posts `DEV_ACTION: EXECUTE`
-- watches the PR/review loop
+- repository name
+- package manager/install command
+- test/typecheck/build commands
+- runner label
+- production-data guardrails
+- merge/deploy semantics
+- optional migration control plane for projects with databases
 
-Tarek:
-`شوف`
+## Runner labels
 
-ChatGPT:
-- inspects current issue/PR/review state
-- triggers a safe non-production next action when already authorized, such as `FIX_FINDINGS`
+Use:
 
-When ready, ChatGPT says the release is ready and asks for approval.
+```text
+self-hosted
+codex
+<repo-label>
+```
 
-Tarek:
-`اعتمد`
+Examples:
 
-ChatGPT:
-- rechecks the current PR head and latest review
-- merges through GitHub
-- monitors the deployment triggered by the repository's configured production workflow
-- reports success/failure
+- `zalina`
+- `cut-client`
+- `drvowa`
+- `whatsapp-bot`
+- `casher`
 
-## Deployment models
+## Command branch
 
-A project can use either:
+After the control-plane PR is merged, create `codex-control` from the trusted current `main`.
 
-### Merge -> Production
+ChatGPT writes `.github/codex-command.json` on that branch. A push to this branch must never deploy production.
 
-Human approval in ChatGPT authorizes merge, and main deploys production automatically.
+## Smoke test
 
-### Preview -> Production
+First task on every newly onboarded repo should be a docs-only issue.
 
-A future/advanced setup may deploy the PR to preview first. Human approval then promotes/merges to production.
+Acceptance:
 
-The operator flow in ChatGPT stays the same either way.
+- ChatGPT command reaches GitHub Actions
+- authorization passes
+- correct self-hosted runner picks up the job
+- Codex edits only the requested smoke file
+- repository verification runs
+- GitHub-hosted finalizer publishes branch/PR
+- independent Codex review reaches PASS
+- no production deployment occurs before explicit approval
+
+## Database projects
+
+If the project owns a production database, add a separate migration control plane rather than giving Codex production DB credentials.
+
+Pattern:
+
+```text
+migration code
+→ read-only production PLAN
+→ exact SHA + manifest/checksum + pending set
+→ explicit Tarek migration approval
+→ trusted non-AI APPLY executor
+→ post-verify
+→ separate application merge approval
+```
+
+Migration approval and application merge approval must remain separate.
