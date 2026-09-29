@@ -70,8 +70,9 @@ Cursor agents never merge. ChatGPT may merge only after explicit approval from T
 
 - Install with npm and `package-lock.json` (`npm ci`). `bun.lock` and `bun.lockb` are not the install path.
 - Next.js requires Node `^20.19.0 || ^22.12.0 || >=24`. The default Cloud Agent image's Node 22 is enough; no custom image is required.
-- If `.env` is missing, copy `.env.example`. It only sets public Casher API base URLs (`https://casher-five.vercel.app`), not secrets.
-- Dev server: `npm run dev -- --hostname 0.0.0.0 --port 3000`.
+- `.env.example` still names `https://casher-five.vercel.app`. That host currently returns Vercel `DEPLOYMENT_NOT_FOUND`. Copy `.env.example` to `.env` when `.env` is missing, then point local dev at the read-only proxy below. Those files are public API bases, not secrets.
+- `scripts/cloud-readonly-api-proxy.mjs` listens on `127.0.0.1:5500` and forwards GET/HEAD, plus availability POSTs, to `https://cutsaloon.com`. It returns 405 for booking create, cancel, plan, profile, and loyalty mutations. Environment install copies it to `~/.cut-salon/readonly-api-proxy.mjs` and writes `.env.development.local` with `NEXT_PUBLIC_BOOKING_API_BASE_URL=http://localhost:5500` (and the same value for `NEXT_PUBLIC_API_BASE_URL` and `NEXT_PUBLIC_CASHER_API_BASE_URL`).
+- Dev server: `npm run dev -- --hostname 0.0.0.0 --port 3000`. Restart it after changing `NEXT_PUBLIC_*` env files.
 - `npm run build` typechecks and produces the production bundle. `npm run lint` (`next lint`) fails on Next.js 16 because that subcommand was removed (`Invalid project directory provided, no such directory: .../lint`). Treat that as a pre-existing script issue.
 - `npm test` is Vitest. `src/components/__tests__/BookingModalI18n.test.tsx` currently has two pre-existing failures (`invariant expected app router to be mounted`). Separate those from new regressions.
-- Browser smoke may open `/`, `/book`, and `/prices`. Do not submit, confirm, cancel, or reschedule a booking.
+- Browser smoke may open `/`, `/book`, and `/prices`, including choosing a branch. Do not submit, confirm, cancel, or reschedule a booking. Do not bypass the read-only proxy.
