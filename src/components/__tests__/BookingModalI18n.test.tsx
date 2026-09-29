@@ -90,6 +90,12 @@ vi.mock("@/context/BranchContext", () => ({
   BranchProvider: ({ children }: { children: ReactNode }) => children,
 }));
 
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({
+    push: vi.fn(),
+  }),
+}));
+
 vi.mock("@/components/ConfettiBurst", () => ({
   default: () => null,
 }));
