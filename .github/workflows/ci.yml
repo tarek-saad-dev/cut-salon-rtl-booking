@@ -29,7 +29,9 @@ jobs:
         run: npm test
 
       - name: Build
+        if: always()
         run: npm run build
 
       - name: Validate Codex control script syntax
+        if: always()
         run: bash -n .github/scripts/codex-control.sh
