@@ -65,3 +65,13 @@ Cursor automations use:
 Tarek does not need to type these commands in normal use. ChatGPT is the operator console and may translate natural-language requests such as “ابدأ”, “شوف”, “صلح المشاكل”, and “اعتمد” into the appropriate GitHub actions.
 
 Cursor agents never merge. ChatGPT may merge only after explicit approval from Tarek in chat.
+
+## Cursor Cloud specific instructions
+
+- Install with npm and `package-lock.json` (`npm ci`). `bun.lock` and `bun.lockb` are not the install path.
+- Next.js requires Node `^20.19.0 || ^22.12.0 || >=24`. The default Cloud Agent image's Node 22 is enough; no custom image is required.
+- If `.env` is missing, copy `.env.example`. It only sets public Casher API base URLs (`https://casher-five.vercel.app`), not secrets.
+- Dev server: `npm run dev -- --hostname 0.0.0.0 --port 3000`.
+- `npm run build` typechecks and produces the production bundle. `npm run lint` (`next lint`) fails on Next.js 16 because that subcommand was removed (`Invalid project directory provided, no such directory: .../lint`). Treat that as a pre-existing script issue.
+- `npm test` is Vitest. `src/components/__tests__/BookingModalI18n.test.tsx` currently has two pre-existing failures (`invariant expected app router to be mounted`). Separate those from new regressions.
+- Browser smoke may open `/`, `/book`, and `/prices`. Do not submit, confirm, cancel, or reschedule a booking.
