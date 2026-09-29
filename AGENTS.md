@@ -65,3 +65,12 @@ Cursor automations use:
 Tarek does not need to type these commands in normal use. ChatGPT is the operator console and may translate natural-language requests such as “ابدأ”, “شوف”, “صلح المشاكل”, and “اعتمد” into the appropriate GitHub actions.
 
 Cursor agents never merge. ChatGPT may merge only after explicit approval from Tarek in chat.
+
+## Cursor Cloud specific instructions
+
+- Install: `npm ci` using `package-lock.json`. `bun.lock` and `bun.lockb` are not the install path.
+- If `.env` is missing, copy `.env.example`. It only contains public API base URLs, not secrets.
+- Start: `npm run dev -- --hostname 0.0.0.0 --port 3000`.
+- `npm test` is Vitest. `src/components/__tests__/BookingModalI18n.test.tsx` currently has two pre-existing failures (`invariant expected app router to be mounted`). Separate those from new regressions.
+- `npm run lint` (`next lint`) fails on Next.js 16 because that subcommand was removed. Treat that as a pre-existing script issue. `npm run build` typechecks.
+- Browser smoke may open `/` and `/book`. Do not submit, confirm, cancel, or reschedule a booking.
