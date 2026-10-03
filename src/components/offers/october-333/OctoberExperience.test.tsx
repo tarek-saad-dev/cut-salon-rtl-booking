@@ -183,15 +183,39 @@ describe("October cinematic experience", () => {
     }
   });
 
-  it("tells each service as its own chapter", () => {
+  it("titles each service chapter in English with its Arabic name underneath, and no slogan", () => {
     render(<OctoberExperience />);
-    for (const title of ["HAIR CUT", "BEARD", "OIL BATH", "CLASSIC SKIN CARE"]) {
-      expect(screen.getByText(title, { selector: "h2" })).toBeInTheDocument();
+    const services = [
+      ["HAIR CUT", "قص الشعر"],
+      ["BEARD", "تحديد وتهذيب الذقن"],
+      ["OIL BATH", "حمام زيت"],
+      ["CLASSIC SKIN CARE", "تنظيف البشرة الكلاسيكي"],
+    ] as const;
+    for (const [title, arabic] of services) {
+      const heading = screen.getByText(title, { selector: "h2" });
+      const copy = heading.closest("div")!.parentElement!;
+      const name = within(copy).getByText(arabic, { selector: "p" });
+      expect(name).toHaveAttribute("lang", "ar");
+      expect(heading.compareDocumentPosition(name) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+      expect(copy.querySelectorAll("p")).toHaveLength(1);
     }
-    expect(screen.getByText("البداية من القصّة.")).toBeInTheDocument();
-    expect(screen.getByText("التفاصيل هي اللي بتفرق.")).toBeInTheDocument();
-    expect(screen.getByText("راحة. عناية. بداية جديدة.")).toBeInTheDocument();
-    expect(screen.getByText("والنهاية… Clean.")).toBeInTheDocument();
+    for (const slogan of ["البداية من القصّة.", "التفاصيل هي اللي بتفرق.", "راحة. عناية. بداية جديدة.", "والنهاية… Clean."]) {
+      expect(screen.queryByText(slogan)).not.toBeInTheDocument();
+    }
+  });
+
+  it("names the services the same way in the reduced-motion story", () => {
+    const matchMedia = window.matchMedia;
+    window.matchMedia = ((query: string) => ({ ...matchMedia(query), matches: query.includes("reduce") })) as typeof window.matchMedia;
+    try {
+      render(<OctoberExperience />);
+      for (const arabic of ["قص الشعر", "تحديد وتهذيب الذقن", "حمام زيت", "تنظيف البشرة الكلاسيكي"]) {
+        expect(screen.getByText(arabic, { selector: "p" })).toHaveAttribute("lang", "ar");
+      }
+      expect(screen.queryByText("البداية من القصّة.")).not.toBeInTheDocument();
+    } finally {
+      window.matchMedia = matchMedia;
+    }
   });
 
   it("reveals 333 against the 670 original value", () => {

@@ -778,21 +778,21 @@
   text-align: right;
 }
 
-.sceneLine {
-  margin: 20px 0 0;
-  color: var(--beige);
-  font-family: var(--font-display);
-  font-size: clamp(22px, 6.4vw, 40px);
-  line-height: 1.4;
+.sceneLabel {
+  margin: 16px 0 0;
+  color: rgba(241, 224, 196, 0.8);
+  font-family: var(--font-ui);
+  font-size: clamp(17px, 4.6vw, 28px);
+  font-weight: 500;
+  line-height: 1.5;
 }
 
 .tone-haircut { background: var(--ink); }
 .tone-beard { background: #070505; }
 .tone-oil-bath { background: #1d1006; }
-.tone-oil-bath .sceneLine { color: #f2cf92; }
+.tone-oil-bath .sceneLabel { color: rgba(242, 207, 146, 0.85); }
 .tone-oil-bath .sceneNumber { -webkit-text-stroke-color: rgba(242, 207, 146, 0.6); }
 .tone-skincare { background: #15130f; }
-.tone-skincare .sceneLine { color: var(--ivory); }
 
 /* Transition layers */
 

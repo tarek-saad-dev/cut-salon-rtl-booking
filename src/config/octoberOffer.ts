@@ -103,9 +103,8 @@ export interface OctoberScene {
   id: OctoberSceneId;
   number: string;
   title: string;
-  /** Arabic service name for screen readers and the progress indicator. */
+  /** Arabic service name: shown under the English title and read out in the progress indicator. */
   label: string;
-  line: string;
   video: string;
   poster: string;
   /** Signature cue, used when the reduced-motion page reaches the scene. */
@@ -134,7 +133,6 @@ export const OCTOBER_SCENES: readonly OctoberScene[] = [
     number: "01",
     title: "HAIR CUT",
     label: "قص الشعر",
-    line: "البداية من القصّة.",
     video: "haircut.mp4",
     poster: "haircut-poster.webp",
     sound: "clipper",
@@ -149,8 +147,7 @@ export const OCTOBER_SCENES: readonly OctoberScene[] = [
     id: "beard",
     number: "02",
     title: "BEARD",
-    label: "الذقن",
-    line: "التفاصيل هي اللي بتفرق.",
+    label: "تحديد وتهذيب الذقن",
     video: "beard.mp4",
     poster: "beard-poster.webp",
     sound: "razor",
@@ -165,8 +162,7 @@ export const OCTOBER_SCENES: readonly OctoberScene[] = [
     id: "oil-bath",
     number: "03",
     title: "OIL BATH",
-    label: "حمام الزيت",
-    line: "راحة. عناية. بداية جديدة.",
+    label: "حمام زيت",
     video: "oil-bath.mp4",
     poster: "oil-bath-poster.webp",
     sound: "drop",
@@ -181,8 +177,7 @@ export const OCTOBER_SCENES: readonly OctoberScene[] = [
     id: "skincare",
     number: "04",
     title: "CLASSIC SKIN CARE",
-    label: "العناية الكلاسيكية بالبشرة",
-    line: "والنهاية… Clean.",
+    label: "تنظيف البشرة الكلاسيكي",
     video: "skincare.mp4",
     poster: "skincare-poster.webp",
     sound: "steam",

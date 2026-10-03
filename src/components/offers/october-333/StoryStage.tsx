@@ -55,8 +55,8 @@ export function ServiceScene({ scene, zIndex, local, visibility, active, near, l
   const numberOpacity = useTransform(local, (l) => segment(l, textStart, textStart + 0.12));
   const numberX = useTransform(local, (l) => `${(1 - easeOut(segment(l, textStart, textStart + 0.22))) * 18 * depth}vw`);
   const titleY = useTransform(local, (l) => `${(1 - easeOut(segment(l, textStart + 0.04, textStart + 0.18))) * 110}%`);
-  const lineOpacity = useTransform(local, (l) => segment(l, textStart + 0.14, textStart + 0.26));
-  const lineY = useTransform(local, (l) => `${(1 - segment(l, textStart + 0.14, textStart + 0.3)) * 16 * depth}px`);
+  const labelOpacity = useTransform(local, (l) => segment(l, textStart + 0.14, textStart + 0.26));
+  const labelY = useTransform(local, (l) => `${(1 - segment(l, textStart + 0.14, textStart + 0.3)) * 16 * depth}px`);
 
   return (
     <motion.article className={styles.scene} style={{ zIndex, visibility }} aria-labelledby={`scene-${scene.id}`}>
@@ -85,8 +85,8 @@ export function ServiceScene({ scene, zIndex, local, visibility, active, near, l
               {scene.title}
             </motion.h2>
           </div>
-          <motion.p className={styles.sceneLine} style={{ opacity: lineOpacity, y: lineY }}>
-            {scene.line}
+          <motion.p className={styles.sceneLabel} lang="ar" style={{ opacity: labelOpacity, y: labelY }}>
+            {scene.label}
           </motion.p>
         </div>
       </motion.div>
@@ -210,7 +210,9 @@ function StaticScene({ scene, allowVideo, onEnter }: { scene: OctoberScene; allo
         <h2 id={`scene-${scene.id}`} className={styles.sceneTitle} dir="ltr" lang="en">
           {scene.title}
         </h2>
-        <p className={styles.sceneLine}>{scene.line}</p>
+        <p className={styles.sceneLabel} lang="ar">
+          {scene.label}
+        </p>
       </div>
     </motion.article>
   );
