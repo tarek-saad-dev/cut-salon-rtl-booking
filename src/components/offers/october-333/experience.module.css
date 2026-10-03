@@ -1,0 +1,1067 @@
+.experience {
+  --cut-campaign-bar-height: 0px;
+  --cut-mobile-nav-height: 0px;
+  --ink: #050505;
+  --espresso: #0f0c0b;
+  --ivory: #fcf9ed;
+  --beige: #d2b7a3;
+  --bronze: #a48879;
+  --gold: #e8c896;
+  --gold-deep: #a8783a;
+  --october: #8e1a29;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --scene-length: 190vh;
+  position: relative;
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow-x: clip;
+  background: var(--ink);
+  color: var(--ivory);
+  font-family: var(--font-ui);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.experience :is(a, button):focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 4px;
+}
+
+/* ───────── Top bar ───────── */
+
+.topBar {
+  position: fixed;
+  inset-inline: 0;
+  top: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: calc(var(--safe-top) + 12px) 18px 12px;
+  pointer-events: none;
+  background: linear-gradient(to bottom, rgba(5, 5, 5, 0.6), transparent);
+}
+
+.topBar > * {
+  pointer-events: auto;
+}
+
+.wordmark {
+  direction: ltr;
+  color: var(--ivory);
+  font-size: 18px;
+  font-weight: 900;
+  letter-spacing: 0.28em;
+  line-height: 1;
+  text-decoration: none;
+}
+
+.wordmark span {
+  display: block;
+  margin-top: 4px;
+  color: var(--bronze);
+  font-size: 7px;
+  letter-spacing: 0.62em;
+}
+
+.soundToggle {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid rgba(252, 249, 237, 0.22);
+  border-radius: 999px;
+  background: rgba(5, 5, 5, 0.4);
+  color: var(--ivory);
+  font-size: 16px;
+  cursor: pointer;
+  transition: border-color 0.3s ease;
+}
+
+.soundToggle[aria-pressed="true"] {
+  border-color: rgba(232, 200, 150, 0.6);
+}
+
+/* ───────── Scene 0 — entry ───────── */
+
+.intro {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding: calc(var(--safe-top) + 72px) 24px calc(var(--safe-bottom) + 72px);
+  overflow: hidden;
+  text-align: center;
+  background: radial-gradient(80% 60% at 50% 45%, #1a0d0c 0%, #080505 55%, var(--ink) 100%);
+}
+
+.introMedia {
+  position: absolute;
+  inset: 0;
+  opacity: 0.32;
+}
+
+.introSweep {
+  position: absolute;
+  inset: -20% -100%;
+  background: linear-gradient(
+    100deg,
+    transparent 42%,
+    rgba(232, 200, 150, 0.07) 48%,
+    rgba(142, 26, 41, 0.08) 52%,
+    transparent 58%
+  );
+  animation: sweep 8s cubic-bezier(0.65, 0, 0.35, 1) 1.4s infinite;
+  will-change: transform;
+}
+
+@keyframes sweep {
+  from { transform: translate3d(-35%, 0, 0); }
+  to { transform: translate3d(35%, 0, 0); }
+}
+
+.introInner {
+  position: relative;
+  max-width: 560px;
+}
+
+.introLogo {
+  margin: 0 0 44px;
+  padding-left: 0.42em;
+  color: var(--gold);
+  font-size: 15px;
+  font-weight: 900;
+  letter-spacing: 0.42em;
+}
+
+.introLine {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(24px, 6.6vw, 46px);
+  line-height: 1.55;
+}
+
+.introLine + .introLine {
+  margin-top: 12px;
+}
+
+.experience .introTitle {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  margin: 38px 0 0;
+  color: var(--gold);
+  font-family: var(--font-display);
+  font-size: clamp(18px, 5vw, 24px);
+  font-weight: 400;
+}
+
+.experience .introTitle::before,
+.experience .introTitle::after {
+  content: "";
+  width: 28px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--gold));
+}
+
+.experience .introTitle::after {
+  background: linear-gradient(90deg, var(--october), transparent);
+}
+
+.introActions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  margin-top: 44px;
+}
+
+.startButton {
+  position: relative;
+  min-height: 56px;
+  padding: 0 44px;
+  overflow: hidden;
+  border: 1px solid rgba(232, 200, 150, 0.6);
+  background: rgba(232, 200, 150, 0.06);
+  color: var(--ivory);
+  font-family: var(--font-ui);
+  font-size: 17px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.3s ease, border-color 0.3s ease;
+}
+
+.startButton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, transparent 30%, rgba(252, 249, 237, 0.18) 50%, transparent 70%);
+  transform: translate3d(-120%, 0, 0);
+  animation: shimmer 3.6s ease-in-out 4.6s infinite;
+}
+
+.startButton:hover {
+  background: rgba(232, 200, 150, 0.14);
+  border-color: var(--gold);
+}
+
+@keyframes shimmer {
+  0%, 60% { transform: translate3d(-120%, 0, 0); }
+  100% { transform: translate3d(120%, 0, 0); }
+}
+
+.introHint {
+  color: rgba(252, 249, 237, 0.55);
+  font-size: 12px;
+}
+
+.scrollCue {
+  position: absolute;
+  inset-inline: 0;
+  bottom: calc(var(--safe-bottom) + 20px);
+  display: flex;
+  justify-content: center;
+}
+
+.scrollCue span {
+  display: block;
+  width: 1px;
+  height: 44px;
+  background: linear-gradient(to bottom, transparent, var(--gold));
+  transform-origin: top;
+  animation: cue 2.4s ease-in-out infinite;
+}
+
+@keyframes cue {
+  0% { transform: scaleY(0); opacity: 1; }
+  70% { transform: scaleY(1); opacity: 1; }
+  100% { transform: scaleY(1); opacity: 0; }
+}
+
+/* ───────── Story stage (scenes 01–04) ───────── */
+
+.story {
+  position: relative;
+  height: calc(4 * var(--scene-length) + 100vh);
+}
+
+.stage {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  background: var(--ink);
+}
+
+.scene {
+  position: absolute;
+  inset: 0;
+}
+
+.sceneContent {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: var(--ink);
+}
+
+.mediaFrame {
+  position: absolute;
+  inset: 0;
+  will-change: transform;
+}
+
+.media {
+  position: absolute;
+  inset: 0;
+}
+
+.mediaFill {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.slotLabel {
+  position: absolute;
+  bottom: calc(var(--safe-bottom) + 10px);
+  left: 10px;
+  z-index: 1;
+  padding: 2px 6px;
+  border: 1px dashed rgba(252, 249, 237, 0.35);
+  color: rgba(252, 249, 237, 0.5);
+  font-family: ui-monospace, monospace;
+  font-size: 10px;
+}
+
+.sceneShade {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(to top, rgba(5, 5, 5, 0.9) 0%, rgba(5, 5, 5, 0.35) 42%, transparent 68%),
+    linear-gradient(to bottom, rgba(5, 5, 5, 0.55) 0%, transparent 22%);
+  pointer-events: none;
+}
+
+.sceneCopy {
+  position: absolute;
+  inset-inline: 24px;
+  bottom: calc(var(--safe-bottom) + 12vh);
+  text-align: right;
+}
+
+.sceneNumber {
+  display: block;
+  margin-bottom: -0.12em;
+  color: transparent;
+  font-family: var(--font-ui);
+  font-size: clamp(96px, 32vw, 240px);
+  font-weight: 200;
+  line-height: 0.8;
+  -webkit-text-stroke: 1px rgba(210, 183, 163, 0.55);
+}
+
+.titleMask {
+  overflow: hidden;
+  padding-bottom: 0.08em;
+}
+
+.experience .sceneTitle {
+  margin: 0;
+  color: var(--ivory);
+  font-family: var(--font-ui);
+  font-size: clamp(40px, 12.5vw, 120px);
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  line-height: 0.98;
+  text-align: right;
+}
+
+.sceneLine {
+  margin: 20px 0 0;
+  color: var(--beige);
+  font-family: var(--font-display);
+  font-size: clamp(22px, 6.4vw, 40px);
+  line-height: 1.4;
+}
+
+.tone-haircut { background: var(--ink); }
+.tone-beard { background: #070505; }
+.tone-oil-bath { background: #1d1006; }
+.tone-oil-bath .sceneLine { color: #f2cf92; }
+.tone-oil-bath .sceneNumber { -webkit-text-stroke-color: rgba(242, 207, 146, 0.6); }
+.tone-skincare { background: #15130f; }
+.tone-skincare .sceneLine { color: var(--ivory); }
+
+.darkness {
+  position: absolute;
+  inset: 0;
+  background: var(--ink);
+  pointer-events: none;
+}
+
+.stageFade {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  background: var(--ink);
+  pointer-events: none;
+}
+
+/* Transition layers */
+
+.clipperBlade {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -2px;
+  z-index: 3;
+  width: 3px;
+  background: linear-gradient(to bottom, transparent, #f4dcb0 18%, #fff 50%, #f4dcb0 82%, transparent);
+  box-shadow: 0 0 22px 5px rgba(232, 200, 150, 0.45), 0 0 90px 24px rgba(201, 164, 106, 0.16);
+  pointer-events: none;
+  will-change: transform;
+}
+
+.clipperTeeth {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 4px;
+  width: 12px;
+  background: repeating-linear-gradient(to bottom, rgba(244, 220, 176, 0.65) 0 2px, transparent 2px 7px);
+  opacity: 0.7;
+}
+
+.entryLayer {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.oilDrop {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 18px;
+  height: 26px;
+  margin-left: -9px;
+  border-radius: 50% 50% 50% 50% / 62% 62% 38% 38%;
+  background: radial-gradient(circle at 38% 34%, #fff0c8 0%, #e2a54a 45%, #6f400e 100%);
+  box-shadow: 0 0 22px rgba(240, 180, 90, 0.6);
+  will-change: transform;
+}
+
+.oilRipple {
+  position: absolute;
+  top: 56%;
+  left: 50%;
+  width: 40vmax;
+  height: 40vmax;
+  margin: -20vmax 0 0 -20vmax;
+  border: 1px solid rgba(240, 190, 110, 0.7);
+  border-radius: 50%;
+  will-change: transform, opacity;
+}
+
+.steam {
+  position: absolute;
+  inset: -60% 0 -10%;
+  z-index: 3;
+  pointer-events: none;
+  background: linear-gradient(to bottom, rgba(226, 216, 202, 0) 0%, rgba(226, 216, 202, 0.9) 22%, rgba(226, 216, 202, 0.94) 100%);
+  will-change: transform, opacity;
+}
+
+.steam span {
+  position: absolute;
+  width: 110vmax;
+  height: 110vmax;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(244, 235, 221, 0.95) 0%, rgba(244, 235, 221, 0.55) 35%, transparent 68%);
+}
+
+.steam span:nth-child(1) { left: -45vmax; bottom: -40vmax; }
+.steam span:nth-child(2) { right: -50vmax; bottom: -20vmax; }
+.steam span:nth-child(3) { left: -20vmax; top: -45vmax; opacity: 0.8; }
+
+/* Progress indicator */
+
+.progress {
+  position: absolute;
+  top: calc(var(--safe-top) + 74px);
+  left: 50%;
+  z-index: 11;
+  transform: translateX(-50%);
+}
+
+.progress ol {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  padding: 0 0 8px;
+  list-style: none;
+}
+
+.progress li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: rgba(252, 249, 237, 0.32);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  transition: color 0.5s ease;
+}
+
+.progress li + li::before {
+  content: "";
+  width: 18px;
+  height: 1px;
+  background: currentColor;
+  opacity: 0.6;
+}
+
+.progress .progressDone { color: rgba(210, 183, 163, 0.7); }
+.progress .progressActive { color: var(--gold); }
+
+.progressFill {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  height: 1px;
+  background: linear-gradient(to left, var(--gold), var(--october));
+  transform-origin: right;
+}
+
+/* Built-in scene art (until real media is uploaded) */
+
+.art {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.artHaircut {
+  background: radial-gradient(120% 80% at 80% 8%, #3a2618 0%, #120c09 45%, var(--ink) 80%);
+}
+
+.strands {
+  position: absolute;
+  inset: -20% -40%;
+  background: repeating-linear-gradient(
+    104deg,
+    transparent 0 9px,
+    rgba(210, 183, 163, 0.08) 9px 10px,
+    transparent 10px 23px,
+    rgba(252, 249, 237, 0.05) 23px 24px
+  );
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 50%, transparent 85%);
+  mask-image: linear-gradient(to bottom, #000 0%, #000 50%, transparent 85%);
+  will-change: transform;
+}
+
+.fade {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  height: 45%;
+  background: linear-gradient(to top, var(--ink), transparent);
+}
+
+.bladeLight {
+  position: absolute;
+  inset-inline: -10%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(244, 220, 176, 0.9) 30%, #fff 50%, rgba(244, 220, 176, 0.9) 70%, transparent);
+  box-shadow: 0 0 30px 6px rgba(232, 200, 150, 0.22);
+}
+
+.artBeard {
+  background: radial-gradient(90% 70% at 50% 35%, #1c1410 0%, #0a0706 55%, var(--ink) 100%);
+}
+
+.beardGlow {
+  position: absolute;
+  top: 34%;
+  left: 50%;
+  width: 120vmin;
+  height: 120vmin;
+  margin: -60vmin 0 0 -60vmin;
+  background: radial-gradient(circle, rgba(201, 164, 106, 0.28), transparent 60%);
+}
+
+.beardSvg {
+  position: absolute;
+  top: 34%;
+  left: 50%;
+  width: min(78vw, 460px);
+  transform: translate(-50%, -50%);
+}
+
+.symmetryAxis {
+  stroke: rgba(210, 183, 163, 0.16);
+  stroke-dasharray: 2 6;
+}
+
+.beardLine {
+  stroke: var(--gold);
+  stroke-width: 1.4;
+  stroke-linecap: round;
+}
+
+.artOil {
+  background: radial-gradient(100% 70% at 50% 40%, #6b3d12 0%, #2c1606 50%, #120802 100%);
+}
+
+.caustic,
+.causticAlt {
+  position: absolute;
+  inset: -30%;
+  will-change: transform;
+}
+
+.caustic {
+  background:
+    radial-gradient(30% 20% at 30% 40%, rgba(255, 196, 110, 0.32), transparent 70%),
+    radial-gradient(25% 18% at 70% 62%, rgba(255, 214, 150, 0.22), transparent 70%);
+}
+
+.causticAlt {
+  background: radial-gradient(22% 16% at 55% 30%, rgba(255, 230, 180, 0.2), transparent 70%);
+  animation: float 14s ease-in-out infinite alternate;
+}
+
+@keyframes float {
+  from { transform: translate3d(-6%, 4%, 0); }
+  to { transform: translate3d(6%, -4%, 0); }
+}
+
+.oilSheen {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(160deg, transparent 40%, rgba(255, 226, 170, 0.12) 50%, transparent 60%);
+}
+
+.artSkin {
+  background: radial-gradient(90% 70% at 50% 30%, #4a4036 0%, #221d18 55%, var(--espresso) 100%);
+}
+
+.mist {
+  position: absolute;
+  inset: -20%;
+  background:
+    radial-gradient(40% 30% at 30% 30%, rgba(244, 235, 221, 0.18), transparent 70%),
+    radial-gradient(35% 25% at 70% 55%, rgba(244, 235, 221, 0.12), transparent 70%);
+  will-change: transform;
+}
+
+.cleanLight {
+  position: absolute;
+  top: 18%;
+  left: 50%;
+  width: 70vmin;
+  height: 70vmin;
+  margin-left: -35vmin;
+  background: radial-gradient(circle, rgba(252, 249, 237, 0.2), transparent 65%);
+}
+
+/* Reduced-motion scenes */
+
+.staticScene {
+  position: relative;
+  height: 100vh;
+  height: 100dvh;
+  min-height: 540px;
+  overflow: hidden;
+}
+
+/* ───────── Price reveal ───────── */
+
+.reveal {
+  position: relative;
+  height: 360vh;
+  background: var(--ink);
+}
+
+.revealStage {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+}
+
+.revealFlash {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 62%, rgba(232, 200, 150, 0.5), rgba(142, 26, 41, 0.22) 40%, transparent 70%);
+  pointer-events: none;
+}
+
+.revealListAnchor {
+  position: absolute;
+  inset-inline: 0;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.revealList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  text-align: center;
+  will-change: transform;
+}
+
+.revealItem {
+  color: var(--ivory);
+  font-family: var(--font-ui);
+  font-size: clamp(20px, 6.2vw, 46px);
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  line-height: 1.7;
+}
+
+.revealValue {
+  position: absolute;
+  inset-inline: 0;
+  top: 30dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.revealOldLabel {
+  margin: 0;
+  color: var(--beige);
+  font-size: 13px;
+}
+
+.revealOld {
+  margin: 6px 0 0;
+  color: var(--ivory);
+  font-size: clamp(30px, 9vw, 56px);
+  font-weight: 600;
+}
+
+.revealOldText {
+  position: relative;
+  display: inline-block;
+  text-decoration: none;
+}
+
+.strike {
+  position: absolute;
+  inset-inline: -8%;
+  top: 52%;
+  height: 3px;
+  background: var(--october);
+  box-shadow: 0 0 12px rgba(142, 26, 41, 0.6);
+  transform-origin: right;
+}
+
+.revealPrice {
+  margin-top: 2dvh;
+  will-change: transform, opacity;
+}
+
+.experience .priceNumber {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 0;
+  color: transparent;
+  background: linear-gradient(180deg, #fff3d6 0%, var(--gold) 45%, var(--gold-deep) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  font-family: var(--font-ui);
+  font-size: clamp(110px, 37vw, 280px);
+  font-weight: 800;
+  line-height: 0.86;
+  letter-spacing: -0.03em;
+}
+
+.priceCurrency {
+  margin-top: 0.1em;
+  font-family: var(--font-display);
+  font-size: clamp(26px, 7vw, 46px);
+  font-weight: 400;
+  letter-spacing: 0;
+  line-height: 1.2;
+}
+
+.revealClosing {
+  margin-top: 2dvh;
+}
+
+.revealCampaign {
+  margin: 0;
+  color: var(--ivory);
+  font-family: var(--font-display);
+  font-size: clamp(22px, 6vw, 34px);
+}
+
+.revealTagline {
+  margin: 6px 0 0;
+  color: var(--beige);
+  font-size: 15px;
+}
+
+.revealStatic {
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 18vh 24px;
+  text-align: center;
+}
+
+.revealStatic .revealList {
+  margin-bottom: 32px;
+}
+
+.revealStatic .revealCampaign {
+  margin-top: 20px;
+}
+
+/* ───────── How it works ───────── */
+
+.how {
+  padding: 18vh 24px 12vh;
+  background: linear-gradient(to bottom, var(--ink), var(--espresso) 30%);
+}
+
+.how > * {
+  max-width: 640px;
+  margin-inline: auto;
+}
+
+.eyebrow {
+  margin-bottom: 18px;
+  color: var(--bronze);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.4em;
+  text-align: right;
+}
+
+.experience .howTitle {
+  margin-top: 0;
+  margin-bottom: 0;
+  font-family: var(--font-display);
+  font-size: clamp(34px, 10vw, 64px);
+  font-weight: 400;
+  line-height: 1.3;
+}
+
+.experience .howTitle time {
+  color: var(--gold);
+}
+
+.steps {
+  margin-top: 44px;
+  margin-bottom: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.steps li {
+  display: grid;
+  grid-template-columns: 52px 1fr;
+  align-items: baseline;
+  padding: 20px 0;
+  border-top: 1px solid rgba(164, 136, 121, 0.22);
+  font-size: clamp(18px, 5vw, 24px);
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.steps li:last-child {
+  border-bottom: 1px solid rgba(164, 136, 121, 0.22);
+}
+
+.stepNumber {
+  justify-self: start;
+  color: var(--gold);
+  font-size: 13px;
+  letter-spacing: 0.2em;
+}
+
+.howNote {
+  margin-top: 44px;
+  padding-inline-start: 18px;
+  border-inline-start: 2px solid var(--october);
+}
+
+.howNote p {
+  margin: 0;
+  color: var(--beige);
+  font-size: 15px;
+  line-height: 1.9;
+}
+
+.howNote .howNoteLead {
+  margin-bottom: 8px;
+  color: var(--ivory);
+  font-family: var(--font-display);
+  font-size: clamp(22px, 6vw, 32px);
+  line-height: 1.45;
+}
+
+.howFine {
+  margin-top: 36px;
+  color: rgba(252, 249, 237, 0.55);
+  font-size: 13px;
+  line-height: 1.8;
+}
+
+/* ───────── Branch CTA ───────── */
+
+.branches {
+  padding: 16vh 24px 12vh;
+  background: radial-gradient(90% 50% at 50% 0%, rgba(74, 0, 15, 0.45), transparent 70%), var(--ink);
+}
+
+.experience .branchesTitle {
+  margin: 0 auto 40px;
+  font-family: var(--font-display);
+  font-size: clamp(38px, 11vw, 72px);
+  font-weight: 400;
+  line-height: 1.3;
+  text-align: center;
+}
+
+.branchList {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 0;
+  list-style: none;
+}
+
+.branch {
+  padding: 30px 0;
+  border-top: 1px solid rgba(164, 136, 121, 0.25);
+}
+
+.branchTag {
+  margin: 0 0 8px;
+  color: var(--gold);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.experience .branchName {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(24px, 7vw, 34px);
+  font-weight: 400;
+  line-height: 1.4;
+}
+
+.branchAddress {
+  margin: 8px 0 0;
+  color: var(--beige);
+  font-size: 14px;
+  line-height: 1.8;
+}
+
+.branchActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+  margin-top: 14px;
+}
+
+.textButton {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--gold);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-color: rgba(232, 200, 150, 0.4);
+  text-underline-offset: 6px;
+}
+
+.finalActions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 420px;
+  margin: 48px auto 0;
+}
+
+.primaryButton,
+.secondaryButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  text-decoration: none;
+  font-family: var(--font-ui);
+}
+
+.primaryButton {
+  min-height: 56px;
+  background: linear-gradient(180deg, #f2dcb0, #d4ae72);
+  color: #120c09;
+  font-size: 17px;
+  font-weight: 700;
+  box-shadow: 0 12px 40px rgba(212, 174, 114, 0.22);
+}
+
+.secondaryButton {
+  min-height: 52px;
+  border: 1px solid rgba(232, 200, 150, 0.4);
+  color: var(--ivory);
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.footer {
+  padding: 28px 24px calc(var(--safe-bottom) + 28px);
+  border-top: 1px solid rgba(164, 136, 121, 0.15);
+  color: rgba(252, 249, 237, 0.5);
+  font-size: 12px;
+  line-height: 1.8;
+  text-align: center;
+}
+
+.footer p {
+  margin: 0;
+}
+
+/* ───────── Responsive ───────── */
+
+@media (max-height: 680px) {
+  .experience .priceNumber { font-size: clamp(88px, 28vw, 200px); }
+  .revealValue { top: 28dvh; }
+  .sceneCopy { bottom: calc(var(--safe-bottom) + 8vh); }
+}
+
+@media (min-width: 900px) {
+  .experience { --scene-length: 210vh; }
+
+  .topBar { padding-inline: 36px; }
+
+  .sceneCopy {
+    inset-inline: 10vw;
+    bottom: 14vh;
+  }
+
+  .progress {
+    top: 50%;
+    left: 36px;
+    transform: translateY(-50%);
+  }
+
+  .progress ol {
+    flex-direction: column;
+    gap: 12px;
+    padding: 0;
+  }
+
+  .progress li {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .progress li + li::before {
+    width: 1px;
+    height: 22px;
+  }
+
+  .progressFill { display: none; }
+
+  .branchList {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0 48px;
+  }
+
+  .finalActions {
+    flex-direction: row;
+    max-width: 640px;
+  }
+
+  .finalActions > * { flex: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .introSweep,
+  .causticAlt,
+  .scrollCue span,
+  .startButton::after {
+    animation: none;
+  }
+}

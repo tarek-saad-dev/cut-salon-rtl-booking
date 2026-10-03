@@ -1,4 +1,9 @@
 import type { Metadata } from "next";
-import { OctoberOfferSuccess } from "@/components/offers/october-333/OctoberOffer";
-export const metadata: Metadata = { title: "تأكيد عرض أكتوبر | CUT Salon", robots: { index: false, follow: false } };
-export default function Page() { return <OctoberOfferSuccess />; }
+import { redirect } from "next/navigation";
+
+export const metadata: Metadata = { robots: { index: false, follow: false } };
+
+/** Offers are activated in-branch; keep the legacy confirmation URL alive. */
+export default function Page() {
+  redirect("/offers/october-333");
+}

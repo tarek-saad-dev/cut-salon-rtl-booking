@@ -1,16 +1,61 @@
-# October 333 offer integration
+# October celebration experience (`/offers/october-333`)
 
-Issue #7 adds `/offers/october-333` and `/offers/october-333/success`. Existing booking remains at `/book`; a claim does not create a booking, and no payment integration is used.
+A mobile-first, scroll-driven cinematic story for **احتفال أكتوبر من CUT**. The route slug is historical; the campaign is the October celebration, and 333 EGP is only the final price reveal.
 
-The funnel is deliberately unavailable until a campaign backend is configured. Set `NEXT_PUBLIC_OCTOBER_OFFER_API_URL` at build time to the full campaign resource URL. This is public configuration, never a secret. No default production API endpoint is assumed.
+## Offer logic shown on the page
 
-Proposed adapter contract (requires backend agreement before enabling):
+- Starts 5 October 2026.
+- Four services: Hair Cut, Beard, Oil Bath, Classic Skin Care. Original value 670 EGP, offer price 333 EGP.
+- The customer visits a CUT branch, pays for and activates the offer there, then uses the services during October. They do not have to be used in the same visit.
+- No online payment, no online claim, no name/phone collection, no stock counter. The page only drives branch visits, directions and the existing `/book` flow (booking logic is untouched).
+- `/offers/october-333/success` (from the earlier claim flow) redirects to the experience so old links never 404.
 
-- `GET <resource>` returns `{ status: "active" | "ended", remainingClaims: number, terms: string, claimDeadline: ISO date string, redeemUntil: ISO date string }`. Remaining claims must be an integer from 0 to 100. Both dates are required and validated separately. The backend supplies the actual claim deadline, redemption expiry, and terms. Claims close at `claimDeadline` (including when it passes while the form is open); `redeemUntil` describes when a confirmed offer can be used. Both dates are displayed separately. Ended, zero stock, or a reached claim deadline renders the ended state at the same URL. HTTP 410 also ends the campaign.
-- `POST <resource>/claims` accepts `{ name, mobile, attribution }`. Mobile is normalized to an Egyptian local number. Attribution allowlist: `utm_source`, `utm_medium`, `utm_campaign`, `utm_content`, `utm_term`, `fbclid`.
-- Successful claims return `{ claimId: nonempty string, redeemUntil: ISO date string }`. The receipt expiry controls redemption validity on the success page independently of the closed claim period. Legacy `validUntil`-only payloads are rejected rather than guessing either deadline. HTTP 409/410 indicates exhausted/ended campaign. Other failures keep the customer on the form with a clear warning that confirmation was not received.
-- Backend must atomically enforce the first 100 valid claims, enforce `claimDeadline`, validate customer input and eligibility, and honor the `Idempotency-Key` header on retries (including after ambiguous network failures). The client retains the key for retries within the mounted form. Cross-origin endpoints must allow the site origin, GET/POST, Content-Type and Idempotency-Key. Requests omit cookies and time out after 10 seconds.
+## Structure
 
-Only the confirmed receipt is stored in session storage, without the customer's name or phone. Direct visits to success without a receipt do not show confirmation. When storage is blocked, confirmation is shown inline. Customers are asked to save their confirmation number for later booking; the receipt is not a server-side authorization token.
+`Intro → 01 Hair Cut → 02 Beard → 03 Oil Bath → 04 Classic Skin Care → Price reveal → How it works → Branches`
 
-Verification must use mocks; never submit claims or bookings against production. The included API, funnel, and site chrome tests make no external requests. There is no invented deadline, countdown, video, or remaining-stock number. The explainer video is a labeled placeholder.
+| File | Role |
+| --- | --- |
+| `src/config/octoberOffer.ts` | Copy, prices, scenes, branches, media manifest, sound slots |
+| `src/components/offers/october-333/OctoberExperience.tsx` | Page composition, intro, sound toggle, how-it-works, branch CTA |
+| `src/components/offers/october-333/StoryStage.tsx` | One sticky stage for the four scenes, scene transitions, progress indicator, reduced-motion fallback |
+| `src/components/offers/october-333/PriceReveal.tsx` | Pinned 670 → 333 reveal (and static fallback) |
+| `src/components/offers/october-333/SceneMedia.tsx` | Lazy video/poster slot with graceful fallback |
+| `src/components/offers/october-333/SceneArt.tsx` | Built-in CSS/SVG art shown until real media exists |
+| `src/lib/offers/octoberSound.ts` | Web Audio sound manager |
+
+Motion uses the existing Framer Motion stack only (`useScroll`/`useTransform` driving transforms, opacity and `clip-path`). GSAP was not needed.
+
+Transitions: a clipper-blade light wipe (01 → 02), an oil drop that opens into a circular reveal (02 → 03), steam that fills and clears the frame (03 → 04), then a fade to black into the price reveal.
+
+## Adding media
+
+Drop files into `public/media/october-experience/`, then add each filename to `OCTOBER_AVAILABLE_MEDIA` in `src/config/octoberOffer.ts`. Files not listed are never requested, so missing assets cannot produce broken URLs.
+
+```
+public/media/october-experience/
+  intro.mp4
+  haircut.mp4      haircut-poster.webp
+  beard.mp4        beard-poster.webp
+  oil-bath.mp4     oil-bath-poster.webp
+  skincare.mp4     skincare-poster.webp
+  sounds/intro.mp3  sounds/clipper.mp3  sounds/transition.mp3
+  sounds/oil.mp3    sounds/steam.mp3    sounds/reveal.mp3
+```
+
+Video guidance: portrait-first (9:16 crop safe), H.264 MP4, muted, short seamless loops (6–10 s), ≤ 2–3 MB each, plus a WebP poster. Videos load only for the current and adjacent scenes, play only while on screen, and are skipped when the browser requests Save-Data. `oil.mp3` and `steam.mp3` loop as ambience; the others are one-shots.
+
+## Sound
+
+- Nothing is created or played before an explicit tap on **ابدأ التجربة** or the 🔊/🔇 toggle.
+- The toggle preference is kept in `sessionStorage` for the session; a returning opt-in still waits for a fresh tap before audio resumes.
+- One ambience and one one-shot at most at any time. Audio suspends when the tab is hidden and stops when leaving the page.
+- Until real sound files are added, quiet synthesized stand-ins play for each cue. Missing or failing files fall back silently; the experience is fully understandable muted.
+
+## Accessibility and performance
+
+- `prefers-reduced-motion`: scenes render as still, stacked screens with simple crossfades, and the price reveal is shown complete without pinning.
+- Low-capability devices (≤ 2 cores, ≤ 2 GB memory, or Save-Data) get reduced parallax depth.
+- Only transform, opacity and clip-path are animated; no blur filters. Viewport units use `100dvh` with safe-area insets.
+- The route adds `cut-cinematic-route` to `<html>` so `overflow-x: clip` replaces the global `overflow-x: hidden`, which would otherwise break `position: sticky`.
+- Site chrome (MainNav, GlobalMobileNav, Camp Caesar campaign) stays excluded on `/offers/*` via `SiteChrome`.
