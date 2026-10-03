@@ -113,6 +113,11 @@ export function createSoundManager(options: SoundManagerOptions = {}): SoundMana
     return t + attack + release;
   }
 
+  function ramp(param: AudioParam, start: number, points: readonly (readonly [number, number])[]) {
+    param.setValueAtTime(points[0][1], start + points[0][0]);
+    for (const [at, value] of points.slice(1)) param.linearRampToValueAtTime(value, start + at);
+  }
+
   function noiseSource(): AudioBufferSourceNode {
     const audio = ctx!;
     if (!noise) {
@@ -170,28 +175,53 @@ export function createSoundManager(options: SoundManagerOptions = {}): SoundMana
       return voiceOf([sub, click], out, end);
     }
 
-    if (slot === "intro") {
-      const low = audio.createOscillator();
-      const fifth = audio.createOscillator();
-      low.type = "sine";
-      fifth.type = "sine";
-      low.frequency.value = 55;
-      fifth.frequency.value = 82.4;
-      const toneGain = audio.createGain();
-      const end = envelope(toneGain, 0.22, 1.4, 1.8);
-      low.connect(toneGain);
-      fifth.connect(toneGain);
-      toneGain.connect(out);
-      const air = noiseSource();
-      const band = audio.createBiquadFilter();
-      band.type = "bandpass";
-      band.Q.value = 1.2;
-      band.frequency.setValueAtTime(300, now);
-      band.frequency.exponentialRampToValueAtTime(3200, now + 1.6);
-      const airGain = audio.createGain();
-      envelope(airGain, 0.05, 1.5, 1);
-      air.connect(band).connect(airGain).connect(out);
-      return voiceOf([low, fifth, air], out, end);
+    if (slot === "opening") {
+      // Radio static → distant rumble + soft swell → the rumble becomes a clipper buzz.
+      const staticNoise = noiseSource();
+      const radio = audio.createBiquadFilter();
+      radio.type = "bandpass";
+      radio.frequency.value = 1700;
+      radio.Q.value = 0.8;
+      const staticGain = audio.createGain();
+      ramp(staticGain.gain, now, [[0, 0], [1.2, 0.045], [3.6, 0.03], [5, 0]]);
+      staticNoise.connect(radio).connect(staticGain).connect(out);
+
+      const rumble = audio.createOscillator();
+      rumble.type = "sine";
+      rumble.frequency.value = 41;
+      const rumbleGain = audio.createGain();
+      ramp(rumbleGain.gain, now, [[0, 0], [2, 0.22], [4.2, 0.2], [5.6, 0]]);
+      rumble.connect(rumbleGain).connect(out);
+
+      const swell = audio.createOscillator();
+      swell.type = "triangle";
+      swell.frequency.value = 110;
+      const swellFifth = audio.createOscillator();
+      swellFifth.type = "triangle";
+      swellFifth.frequency.value = 164.8;
+      const warm = audio.createBiquadFilter();
+      warm.type = "lowpass";
+      warm.frequency.value = 800;
+      const swellGain = audio.createGain();
+      ramp(swellGain.gain, now, [[0, 0], [2, 0], [4, 0.05], [5.4, 0]]);
+      swell.connect(warm);
+      swellFifth.connect(warm);
+      warm.connect(swellGain).connect(out);
+
+      const buzz = audio.createOscillator();
+      buzz.type = "sawtooth";
+      buzz.frequency.setValueAtTime(41, now);
+      buzz.frequency.setValueAtTime(41, now + 4.2);
+      buzz.frequency.exponentialRampToValueAtTime(118, now + 5.6);
+      const buzzTone = audio.createBiquadFilter();
+      buzzTone.type = "bandpass";
+      buzzTone.frequency.value = 1400;
+      buzzTone.Q.value = 1.4;
+      const buzzGain = audio.createGain();
+      ramp(buzzGain.gain, now, [[0, 0], [4.2, 0], [5.6, 0.07], [6.2, 0.07]]);
+      buzz.connect(buzzTone).connect(buzzGain).connect(out);
+
+      return voiceOf([staticNoise, rumble, swell, swellFifth, buzz], out, now + 6.4);
     }
 
     const source = noiseSource();
@@ -205,19 +235,33 @@ export function createSoundManager(options: SoundManagerOptions = {}): SoundMana
       filter.type = "bandpass";
       filter.frequency.value = 3400;
       filter.Q.value = 3;
-      end = envelope(gain, 0.12, 0.05, 0.55);
-      const buzz = audio.createOscillator();
-      buzz.frequency.value = 58;
-      const depth = audio.createGain();
-      depth.gain.value = 0.06;
-      buzz.connect(depth).connect(gain.gain);
-      extra.push(buzz);
-    } else if (slot === "transition") {
+      end = envelope(gain, 0.08, 0.05, 1.6);
+      const motor = audio.createOscillator();
+      motor.type = "sawtooth";
+      motor.frequency.value = 118;
+      const motorTone = audio.createBiquadFilter();
+      motorTone.type = "bandpass";
+      motorTone.frequency.value = 1400;
+      motorTone.Q.value = 1.4;
+      const motorGain = audio.createGain();
+      ramp(motorGain.gain, now, [[0, 0.07], [1.2, 0.05], [1.7, 0]]);
+      motor.connect(motorTone).connect(motorGain).connect(out);
+      extra.push(motor);
+    } else if (slot === "razor") {
       filter.type = "bandpass";
       filter.Q.value = 1.4;
-      filter.frequency.setValueAtTime(380, now);
-      filter.frequency.exponentialRampToValueAtTime(4200, now + 0.55);
-      end = envelope(gain, 0.16, 0.28, 0.4);
+      filter.frequency.setValueAtTime(600, now);
+      filter.frequency.exponentialRampToValueAtTime(5200, now + 0.5);
+      end = envelope(gain, 0.12, 0.22, 0.35);
+      for (const [freq, at] of [[2350, 0.42], [3120, 0.46]] as const) {
+        const ping = audio.createOscillator();
+        ping.type = "sine";
+        ping.frequency.value = freq;
+        const pingGain = audio.createGain();
+        envelope(pingGain, 0.045, 0.004, 0.9, at);
+        ping.connect(pingGain).connect(out);
+        extra.push(ping);
+      }
     } else if (slot === "oil") {
       filter.type = "lowpass";
       filter.frequency.value = 500;

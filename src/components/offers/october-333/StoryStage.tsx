@@ -1,104 +1,49 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { motion, useMotionValue, useMotionValueEvent, useScroll, useTransform, type MotionValue } from "framer-motion";
+import { motion, useMotionValue, useTransform, type MotionValue } from "framer-motion";
 import { OCTOBER_SCENES, octoberMediaUrl, type OctoberScene } from "@/config/octoberOffer";
 import { SceneArt } from "./SceneArt";
 import { SceneMedia } from "./SceneMedia";
 import { easeInOut, easeOut, segment } from "./motion";
 import styles from "./experience.module.css";
 
-const COUNT = OCTOBER_SCENES.length;
-
-interface StoryStageProps {
-  lite: boolean;
-  allowVideo: boolean;
-  /** -1 before the story, 0..3 for a scene, COUNT after it. */
-  onSceneChange: (index: number) => void;
-}
-
-export function StoryStage({ lite, allowVideo, onSceneChange }: StoryStageProps) {
-  const ref = useRef<HTMLDivElement>(null);
-  const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end end"] });
-  const [active, setActive] = useState(-1);
-
-  useMotionValueEvent(scrollYProgress, "change", (value) => {
-    const next = value <= 0 ? -1 : value >= 1 ? COUNT : Math.min(COUNT - 1, Math.floor(value * COUNT));
-    setActive((previous) => (previous === next ? previous : next));
-  });
-
-  useEffect(() => onSceneChange(active), [active, onSceneChange]);
-
-  const focus = Math.min(COUNT - 1, Math.max(0, active));
-  const fadeOut = useTransform(scrollYProgress, (p) => segment(p * COUNT - (COUNT - 1), 0.84, 1));
-  const chromeOpacity = useTransform(fadeOut, (f) => 1 - f);
-
-  return (
-    <section id="october-story" ref={ref} className={styles.story} aria-label="أربع خدمات في تجربة واحدة">
-      <div className={styles.stage}>
-        {OCTOBER_SCENES.map((scene, index) => (
-          <Scene
-            key={scene.id}
-            scene={scene}
-            index={index}
-            progress={scrollYProgress}
-            active={active === index || (index === 0 && active === -1)}
-            near={Math.abs(index - focus) <= 1 && active < COUNT}
-            lite={lite}
-            allowVideo={allowVideo}
-          />
-        ))}
-        <motion.div className={styles.stageFade} style={{ opacity: fadeOut }} aria-hidden="true" />
-        <motion.div style={{ opacity: chromeOpacity }}>
-          <SceneProgress active={focus} progress={scrollYProgress} />
-        </motion.div>
-      </div>
-    </section>
-  );
-}
-
-interface SceneProps {
+interface ServiceSceneProps {
   scene: OctoberScene;
-  index: number;
-  progress: MotionValue<number>;
+  zIndex: number;
+  local: MotionValue<number>;
+  visibility: MotionValue<string>;
   active: boolean;
   near: boolean;
   lite: boolean;
   allowVideo: boolean;
 }
 
-function Scene({ scene, index, progress, active, near, lite, allowVideo }: SceneProps) {
-  const local = useTransform(progress, (p) => p * COUNT - index);
-  const last = index === COUNT - 1;
+export function ServiceScene({ scene, zIndex, local, visibility, active, near, lite, allowVideo }: ServiceSceneProps) {
   const depth = lite ? 0.4 : 1;
 
-  const visibility = useTransform(local, (l) => (l < -0.001 || l > (last ? 2 : 1.3) ? "hidden" : "visible"));
-
   const clipPath = useTransform(local, (l) => {
+    if (scene.id === "haircut") {
+      const e = easeInOut(segment(l, 0, 0.16));
+      return `inset(${(1 - e) * 50}% 0 ${(1 - e) * 50}% 0)`;
+    }
     if (scene.id === "beard") return `inset(0 0 0 ${(1 - easeInOut(segment(l, 0, 0.2))) * 100}%)`;
-    if (scene.id === "oil-bath") return `circle(${easeOut(segment(l, 0.08, 0.26)) * 150}% at 50% 56%)`;
+    if (scene.id === "oil-bath") return `circle(${easeOut(segment(l, 0.1, 0.28)) * 150}% at 50% 56%)`;
     return "inset(0 0 0 0)";
   });
-  const contentOpacity = useTransform(local, (l) => (scene.id === "skincare" ? segment(l, 0.08, 0.18) : 1));
-  const darkness = useTransform(local, (l) => (index === 0 ? 1 - segment(l, 0, 0.16) : 0));
+  const contentOpacity = useTransform(local, (l) => (scene.id === "skincare" ? segment(l, 0.1, 0.2) : 1));
 
-  const mediaScale = useTransform(local, (l) => 1 + (0.16 - segment(l, 0, 1) * 0.14) * depth);
+  const mediaScale = useTransform(local, (l) => 1 + (0.18 - segment(l, 0, 1) * 0.16) * depth);
   const mediaY = useTransform(local, (l) => `${(0.5 - segment(l, 0, 1)) * 8 * depth}%`);
 
-  const exit = (l: number) => 1 - segment(l, 0.82, 0.97);
-  const numberOpacity = useTransform(local, (l) => segment(l, 0.18, 0.3) * exit(l));
-  const numberX = useTransform(local, (l) => `${(1 - easeOut(segment(l, 0.18, 0.4))) * 18 * depth}vw`);
-  const titleY = useTransform(local, (l) => `${(1 - easeOut(segment(l, 0.24, 0.4))) * 110}%`);
-  const titleOpacity = useTransform(local, (l) => exit(l));
-  const lineOpacity = useTransform(local, (l) => segment(l, 0.36, 0.48) * exit(l));
-  const copyY = useTransform(local, (l) => `${(segment(l, 0.36, 0.5) * -1 - segment(l, 0.82, 0.97)) * 24 * depth}px`);
+  const textStart = scene.id === "skincare" ? 0.34 : scene.id === "oil-bath" ? 0.28 : 0.16;
+  const numberOpacity = useTransform(local, (l) => segment(l, textStart, textStart + 0.12));
+  const numberX = useTransform(local, (l) => `${(1 - easeOut(segment(l, textStart, textStart + 0.22))) * 18 * depth}vw`);
+  const titleY = useTransform(local, (l) => `${(1 - easeOut(segment(l, textStart + 0.04, textStart + 0.18))) * 110}%`);
+  const lineOpacity = useTransform(local, (l) => segment(l, textStart + 0.14, textStart + 0.26));
+  const lineY = useTransform(local, (l) => `${(1 - segment(l, textStart + 0.14, textStart + 0.3)) * 16 * depth}px`);
 
   return (
-    <motion.article
-      className={styles.scene}
-      style={{ zIndex: index + 1, visibility }}
-      aria-labelledby={`scene-${scene.id}`}
-    >
+    <motion.article className={styles.scene} style={{ zIndex, visibility }} aria-labelledby={`scene-${scene.id}`}>
       <motion.div className={`${styles.sceneContent} ${styles[`tone-${scene.id}`]}`} style={{ clipPath, opacity: contentOpacity }}>
         <motion.div className={styles.mediaFrame} style={{ scale: mediaScale, y: mediaY }}>
           <SceneMedia
@@ -118,15 +63,14 @@ function Scene({ scene, index, progress, active, near, lite, allowVideo }: Scene
             {scene.number}
           </motion.span>
           <div className={styles.titleMask}>
-            <motion.h2 id={`scene-${scene.id}`} className={styles.sceneTitle} dir="ltr" lang="en" style={{ y: titleY, opacity: titleOpacity }}>
+            <motion.h2 id={`scene-${scene.id}`} className={styles.sceneTitle} dir="ltr" lang="en" style={{ y: titleY }}>
               {scene.title}
             </motion.h2>
           </div>
-          <motion.p className={styles.sceneLine} style={{ opacity: lineOpacity, y: copyY }}>
+          <motion.p className={styles.sceneLine} style={{ opacity: lineOpacity, y: lineY }}>
             {scene.line}
           </motion.p>
         </div>
-        {index === 0 && <motion.div className={styles.darkness} style={{ opacity: darkness }} />}
       </motion.div>
 
       <SceneEntry scene={scene} local={local} />
@@ -136,17 +80,29 @@ function Scene({ scene, index, progress, active, near, lite, allowVideo }: Scene
 
 /** Unclipped transition layers drawn above the previous scene. */
 function SceneEntry({ scene, local }: { scene: OctoberScene; local: MotionValue<number> }) {
+  const splitTop = useTransform(local, (l) => `${(1 - easeInOut(segment(l, 0, 0.16))) * 50}%`);
+  const splitBottom = useTransform(local, (l) => `${50 + easeInOut(segment(l, 0, 0.16)) * 50}%`);
+  const splitOpacity = useTransform(local, (l) => (l > 0 && l < 0.17 ? 1 : 0));
+
   const bladeX = useTransform(local, (l) => `${(1 - easeInOut(segment(l, 0, 0.2))) * 100}vw`);
   const bladeOpacity = useTransform(local, (l) => (l > 0 && l < 0.2 ? 1 : 0));
 
-  const dropY = useTransform(local, (l) => `${-12 + easeInOut(segment(l, 0, 0.1)) * 66}dvh`);
-  const dropOpacity = useTransform(local, (l) => (l > 0 && l < 0.11 ? 1 : 0));
-  const rippleScale = useTransform(local, (l) => 0.2 + segment(l, 0.09, 0.24) * 3);
-  const rippleOpacity = useTransform(local, (l) => (l > 0.09 ? 0.7 * (1 - segment(l, 0.09, 0.24)) : 0));
+  const dropY = useTransform(local, (l) => `${-12 + easeInOut(segment(l, 0, 0.12)) * 66}dvh`);
+  const dropOpacity = useTransform(local, (l) => (l > 0 && l < 0.13 ? 1 : 0));
+  const rippleScale = useTransform(local, (l) => 0.2 + segment(l, 0.11, 0.28) * 3);
+  const rippleOpacity = useTransform(local, (l) => (l > 0.11 ? 0.7 * (1 - segment(l, 0.11, 0.28)) : 0));
 
-  const steamOpacity = useTransform(local, (l) => segment(l, 0, 0.12) * (1 - segment(l, 0.16, 0.32)));
-  const steamY = useTransform(local, (l) => `${(1 - segment(l, 0, 0.32)) * 20}%`);
+  const steamOpacity = useTransform(local, (l) => segment(l, 0, 0.14) * (1 - segment(l, 0.2, 0.38)));
+  const steamY = useTransform(local, (l) => `${(1 - segment(l, 0, 0.38)) * 20}%`);
 
+  if (scene.id === "haircut") {
+    return (
+      <div className={styles.entryLayer} aria-hidden="true">
+        <motion.span className={styles.splitLine} style={{ top: splitTop, opacity: splitOpacity }} />
+        <motion.span className={styles.splitLine} style={{ top: splitBottom, opacity: splitOpacity }} />
+      </div>
+    );
+  }
   if (scene.id === "beard") {
     return (
       <motion.div className={styles.clipperBlade} style={{ x: bladeX, opacity: bladeOpacity }} aria-hidden="true">
@@ -162,25 +118,27 @@ function SceneEntry({ scene, local }: { scene: OctoberScene; local: MotionValue<
       </div>
     );
   }
-  if (scene.id === "skincare") {
-    return (
-      <motion.div className={styles.steam} style={{ opacity: steamOpacity, y: steamY }} aria-hidden="true">
-        <span />
-        <span />
-        <span />
-      </motion.div>
-    );
-  }
-  return null;
+  return (
+    <motion.div className={styles.steam} style={{ opacity: steamOpacity, y: steamY }} aria-hidden="true">
+      <span />
+      <span />
+      <span />
+    </motion.div>
+  );
 }
 
-function SceneProgress({ active, progress }: { active: number; progress: MotionValue<number> }) {
-  const fill = useTransform(progress, (p) => Math.max(0.02, p));
+/** 01 ━ 02 ━ 03 ━ 04; `active` is the service index or -1 outside the service chapters. */
+export function SceneProgress({ active, progress }: { active: number; progress: MotionValue<number> }) {
+  const fill = useTransform(progress, (p) => (active < 0 ? 0 : (active + p) / OCTOBER_SCENES.length));
   return (
-    <nav className={styles.progress} aria-label="فصول التجربة">
+    <nav className={styles.progress} aria-label="فصول التجربة" data-visible={active >= 0}>
       <ol>
         {OCTOBER_SCENES.map((scene, index) => (
-          <li key={scene.id} className={index === active ? styles.progressActive : index < active ? styles.progressDone : undefined} aria-current={index === active ? "step" : undefined}>
+          <li
+            key={scene.id}
+            className={index === active ? styles.progressActive : index < active ? styles.progressDone : undefined}
+            aria-current={index === active ? "step" : undefined}
+          >
             <span dir="ltr">{scene.number}</span>
             <span className="sr-only">{scene.label}</span>
           </li>
@@ -191,26 +149,27 @@ function SceneProgress({ active, progress }: { active: number; progress: MotionV
   );
 }
 
-/** Reduced-motion story: one still scene per screen with simple crossfades. */
-export function StoryStatic({ allowVideo }: { allowVideo: boolean }) {
+/** Reduced-motion story: one still scene per screen with gentle fades. */
+export function StoryStatic({ allowVideo, onSceneEnter }: { allowVideo: boolean; onSceneEnter?: (scene: OctoberScene) => void }) {
   return (
-    <section id="october-story" aria-label="أربع خدمات في تجربة واحدة">
+    <section aria-label="أربع خدمات في تجربة واحدة">
       {OCTOBER_SCENES.map((scene) => (
-        <StaticScene key={scene.id} scene={scene} allowVideo={allowVideo} />
+        <StaticScene key={scene.id} scene={scene} allowVideo={allowVideo} onEnter={onSceneEnter} />
       ))}
     </section>
   );
 }
 
-function StaticScene({ scene, allowVideo }: { scene: OctoberScene; allowVideo: boolean }) {
+function StaticScene({ scene, allowVideo, onEnter }: { scene: OctoberScene; allowVideo: boolean; onEnter?: (scene: OctoberScene) => void }) {
   const local = useMotionValue(0.6);
   return (
     <motion.article
       className={`${styles.staticScene} ${styles[`tone-${scene.id}`]}`}
       initial={{ opacity: 0 }}
       whileInView={{ opacity: 1 }}
-      viewport={{ amount: 0.4, once: true }}
+      viewport={{ amount: 0.5, once: true }}
       transition={{ duration: 0.6 }}
+      onViewportEnter={() => onEnter?.(scene)}
       aria-labelledby={`scene-${scene.id}`}
     >
       <div className={styles.mediaFrame}>

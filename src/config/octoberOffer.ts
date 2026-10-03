@@ -15,7 +15,7 @@ export function octoberMediaUrl(file: string | undefined): string | undefined {
   return file && OCTOBER_AVAILABLE_MEDIA.has(file) ? `${OCTOBER_MEDIA_ROOT}/${file}` : undefined;
 }
 
-export type OctoberSoundSlot = "intro" | "clipper" | "transition" | "oil" | "steam" | "reveal";
+export type OctoberSoundSlot = "opening" | "clipper" | "razor" | "oil" | "steam" | "reveal";
 
 export interface OctoberSoundConfig {
   file: string;
@@ -25,9 +25,10 @@ export interface OctoberSoundConfig {
 }
 
 export const OCTOBER_SOUNDS: Record<OctoberSoundSlot, OctoberSoundConfig> = {
-  intro: { file: "sounds/intro.mp3", volume: 0.55 },
+  /** Radio static and distant rumble that morphs into a clipper buzz (~6 s). */
+  opening: { file: "sounds/opening.mp3", volume: 0.55 },
   clipper: { file: "sounds/clipper.mp3", volume: 0.45 },
-  transition: { file: "sounds/transition.mp3", volume: 0.4 },
+  razor: { file: "sounds/razor.mp3", volume: 0.4 },
   oil: { file: "sounds/oil.mp3", volume: 0.3, loop: true },
   steam: { file: "sounds/steam.mp3", volume: 0.28, loop: true },
   reveal: { file: "sounds/reveal.mp3", volume: 0.75 },
@@ -66,7 +67,7 @@ export const OCTOBER_SCENES: readonly OctoberScene[] = [
     line: "التفاصيل هي اللي بتفرق.",
     video: "beard.mp4",
     poster: "beard-poster.webp",
-    sound: "transition",
+    sound: "razor",
   },
   {
     id: "oil-bath",
@@ -120,15 +121,33 @@ export const OCTOBER_BRANCHES: readonly OctoberBranch[] = [
   },
 ];
 
+export type OctoberChapterId = "opening" | OctoberSceneId | "price" | "offer";
+
+/** Chapter progress at which the 333 lands. */
+export const PRICE_IMPACT_AT = 0.64;
+
+/** Master timeline (~36 s from the start tap to the offer section). */
+export const OCTOBER_CHAPTERS: readonly { id: OctoberChapterId; duration: number; settleAt?: number; cues?: readonly { at: number; id: string }[] }[] = [
+  { id: "opening", duration: 6000, settleAt: 1 },
+  { id: "haircut", duration: 6000, settleAt: 0.6 },
+  { id: "beard", duration: 5000, settleAt: 0.6 },
+  { id: "oil-bath", duration: 6000, settleAt: 0.6 },
+  { id: "skincare", duration: 6000, settleAt: 0.65 },
+  { id: "price", duration: 7000, settleAt: 1, cues: [{ at: PRICE_IMPACT_AT, id: "reveal" }] },
+  { id: "offer", duration: 0 },
+];
+
 export const octoberOffer = {
   id: "october-333",
   campaignName: "احتفال أكتوبر من CUT",
   startsOn: "2026-10-05",
   startsLabel: "5 أكتوبر",
+  endsOn: "2026-10-31",
+  endsLabel: "31 أكتوبر",
   price: 333,
   originalPrice: 670,
   currency: "جنيه",
-  intro: { video: "intro.mp4" },
+  opening: { video: "opening.mp4", poster: "opening-poster.webp" },
   bookHref: "/book",
   whatsappHref: `https://wa.me/201012126899?text=${encodeURIComponent("أهلاً، عايز أعرف تفاصيل عرض أكتوبر من CUT")}`,
 } as const;

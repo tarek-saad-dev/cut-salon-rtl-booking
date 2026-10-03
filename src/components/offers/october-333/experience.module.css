@@ -11,7 +11,6 @@
   --october: #8e1a29;
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
-  --scene-length: 190vh;
   position: relative;
   min-height: 100vh;
   min-height: 100dvh;
@@ -82,52 +81,200 @@
   border-color: rgba(232, 200, 150, 0.6);
 }
 
-/* ───────── Scene 0 — entry ───────── */
+/* ───────── Fixed cinematic stage + chapter anchors ───────── */
 
-.intro {
-  position: relative;
-  display: grid;
-  place-items: center;
-  min-height: 100vh;
-  min-height: 100dvh;
-  padding: calc(var(--safe-top) + 72px) 24px calc(var(--safe-bottom) + 72px);
+.stage {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
   overflow: hidden;
+  background: var(--ink);
+}
+
+.stage[data-hidden="true"] {
+  visibility: hidden;
+}
+
+.anchors {
+  position: relative;
+  z-index: 0;
+}
+
+/* One viewport per chapter: real scroll positions to align with, no extra dead length. */
+.anchor {
+  height: 100vh;
+  height: 100svh;
+}
+
+/* ───────── Opening — October ───────── */
+
+.openingBase {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(90% 70% at 50% 45%, #140b0a 0%, #070505 60%, var(--ink) 100%);
+}
+
+.openingMedia {
+  position: absolute;
+  inset: 0;
+}
+
+.flag {
+  position: absolute;
+  inset-inline: -10%;
+  top: 22%;
+  height: 34%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transform: skewY(-4deg);
+  will-change: clip-path, opacity;
+}
+
+.flag > span:not(.flagFolds):not(.flagSweep) {
+  flex: 1;
+}
+
+.flagRed { background: linear-gradient(90deg, #3d070f, #7a1420 50%, #3d070f); }
+.flagWhite { background: linear-gradient(90deg, #4a4540, #b9b1a5 50%, #4a4540); }
+.flagBlack { background: linear-gradient(90deg, #050505, #161414 50%, #050505); }
+
+.flagFolds {
+  position: absolute;
+  inset: 0 -20%;
+  background: repeating-linear-gradient(
+    90deg,
+    rgba(0, 0, 0, 0.38) 0,
+    rgba(0, 0, 0, 0) 9%,
+    rgba(255, 255, 255, 0.06) 14%,
+    rgba(0, 0, 0, 0) 19%,
+    rgba(0, 0, 0, 0.38) 26%
+  );
+  will-change: transform;
+}
+
+.flagSweep {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 60%;
+  background: linear-gradient(100deg, transparent 20%, rgba(255, 236, 200, 0.28) 50%, transparent 80%);
+  will-change: transform;
+}
+
+.flagStill {
+  opacity: 0.22;
+}
+
+.openingVignette {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(120% 80% at 50% 40%, transparent 30%, rgba(5, 5, 5, 0.85) 80%),
+    linear-gradient(to top, rgba(5, 5, 5, 0.9) 0%, transparent 45%);
+  pointer-events: none;
+}
+
+.grain {
+  position: absolute;
+  inset: -50%;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.55'/%3E%3C/svg%3E");
+  mix-blend-mode: overlay;
+  pointer-events: none;
+  animation: grain 0.9s steps(4) infinite;
+  will-change: transform;
+}
+
+@keyframes grain {
+  0% { transform: translate3d(0, 0, 0); }
+  25% { transform: translate3d(-3%, 2%, 0); }
+  50% { transform: translate3d(2%, -3%, 0); }
+  75% { transform: translate3d(-2%, -1%, 0); }
+  100% { transform: translate3d(0, 0, 0); }
+}
+
+.openingCopy {
+  position: absolute;
+  inset-inline: 24px;
+  bottom: calc(var(--safe-bottom) + 16vh);
+  display: grid;
+  justify-items: center;
+  text-align: center;
+}
+
+.openingTribute,
+.openingHandoff {
+  grid-area: 1 / 1;
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(28px, 8vw, 54px);
+  line-height: 1.45;
+}
+
+.openingHandoff {
+  font-size: clamp(25px, 6.8vw, 48px);
+}
+
+.experience .openingTitle {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  margin: 26px 0 0;
+  color: var(--gold);
+  font-family: var(--font-display);
+  font-size: clamp(18px, 5vw, 24px);
+  font-weight: 400;
+  line-height: 1.4;
+}
+
+.experience .openingTitle::before,
+.experience .openingTitle::after {
+  content: "";
+  width: 28px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--gold));
+}
+
+.experience .openingTitle::after {
+  background: linear-gradient(90deg, var(--october), transparent);
+}
+
+.openingStatic .openingCopy {
+  position: relative;
+  inset: auto;
+  height: 100%;
+  align-content: center;
+  gap: 8px;
+}
+
+.openingStatic .openingTribute,
+.openingStatic .openingHandoff {
+  grid-area: auto;
+}
+
+.openingStatic .startButton {
+  margin-top: 36px;
+}
+
+/* Pre-start gate */
+
+.gate {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  padding: 24px;
   text-align: center;
   background: radial-gradient(80% 60% at 50% 45%, #1a0d0c 0%, #080505 55%, var(--ink) 100%);
 }
 
-.introMedia {
-  position: absolute;
-  inset: 0;
-  opacity: 0.32;
-}
-
-.introSweep {
-  position: absolute;
-  inset: -20% -100%;
-  background: linear-gradient(
-    100deg,
-    transparent 42%,
-    rgba(232, 200, 150, 0.07) 48%,
-    rgba(142, 26, 41, 0.08) 52%,
-    transparent 58%
-  );
-  animation: sweep 8s cubic-bezier(0.65, 0, 0.35, 1) 1.4s infinite;
-  will-change: transform;
-}
-
-@keyframes sweep {
-  from { transform: translate3d(-35%, 0, 0); }
-  to { transform: translate3d(35%, 0, 0); }
-}
-
-.introInner {
-  position: relative;
-  max-width: 560px;
-}
-
-.introLogo {
-  margin: 0 0 44px;
+.gateLogo {
+  margin: 0 0 18px;
   padding-left: 0.42em;
   color: var(--gold);
   font-size: 15px;
@@ -135,46 +282,17 @@
   letter-spacing: 0.42em;
 }
 
-.introLine {
+.gateTitle {
+  margin: 0 0 18px;
+  font-family: var(--font-display);
+  font-size: clamp(30px, 9vw, 56px);
+  line-height: 1.35;
+}
+
+.gateHint {
   margin: 0;
-  font-family: var(--font-display);
-  font-size: clamp(24px, 6.6vw, 46px);
-  line-height: 1.55;
-}
-
-.introLine + .introLine {
-  margin-top: 12px;
-}
-
-.experience .introTitle {
-  display: inline-flex;
-  align-items: center;
-  gap: 14px;
-  margin: 38px 0 0;
-  color: var(--gold);
-  font-family: var(--font-display);
-  font-size: clamp(18px, 5vw, 24px);
-  font-weight: 400;
-}
-
-.experience .introTitle::before,
-.experience .introTitle::after {
-  content: "";
-  width: 28px;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, var(--gold));
-}
-
-.experience .introTitle::after {
-  background: linear-gradient(90deg, var(--october), transparent);
-}
-
-.introActions {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 14px;
-  margin-top: 44px;
+  color: rgba(252, 249, 237, 0.55);
+  font-size: 12px;
 }
 
 .startButton {
@@ -198,7 +316,7 @@
   inset: 0;
   background: linear-gradient(100deg, transparent 30%, rgba(252, 249, 237, 0.18) 50%, transparent 70%);
   transform: translate3d(-120%, 0, 0);
-  animation: shimmer 3.6s ease-in-out 4.6s infinite;
+  animation: shimmer 3.6s ease-in-out 1.6s infinite;
 }
 
 .startButton:hover {
@@ -211,49 +329,54 @@
   100% { transform: translate3d(120%, 0, 0); }
 }
 
-.introHint {
-  color: rgba(252, 249, 237, 0.55);
-  font-size: 12px;
-}
+/* ───────── Playback controls ───────── */
 
-.scrollCue {
-  position: absolute;
-  inset-inline: 0;
-  bottom: calc(var(--safe-bottom) + 20px);
+.controls {
+  position: fixed;
+  left: 50%;
+  bottom: calc(var(--safe-bottom) + 18px);
+  z-index: 40;
   display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px;
+  border: 1px solid rgba(252, 249, 237, 0.14);
+  border-radius: 999px;
+  background: rgba(5, 5, 5, 0.55);
+  transform: translateX(-50%);
+}
+
+.controlButton,
+.resumeChip,
+.skipButton {
+  display: inline-flex;
+  align-items: center;
   justify-content: center;
+  gap: 8px;
+  min-width: 44px;
+  min-height: 40px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ivory);
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
 }
 
-.scrollCue span {
-  display: block;
-  width: 1px;
-  height: 44px;
-  background: linear-gradient(to bottom, transparent, var(--gold));
-  transform-origin: top;
-  animation: cue 2.4s ease-in-out infinite;
+.resumeChip {
+  background: rgba(232, 200, 150, 0.16);
+  color: var(--gold);
 }
 
-@keyframes cue {
-  0% { transform: scaleY(0); opacity: 1; }
-  70% { transform: scaleY(1); opacity: 1; }
-  100% { transform: scaleY(1); opacity: 0; }
+.skipButton {
+  color: rgba(252, 249, 237, 0.7);
 }
 
-/* ───────── Story stage (scenes 01–04) ───────── */
-
-.story {
-  position: relative;
-  height: calc(4 * var(--scene-length) + 100vh);
-}
-
-.stage {
-  position: sticky;
-  top: 0;
-  height: 100vh;
-  height: 100dvh;
-  overflow: hidden;
-  background: var(--ink);
-}
+/* ───────── Scenes ───────── */
 
 .scene {
   position: absolute;
@@ -357,22 +480,16 @@
 .tone-skincare { background: #15130f; }
 .tone-skincare .sceneLine { color: var(--ivory); }
 
-.darkness {
-  position: absolute;
-  inset: 0;
-  background: var(--ink);
-  pointer-events: none;
-}
-
-.stageFade {
-  position: absolute;
-  inset: 0;
-  z-index: 10;
-  background: var(--ink);
-  pointer-events: none;
-}
-
 /* Transition layers */
+
+.splitLine {
+  position: absolute;
+  inset-inline: 0;
+  height: 2px;
+  margin-top: -1px;
+  background: linear-gradient(90deg, transparent, #f4dcb0 25%, #fff 50%, #f4dcb0 75%, transparent);
+  box-shadow: 0 0 24px 4px rgba(232, 200, 150, 0.35);
+}
 
 .clipperBlade {
   position: absolute;
@@ -458,6 +575,11 @@
   left: 50%;
   z-index: 11;
   transform: translateX(-50%);
+  transition: opacity 0.5s ease;
+}
+
+.progress[data-visible="false"] {
+  opacity: 0;
 }
 
 .progress ol {
@@ -645,17 +767,8 @@
 /* ───────── Price reveal ───────── */
 
 .reveal {
-  position: relative;
-  height: 360vh;
-  background: var(--ink);
-}
-
-.revealStage {
-  position: sticky;
-  top: 0;
-  height: 100vh;
-  height: 100dvh;
   overflow: hidden;
+  background: var(--ink);
 }
 
 .revealFlash {
@@ -743,7 +856,7 @@
   -webkit-background-clip: text;
   background-clip: text;
   font-family: var(--font-ui);
-  font-size: clamp(110px, 37vw, 280px);
+  font-size: min(clamp(110px, 37vw, 280px), 26dvh);
   font-weight: 800;
   line-height: 0.86;
   letter-spacing: -0.03em;
@@ -776,7 +889,7 @@
 }
 
 .revealStatic {
-  height: auto;
+  background: var(--ink);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -793,10 +906,39 @@
   margin-top: 20px;
 }
 
-/* ───────── How it works ───────── */
+/* ───────── Offer / conversion ───────── */
+
+.offer {
+  position: relative;
+  z-index: 2;
+  background: var(--ink);
+  outline: none;
+}
+
+.recap {
+  margin-bottom: 28px;
+}
+
+.recapPrice {
+  margin: 0;
+  color: var(--beige);
+  font-size: 16px;
+}
+
+.recapPrice del {
+  color: rgba(252, 249, 237, 0.5);
+  text-decoration-color: var(--october);
+  text-decoration-thickness: 2px;
+}
+
+.recapPrice strong {
+  color: var(--gold);
+  font-size: 22px;
+  font-weight: 800;
+}
 
 .how {
-  padding: 18vh 24px 12vh;
+  padding: calc(var(--safe-top) + 96px) 24px 10vh;
   background: linear-gradient(to bottom, var(--ink), var(--espresso) 30%);
 }
 
@@ -1010,9 +1152,13 @@
 }
 
 @media (min-width: 900px) {
-  .experience { --scene-length: 210vh; }
-
   .topBar { padding-inline: 36px; }
+
+  .controls {
+    left: 28px;
+    bottom: 28px;
+    transform: none;
+  }
 
   .sceneCopy {
     inset-inline: 10vw;
@@ -1058,9 +1204,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .introSweep,
+  .grain,
   .causticAlt,
-  .scrollCue span,
   .startButton::after {
     animation: none;
   }

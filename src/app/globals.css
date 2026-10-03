@@ -942,9 +942,3 @@
     --cut-mobile-nav-total: 0px;
   }
 }
-
-/* Cinematic offer routes pin scenes with position: sticky, which overflow-x: hidden on html/body breaks. */
-html.cut-cinematic-route,
-html.cut-cinematic-route body {
-  overflow-x: clip;
-}

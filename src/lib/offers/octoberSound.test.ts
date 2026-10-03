@@ -76,7 +76,7 @@ describe("October sound manager", () => {
     });
     await manager.unlock();
     manager.setEnabled(true);
-    for (const slot of ["intro", "clipper", "transition", "oil", "steam", "reveal"] as const) manager.play(slot);
+    for (const slot of ["opening", "clipper", "razor", "oil", "steam", "reveal"] as const) manager.play(slot);
     await flush();
     expect(fetcher).not.toHaveBeenCalled();
     expect(ctx.createOscillator).toHaveBeenCalled();
