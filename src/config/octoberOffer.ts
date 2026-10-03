@@ -40,7 +40,7 @@ export const OCTOBER_MUSIC = {
   src: "/audio/oct.mp3",
   volume: 0.62,
   /** Track position (seconds) that lines up with the start of the film. */
-  startAt: 0,
+  startAt: 12,
 } as const;
 
 export type OctoberSceneId = "haircut" | "beard" | "oil-bath" | "skincare";

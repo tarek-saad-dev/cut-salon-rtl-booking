@@ -2,7 +2,7 @@ import { act, fireEvent, render, screen, waitFor, within } from "@testing-librar
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { OctoberExperience } from "./OctoberExperience";
 import { disposeOctoberSound } from "@/lib/offers/octoberSound";
-import { MUSIC_END_FADE_MS, OCTOBER_BRANCHES, OCTOBER_CHAPTERS } from "@/config/octoberOffer";
+import { MUSIC_END_FADE_MS, OCTOBER_BRANCHES, OCTOBER_CHAPTERS, OCTOBER_MUSIC } from "@/config/octoberOffer";
 
 const VIEWPORT = 844;
 const OFFER_TOP = (OCTOBER_CHAPTERS.length - 1) * VIEWPORT;
@@ -245,12 +245,12 @@ describe("October soundtrack", () => {
     for (const audio of FakeAudio.instances) expect(audio.play).not.toHaveBeenCalled();
   });
 
-  it("plays /audio/oct.mp3 from the beginning when the film starts", async () => {
+  it("plays /audio/oct.mp3 from its configured start point when the film starts", async () => {
     render(<OctoberExperience />);
     await startExperience();
     expect(music().src).toBe("/audio/oct.mp3");
     expect(music().play).toHaveBeenCalledTimes(1);
-    expect(music().currentTime).toBe(0);
+    expect(music().currentTime).toBe(OCTOBER_MUSIC.startAt);
     expect(music().muted).toBe(false);
   });
 
@@ -282,7 +282,7 @@ describe("October soundtrack", () => {
     act(() => {
       fireEvent.scroll(window);
     });
-    const haircutStart = OCTOBER_CHAPTERS[0].duration / 1000;
+    const haircutStart = OCTOBER_MUSIC.startAt + OCTOBER_CHAPTERS[0].duration / 1000;
 
     act(() => {
       fireEvent.click(screen.getByRole("button", { name: "استكمال التجربة" }));
