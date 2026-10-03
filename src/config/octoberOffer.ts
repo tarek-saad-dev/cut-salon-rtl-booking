@@ -24,15 +24,24 @@ export interface OctoberSoundConfig {
   loop?: boolean;
 }
 
+/** Scene effects sit under the campaign music, which is the main audio bed. */
 export const OCTOBER_SOUNDS: Record<OctoberSoundSlot, OctoberSoundConfig> = {
-  /** Radio static and distant rumble that morphs into a clipper buzz (~6 s). */
-  opening: { file: "sounds/opening.mp3", volume: 0.55 },
-  clipper: { file: "sounds/clipper.mp3", volume: 0.45 },
-  razor: { file: "sounds/razor.mp3", volume: 0.4 },
-  oil: { file: "sounds/oil.mp3", volume: 0.3, loop: true },
-  steam: { file: "sounds/steam.mp3", volume: 0.28, loop: true },
-  reveal: { file: "sounds/reveal.mp3", volume: 0.75 },
+  /** Faint archival radio texture under the first seconds of the music. */
+  opening: { file: "sounds/opening.mp3", volume: 0.3 },
+  clipper: { file: "sounds/clipper.mp3", volume: 0.3 },
+  razor: { file: "sounds/razor.mp3", volume: 0.28 },
+  oil: { file: "sounds/oil.mp3", volume: 0.15, loop: true },
+  steam: { file: "sounds/steam.mp3", volume: 0.15, loop: true },
+  reveal: { file: "sounds/reveal.mp3", volume: 0.5 },
 };
+
+/** Campaign soundtrack: one continuous track that follows the master timeline. */
+export const OCTOBER_MUSIC = {
+  src: "/audio/oct.mp3",
+  volume: 0.62,
+  /** Track position (seconds) that lines up with the start of the film. */
+  startAt: 0,
+} as const;
 
 export type OctoberSceneId = "haircut" | "beard" | "oil-bath" | "skincare";
 
@@ -126,6 +135,11 @@ export type OctoberChapterId = "opening" | OctoberSceneId | "price" | "offer";
 /** Chapter progress at which the 333 lands. */
 export const PRICE_IMPACT_AT = 0.64;
 
+const PRICE_DURATION_MS = 7000;
+/** The soundtrack fades over the last part of the price chapter so the offer lands in silence. */
+export const MUSIC_END_FADE_MS = 1800;
+export const MUSIC_FADE_CUE = "music-fade";
+
 /** Master timeline (~36 s from the start tap to the offer section). */
 export const OCTOBER_CHAPTERS: readonly { id: OctoberChapterId; duration: number; settleAt?: number; cues?: readonly { at: number; id: string }[] }[] = [
   { id: "opening", duration: 6000, settleAt: 1 },
@@ -133,7 +147,15 @@ export const OCTOBER_CHAPTERS: readonly { id: OctoberChapterId; duration: number
   { id: "beard", duration: 5000, settleAt: 0.6 },
   { id: "oil-bath", duration: 6000, settleAt: 0.6 },
   { id: "skincare", duration: 6000, settleAt: 0.65 },
-  { id: "price", duration: 7000, settleAt: 1, cues: [{ at: PRICE_IMPACT_AT, id: "reveal" }] },
+  {
+    id: "price",
+    duration: PRICE_DURATION_MS,
+    settleAt: 1,
+    cues: [
+      { at: PRICE_IMPACT_AT, id: "reveal" },
+      { at: 1 - MUSIC_END_FADE_MS / PRICE_DURATION_MS, id: MUSIC_FADE_CUE },
+    ],
+  },
   { id: "offer", duration: 0 },
 ];
 

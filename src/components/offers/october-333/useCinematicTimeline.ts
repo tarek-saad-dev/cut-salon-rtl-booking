@@ -24,6 +24,8 @@ export interface CinematicTimelineHandle {
   previous(): void;
   settle(index: number, target?: number): void;
   current(): { index: number; status: TimelineStatus };
+  /** Film time at the current position, in ms. */
+  elapsedMs(): number;
 }
 
 /** React binding for the master timeline: one rAF loop, motion values for rendering. */
@@ -97,6 +99,7 @@ export function useCinematicTimeline(chapters: readonly TimelineChapter[], event
       previous: act(() => timeline.previous()),
       settle: act((index: number, target?: number) => timeline.settle(index, target)),
       current: () => ({ index: timeline.index, status: timeline.status }),
+      elapsedMs: () => timeline.elapsedMs,
     };
   }, [snapshot, chapter, progress, timeline]);
 }

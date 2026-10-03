@@ -23,6 +23,13 @@ export interface TimelineEvents {
   cue?(id: string, index: number): void;
 }
 
+/** Film time (ms) at a chapter position: earlier chapters' durations plus progress through this one. */
+export function filmElapsedMs(chapters: readonly TimelineChapter[], index: number, progress: number) {
+  let elapsed = 0;
+  for (let i = 0; i < index && i < chapters.length; i++) elapsed += chapters[i].duration;
+  return elapsed + (chapters[index]?.duration ?? 0) * progress;
+}
+
 /** Duration of a full 0→1 progress sweep while settling after manual navigation. */
 export const SETTLE_MS = 1400;
 const MAX_FRAME_MS = 100;
@@ -50,6 +57,10 @@ export class CinematicTimeline {
 
   get chapter() {
     return this.chapters[this.index];
+  }
+
+  get elapsedMs() {
+    return filmElapsedMs(this.chapters, this.index, this.progress);
   }
 
   /** True while frames are needed (playing or settling). */
@@ -139,12 +150,14 @@ export class CinematicTimeline {
       this.setProgress(next);
       return;
     }
+    const overflowMs = (next - 1) * this.chapter.duration;
     this.setProgress(1);
     if (this.index + 1 >= this.lastIndex) {
       this.enter(this.lastIndex, 0, "auto");
       this.setStatus("ended");
     } else {
       this.enter(this.index + 1, 0, "auto");
+      if (overflowMs > 0) this.setProgress(Math.min(overflowMs / this.chapter.duration, 0.999));
     }
   }
 

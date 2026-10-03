@@ -6,6 +6,8 @@ import {
 } from "@/config/octoberOffer";
 
 export const OCTOBER_SOUND_STORAGE_KEY = "cut:october-experience:sound";
+/** Slot volume at which the synthesized stand-ins play at their designed level. */
+const SYNTH_REFERENCE_VOLUME = 0.5;
 
 export interface SoundManager {
   isEnabled(): boolean;
@@ -16,8 +18,16 @@ export interface SoundManager {
   play(slot: OctoberSoundSlot): void;
   prefetch(slots: readonly OctoberSoundSlot[]): void;
   stopAmbient(): void;
+  /** Stops scene effects only; the campaign music is controlled separately. */
   stopAll(): void;
+  /** Routes a media element through a gain node (volume automation that also works on iOS). */
+  connectMedia(element: HTMLMediaElement): MediaRoute | null;
   dispose(): void;
+}
+
+export interface MediaRoute {
+  gain: AudioParam;
+  now(): number;
 }
 
 export interface SoundManagerOptions {
@@ -154,6 +164,7 @@ export function createSoundManager(options: SoundManagerOptions = {}): SoundMana
   function synthesize(slot: OctoberSoundSlot): Voice | null {
     const audio = ctx!;
     const out = audio.createGain();
+    out.gain.value = sounds[slot].volume / SYNTH_REFERENCE_VOLUME;
     out.connect(master!);
     const now = audio.currentTime;
 
@@ -176,52 +187,16 @@ export function createSoundManager(options: SoundManagerOptions = {}): SoundMana
     }
 
     if (slot === "opening") {
-      // Radio static → distant rumble + soft swell → the rumble becomes a clipper buzz.
+      // A thin band of radio static over the archival dark; the music carries the emotion.
       const staticNoise = noiseSource();
       const radio = audio.createBiquadFilter();
       radio.type = "bandpass";
       radio.frequency.value = 1700;
       radio.Q.value = 0.8;
       const staticGain = audio.createGain();
-      ramp(staticGain.gain, now, [[0, 0], [1.2, 0.045], [3.6, 0.03], [5, 0]]);
+      ramp(staticGain.gain, now, [[0, 0], [0.6, 0.06], [1.8, 0.04], [2.6, 0]]);
       staticNoise.connect(radio).connect(staticGain).connect(out);
-
-      const rumble = audio.createOscillator();
-      rumble.type = "sine";
-      rumble.frequency.value = 41;
-      const rumbleGain = audio.createGain();
-      ramp(rumbleGain.gain, now, [[0, 0], [2, 0.22], [4.2, 0.2], [5.6, 0]]);
-      rumble.connect(rumbleGain).connect(out);
-
-      const swell = audio.createOscillator();
-      swell.type = "triangle";
-      swell.frequency.value = 110;
-      const swellFifth = audio.createOscillator();
-      swellFifth.type = "triangle";
-      swellFifth.frequency.value = 164.8;
-      const warm = audio.createBiquadFilter();
-      warm.type = "lowpass";
-      warm.frequency.value = 800;
-      const swellGain = audio.createGain();
-      ramp(swellGain.gain, now, [[0, 0], [2, 0], [4, 0.05], [5.4, 0]]);
-      swell.connect(warm);
-      swellFifth.connect(warm);
-      warm.connect(swellGain).connect(out);
-
-      const buzz = audio.createOscillator();
-      buzz.type = "sawtooth";
-      buzz.frequency.setValueAtTime(41, now);
-      buzz.frequency.setValueAtTime(41, now + 4.2);
-      buzz.frequency.exponentialRampToValueAtTime(118, now + 5.6);
-      const buzzTone = audio.createBiquadFilter();
-      buzzTone.type = "bandpass";
-      buzzTone.frequency.value = 1400;
-      buzzTone.Q.value = 1.4;
-      const buzzGain = audio.createGain();
-      ramp(buzzGain.gain, now, [[0, 0], [4.2, 0], [5.6, 0.07], [6.2, 0.07]]);
-      buzz.connect(buzzTone).connect(buzzGain).connect(out);
-
-      return voiceOf([staticNoise, rumble, swell, swellFifth, buzz], out, now + 6.4);
+      return voiceOf([staticNoise], out, now + 2.8);
     }
 
     const source = noiseSource();
@@ -375,6 +350,18 @@ export function createSoundManager(options: SoundManagerOptions = {}): SoundMana
       ambient = null;
     },
     stopAll,
+    connectMedia(element) {
+      const audio = ensureContext();
+      if (!audio) return null;
+      try {
+        const source = audio.createMediaElementSource(element);
+        const gain = audio.createGain();
+        source.connect(gain).connect(audio.destination);
+        return { gain: gain.gain, now: () => audio.currentTime };
+      } catch {
+        return null;
+      }
+    },
     dispose() {
       disposed = true;
       stopAll();

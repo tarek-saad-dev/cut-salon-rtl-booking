@@ -3,11 +3,14 @@
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import {
+  MUSIC_END_FADE_MS,
+  MUSIC_FADE_CUE,
   OCTOBER_CHAPTERS,
   OCTOBER_SCENES,
   type OctoberChapterId,
   type OctoberSoundSlot,
 } from "@/config/octoberOffer";
+import { createMusicController, type MusicController } from "@/lib/offers/octoberMusic";
 import { getOctoberSound } from "@/lib/offers/octoberSound";
 import { CinematicStage } from "./CinematicStage";
 import { Conversion } from "./Conversion";
@@ -26,6 +29,8 @@ const AMBIENT_CHAPTERS = new Set<OctoberChapterId>(["oil-bath", "skincare"]);
 const NAV_KEYS = new Set(["ArrowDown", "ArrowUp", "PageDown", "PageUp", "Home", "End", " "]);
 const DRAG_PX = 12;
 const PROGRAMMATIC_TIMEOUT_MS = 2500;
+const SKIP_FADE_MS = 400;
+const MUSIC_SYNC_INTERVAL_MS = 1000;
 
 function useDeviceProfile() {
   const [profile, setProfile] = useState({ lite: false, allowVideo: true });
@@ -67,10 +72,12 @@ function useSoundControl() {
   const soundOn = useSoundEnabled();
   const mutedByUser = useRef(false);
 
-  const enableForStart = useCallback(async () => {
+  /** Synchronous part runs inside the tap, which iOS requires before any media can play. */
+  const enableForStart = useCallback(() => {
     const sound = getOctoberSound();
-    await sound.unlock();
+    const unlocked = sound.unlock();
     if (!mutedByUser.current) sound.setEnabled(true);
+    return unlocked;
   }, []);
 
   const toggle = useCallback(() => {
@@ -119,8 +126,27 @@ function TopBar({ soundOn, onToggle }: { soundOn: boolean; onToggle: () => void 
   );
 }
 
+/** One soundtrack element per visit, released when the route unmounts. */
+function useMusic() {
+  const ref = useRef<MusicController | null>(null);
+  const get = useCallback(
+    () => (ref.current ??= createMusicController({ connect: (el) => getOctoberSound().connectMedia(el) })),
+    [],
+  );
+  useEffect(() => {
+    get();
+    return () => {
+      ref.current?.dispose();
+      ref.current = null;
+    };
+  }, [get]);
+  return get;
+}
+
 function CinematicExperience({ lite, allowVideo }: { lite: boolean; allowVideo: boolean }) {
   const { soundOn, enableForStart, toggle } = useSoundControl();
+  const music = useMusic();
+  const lastMusicSync = useRef(0);
   const [started, setStarted] = useState(false);
   const startedRef = useRef(false);
   const [stageHidden, setStageHidden] = useState(false);
@@ -157,12 +183,26 @@ function CinematicExperience({ lite, allowVideo }: { lite: boolean; allowVideo: 
       if (cause !== "manual") scrollToChapter(index);
       if (!AMBIENT_CHAPTERS.has(id)) sound.stopAmbient();
       const slot = CHAPTER_SOUND[id];
-      if (slot && startedRef.current && (cause === "start" || cause === "auto")) sound.play(slot);
+      if (slot && startedRef.current && cause === "auto") sound.play(slot);
+      if (index === OFFER_INDEX && music().isPlaying()) music().fadeOut(SKIP_FADE_MS);
+    },
+    status(status) {
+      const track = music();
+      if (status === "playing") track.play(timelineRef.current.elapsedMs());
+      else if (status === "ended") {
+        if (track.isPlaying()) track.fadeOut(SKIP_FADE_MS);
+      } else track.pause();
+    },
+    progress() {
+      const now = performance.now();
+      if (now - lastMusicSync.current < MUSIC_SYNC_INTERVAL_MS) return;
+      lastMusicSync.current = now;
+      music().sync(timelineRef.current.elapsedMs());
     },
     cue(id) {
-      if (id === "reveal" && startedRef.current && timelineRef.current.current().status === "playing") {
-        getOctoberSound().play("reveal");
-      }
+      if (timelineRef.current.current().status !== "playing") return;
+      if (id === "reveal" && startedRef.current) getOctoberSound().play("reveal");
+      if (id === MUSIC_FADE_CUE) music().fadeOut(MUSIC_END_FADE_MS);
     },
   });
   const timelineRef = useRef(timeline);
@@ -280,15 +320,36 @@ function CinematicExperience({ lite, allowVideo }: { lite: boolean; allowVideo: 
     };
   }, [interrupt, releaseProgrammatic, syncFromScroll, updateStageHidden]);
 
+  useEffect(() => {
+    const onVisibility = () => {
+      const tl = timelineRef.current;
+      if (document.visibilityState === "hidden") music().pause();
+      else if (tl.current().status === "playing") music().play(tl.elapsedMs());
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => document.removeEventListener("visibilitychange", onVisibility);
+  }, [music]);
+
+  useEffect(() => {
+    const track = music();
+    track.setMuted(!soundOn);
+    if (soundOn) track.sync(timelineRef.current.elapsedMs());
+  }, [music, soundOn]);
+
   const markStarted = () => {
     startedRef.current = true;
     setStarted(true);
   };
 
-  const start = async () => {
-    await enableForStart();
+  const start = () => {
+    const unlocked = enableForStart();
     markStarted();
+    music().setMuted(!getOctoberSound().isEnabled());
     timeline.start();
+    void unlocked.then(() => {
+      const { index, status } = timelineRef.current.current();
+      if (index === 0 && status === "playing") getOctoberSound().play("opening");
+    });
   };
 
   const playPause = () => {

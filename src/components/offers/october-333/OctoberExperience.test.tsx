@@ -1,8 +1,8 @@
-import { act, fireEvent, render, screen, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { OctoberExperience } from "./OctoberExperience";
 import { disposeOctoberSound } from "@/lib/offers/octoberSound";
-import { OCTOBER_BRANCHES, OCTOBER_CHAPTERS } from "@/config/octoberOffer";
+import { MUSIC_END_FADE_MS, OCTOBER_BRANCHES, OCTOBER_CHAPTERS } from "@/config/octoberOffer";
 
 const VIEWPORT = 844;
 const OFFER_TOP = (OCTOBER_CHAPTERS.length - 1) * VIEWPORT;
@@ -18,6 +18,32 @@ const AudioContextSpy = vi.fn(function () {
     close: vi.fn(async () => {}),
   };
 });
+
+class FakeAudio {
+  static instances: FakeAudio[] = [];
+  src = "";
+  preload = "";
+  currentTime = 0;
+  volume = 1;
+  muted = false;
+  paused = true;
+  play = vi.fn(() => {
+    this.paused = false;
+    return Promise.resolve();
+  });
+  pause = vi.fn(() => {
+    this.paused = true;
+  });
+  load = vi.fn();
+  removeAttribute = vi.fn((name: string) => {
+    if (name === "src") this.src = "";
+  });
+  constructor() {
+    FakeAudio.instances.push(this);
+  }
+}
+
+const music = () => FakeAudio.instances[FakeAudio.instances.length - 1];
 
 const offsetTop = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "offsetTop")!;
 
@@ -37,6 +63,8 @@ beforeEach(() => {
     },
   );
   vi.stubGlobal("fetch", vi.fn());
+  FakeAudio.instances = [];
+  vi.stubGlobal("Audio", FakeAudio);
   window.scrollTo = vi.fn() as typeof window.scrollTo;
   Element.prototype.scrollIntoView = vi.fn();
   Object.defineProperty(HTMLElement.prototype, "offsetTop", {
@@ -53,6 +81,7 @@ afterEach(() => {
   disposeOctoberSound();
   vi.unstubAllGlobals();
   Object.defineProperty(HTMLElement.prototype, "offsetTop", offsetTop);
+  Object.defineProperty(window, "scrollY", { configurable: true, value: 0 });
 });
 
 async function startExperience() {
@@ -207,5 +236,131 @@ describe("October cinematic experience", () => {
   it("does not brand the campaign around the number", () => {
     const { container } = render(<OctoberExperience />);
     expect(container.textContent).not.toMatch(/Triple Three|333 Campaign|Three Threes/i);
+  });
+});
+
+describe("October soundtrack", () => {
+  it("never plays the music before Start", () => {
+    render(<OctoberExperience />);
+    for (const audio of FakeAudio.instances) expect(audio.play).not.toHaveBeenCalled();
+  });
+
+  it("plays /audio/oct.mp3 from the beginning when the film starts", async () => {
+    render(<OctoberExperience />);
+    await startExperience();
+    expect(music().src).toBe("/audio/oct.mp3");
+    expect(music().play).toHaveBeenCalledTimes(1);
+    expect(music().currentTime).toBe(0);
+    expect(music().muted).toBe(false);
+  });
+
+  it("pauses the music on manual interruption and on the pause button", async () => {
+    render(<OctoberExperience />);
+    await startExperience();
+    act(() => {
+      fireEvent.wheel(window, { deltaY: 120 });
+    });
+    expect(music().paused).toBe(true);
+
+    act(() => {
+      fireEvent.click(screen.getByRole("button", { name: "استكمال التجربة" }));
+    });
+    expect(music().paused).toBe(false);
+    act(() => {
+      fireEvent.click(screen.getByRole("button", { name: "إيقاف مؤقت" }));
+    });
+    expect(music().paused).toBe(true);
+  });
+
+  it("resumes the music at the film position, not from the top", async () => {
+    render(<OctoberExperience />);
+    await startExperience();
+    act(() => {
+      fireEvent.wheel(window, { deltaY: 120 });
+    });
+    Object.defineProperty(window, "scrollY", { configurable: true, value: VIEWPORT });
+    act(() => {
+      fireEvent.scroll(window);
+    });
+    const haircutStart = OCTOBER_CHAPTERS[0].duration / 1000;
+
+    act(() => {
+      fireEvent.click(screen.getByRole("button", { name: "استكمال التجربة" }));
+    });
+    expect(music().play).toHaveBeenCalledTimes(2);
+    expect(music().currentTime).toBeGreaterThanOrEqual(haircutStart);
+    expect(music().currentTime).toBeLessThan(haircutStart + 1);
+  });
+
+  it("mutes the music without pausing the film", async () => {
+    render(<OctoberExperience />);
+    await startExperience();
+    act(() => {
+      fireEvent.click(screen.getByRole("button", { name: "إيقاف الصوت" }));
+    });
+    expect(music().muted).toBe(true);
+    expect(music().paused).toBe(false);
+    expect(screen.getByRole("button", { name: "إيقاف مؤقت" })).toBeInTheDocument();
+
+    act(() => {
+      fireEvent.click(screen.getByRole("button", { name: "تشغيل الصوت" }));
+    });
+    await waitFor(() => expect(music().muted).toBe(false));
+    expect(music().paused).toBe(false);
+  });
+
+  it("fades the music out and stops it on skip", async () => {
+    render(<OctoberExperience />);
+    await startExperience();
+    act(() => {
+      fireEvent.click(screen.getByRole("button", { name: "تخطي" }));
+    });
+    expect(music().paused).toBe(false);
+    await waitFor(() => expect(music().paused).toBe(true), { timeout: 1500 });
+    expect(music().volume).toBe(0);
+  });
+
+  it("lets the music fade out as the film lands on the offer", async () => {
+    vi.useFakeTimers({
+      toFake: ["setTimeout", "clearTimeout", "setInterval", "clearInterval", "requestAnimationFrame", "cancelAnimationFrame", "performance", "Date"],
+    });
+    try {
+      render(<OctoberExperience />);
+      await startExperience();
+      const filmMs = OCTOBER_CHAPTERS.reduce((sum, chapter) => sum + chapter.duration, 0);
+      act(() => {
+        vi.advanceTimersByTime(filmMs - MUSIC_END_FADE_MS - 500);
+      });
+      expect(music().paused).toBe(false);
+      act(() => {
+        vi.advanceTimersByTime(MUSIC_END_FADE_MS + 1500);
+      });
+      expect(window.scrollTo).toHaveBeenLastCalledWith({ top: OFFER_TOP, behavior: "smooth" });
+      expect(music().paused).toBe(true);
+      expect(music().volume).toBe(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("releases the music when leaving the page", async () => {
+    const { unmount } = render(<OctoberExperience />);
+    await startExperience();
+    const audio = music();
+    unmount();
+    expect(audio.pause).toHaveBeenCalled();
+    expect(audio.src).toBe("");
+  });
+
+  it("does not autoplay music in reduced-motion mode", async () => {
+    const matchMedia = window.matchMedia;
+    window.matchMedia = ((query: string) => ({ ...matchMedia(query), matches: query.includes("reduce") })) as typeof window.matchMedia;
+    try {
+      render(<OctoberExperience />);
+      await startExperience();
+      for (const audio of FakeAudio.instances) expect(audio.play).not.toHaveBeenCalled();
+    } finally {
+      window.matchMedia = matchMedia;
+    }
   });
 });

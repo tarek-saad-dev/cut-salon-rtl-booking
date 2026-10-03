@@ -16,7 +16,7 @@ One press on **ابدأ التجربة** starts a ~42 s film driven by a single 
 
 | Chapter | Duration | Notes |
 | --- | --- | --- |
-| Opening | 6 s | Archival dark + radio/rumble → restrained flag reveal with «أكتوبر… حكاية انتصار.» → «وفي CUT… بنحتفل بطريقتنا.» → campaign title as the rumble turns into a clipper buzz |
+| Opening | 6 s | Archival dark → restrained flag reveal with «أكتوبر… حكاية انتصار.» → «وفي CUT… بنحتفل بطريقتنا.» → campaign title, over the campaign music |
 | 01 Hair Cut | 6 s | Opens on a blade-light split |
 | 02 Beard | 5 s | Clipper-blade wipe in, razor sound |
 | 03 Oil Bath | 6 s | Oil drop → circular reveal, liquid ambience |
@@ -64,10 +64,16 @@ Video guidance: portrait-first (9:16 crop safe), H.264 MP4, muted, 6–10 s, ≤
 
 ## Sound
 
-- Nothing is created or played before an explicit tap on **ابدأ التجربة** or the 🔊/🔇 toggle. A mute chosen before starting is respected.
-- Sounds follow the timeline: the opening radio/rumble → buzz, clipper, razor, oil, steam, and the bass impact on the 333 reveal. Sounds are tied to autoplay, so manual browsing is silent.
-- One ambience and one one-shot at most at any time. Audio suspends when the tab is hidden and stops when leaving the page.
-- Until real files are added, quiet synthesized stand-ins play for each cue. Missing or failing files fall back silently, and the film is fully understandable muted.
+**Campaign music.** `public/audio/oct.mp3` (served as `/audio/oct.mp3`) is the soundtrack for the whole film. Configuration lives in `OCTOBER_MUSIC` (`src/config/octoberOffer.ts`), with the volume and the track position that lines up with the film's start. `src/lib/offers/octoberMusic.ts` holds one persistent `<audio>` element per visit. Where Web Audio is available it routes through a gain node, because iOS ignores `audio.volume` and fades need a gain node there.
+
+- The master timeline is the source of truth, and the music follows it. The track is first requested by the **ابدأ التجربة** tap and starts in that same tap. It is never restarted between chapters.
+- Pausing, or any interruption (wheel, swipe, drag, navigation keys), pauses the track and keeps its position. Resume seeks to the film time, and the music re-aligns about once a second while playing. It only seeks when the drift exceeds 350 ms.
+- 🔊/🔇 mutes the music and the effects without pausing the film. Unmuting continues at the current film position.
+- **تخطي** fades the music out over 400 ms and pauses it. During a normal run the music fades over the last 1.8 s of the price chapter, so the offer section lands in silence.
+- When the tab is hidden the music pauses. It comes back only if the film is still playing. Leaving the page releases the element.
+- Reduced-motion mode has no autoplay and no background music.
+
+**Scene effects** sit under the music: clipper and razor at about 0.3, oil and steam ambience at 0.15, and the 333 impact at 0.5. The opening adds only a faint radio texture. Nothing plays before an explicit tap, a mute chosen before starting is respected, and effects play only during autoplay. Until real effect files are added, quiet synthesized stand-ins play. Missing files fall back silently, and the film is fully understandable muted.
 
 ## Accessibility and performance
 

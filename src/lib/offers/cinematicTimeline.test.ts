@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { CinematicTimeline, SETTLE_MS, type TimelineChapter } from "./cinematicTimeline";
+import { CinematicTimeline, SETTLE_MS, filmElapsedMs, type TimelineChapter } from "./cinematicTimeline";
 
 const chapters: TimelineChapter[] = [
   { id: "a", duration: 1000, settleAt: 1 },
@@ -34,6 +34,14 @@ describe("CinematicTimeline", () => {
     expect(timeline.index).toBe(2);
     expect(timeline.status).toBe("ended");
     expect(status).toHaveBeenLastCalledWith("ended");
+  });
+
+  it("reports film time across chapters for the soundtrack to follow", () => {
+    const timeline = new CinematicTimeline(chapters);
+    timeline.start();
+    run(timeline, 1500);
+    expect(timeline.elapsedMs).toBeCloseTo(1500, -1);
+    expect(filmElapsedMs(chapters, 2, 0)).toBe(3000);
   });
 
   it("fires cues once when progress crosses them", () => {
