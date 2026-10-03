@@ -11,6 +11,51 @@ export const OPENING_LINES = {
   handoff: "وفي CUT… بنحتفل بطريقتنا.",
 } as const;
 
+export const GATE_COPY = {
+  eyebrow: "احتفال أكتوبر",
+  headline: "مش مجرد عرض…",
+  accent: "دي حكاية.",
+  teaser: "٤ خدمات. تجربة كاملة.",
+  teaserReveal: "واكتشف عرض أكتوبر في نهاية الرحلة.",
+  hint: "تجربة بالصوت · أقل من دقيقة",
+} as const;
+
+function GateBackdrop({ still = false }: { still?: boolean }) {
+  return (
+    <div className={`${styles.gateBackdrop} ${still ? styles.gateBackdropStill : ""}`} aria-hidden="true">
+      <span className={styles.gateImage} />
+      <span className={styles.gateShade} />
+      <span className={styles.gateSweep} />
+      <span className={styles.gateEmber} />
+      {!still && <span className={`${styles.grain} ${styles.gateGrain}`} />}
+    </div>
+  );
+}
+
+function GateIntro({ onStart }: { onStart: () => void }) {
+  return (
+    <div className={styles.gateContent}>
+      <p className={styles.gateEyebrow}>{GATE_COPY.eyebrow}</p>
+      <p className={styles.gateHeadline}>
+        <span>{GATE_COPY.headline}</span>
+        <span className={styles.gateAccent}>{GATE_COPY.accent}</span>
+      </p>
+      <div className={styles.gateCta}>
+        <button type="button" className={styles.startButton} onClick={onStart}>
+          ابدأ التجربة
+        </button>
+      </div>
+      <p className={styles.gateTeaser}>
+        <span>{GATE_COPY.teaser}</span>
+        <span className={styles.gateTeaserReveal}>{GATE_COPY.teaserReveal}</span>
+      </p>
+      <p className={styles.gateHint}>
+        <span aria-hidden="true">🔊</span> {GATE_COPY.hint}
+      </p>
+    </div>
+  );
+}
+
 interface OpeningSceneProps {
   local: MotionValue<number>;
   visibility: MotionValue<string>;
@@ -76,16 +121,8 @@ export function OpeningScene({ local, visibility, started, allowVideo, onStart }
             initial={false}
             exit={{ opacity: 0, transition: { duration: 0.5 } }}
           >
-            <p className={styles.gateLogo} dir="ltr" aria-hidden="true">
-              CUT
-            </p>
-            <p className={styles.gateTitle}>{offer.campaignName}</p>
-            <button type="button" className={styles.startButton} onClick={onStart}>
-              ابدأ التجربة
-            </button>
-            <p className={styles.gateHint}>
-              <span aria-hidden="true">🔊</span> تجربة بالصوت · أقل من دقيقة
-            </p>
+            <GateBackdrop />
+            <GateIntro onStart={onStart} />
           </motion.div>
         )}
       </AnimatePresence>
@@ -98,13 +135,9 @@ export function OpeningStatic({ onStart }: { onStart: () => void }) {
   return (
     <section className={`${styles.staticScene} ${styles.openingStatic}`} aria-labelledby="october-title">
       <div className={styles.openingBase} />
-      <div className={`${styles.flag} ${styles.flagStill}`} aria-hidden="true">
-        <span className={styles.flagRed} />
-        <span className={styles.flagWhite} />
-        <span className={styles.flagBlack} />
-      </div>
-      <div className={styles.openingVignette} />
+      <GateBackdrop still />
       <div className={styles.openingCopy}>
+        <p className={styles.gateEyebrow}>{GATE_COPY.eyebrow}</p>
         <p className={styles.openingTribute}>{OPENING_LINES.tribute}</p>
         <p className={styles.openingHandoff}>{OPENING_LINES.handoff}</p>
         <h1 id="october-title" className={styles.openingTitle}>
@@ -113,6 +146,10 @@ export function OpeningStatic({ onStart }: { onStart: () => void }) {
         <button type="button" className={styles.startButton} onClick={onStart}>
           ابدأ التجربة
         </button>
+        <p className={styles.gateTeaser}>
+          <span>{GATE_COPY.teaser}</span>
+          <span className={styles.gateTeaserReveal}>{GATE_COPY.teaserReveal}</span>
+        </p>
       </div>
     </section>
   );
