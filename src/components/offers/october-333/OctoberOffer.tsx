@@ -29,7 +29,7 @@ export function OctoberOffer() {
     try {
       const data = await octoberOfferApi.campaign();
       setCampaign(data);
-      setEnded(data.status === "ended" || data.remainingClaims === 0 || Date.parse(data.validUntil) <= Date.now());
+      setEnded(data.status === "ended" || data.remainingClaims === 0 || Date.parse(data.claimDeadline) <= Date.now());
     } catch (error) {
       setCampaign(null);
       if (error instanceof Error && error.message === "ended") setEnded(true);
@@ -40,7 +40,7 @@ export function OctoberOffer() {
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!available || locked.current) return;
-    if (Date.parse(campaign!.validUntil) <= Date.now()) { setEnded(true); return; }
+    if (Date.parse(campaign!.claimDeadline) <= Date.now()) { setEnded(true); return; }
     const data = new FormData(event.currentTarget);
     const name = String(data.get("name") || "").trim();
     const mobile = normalizeEgyptianMobile(String(data.get("mobile") || ""));
@@ -72,13 +72,13 @@ export function OctoberOffer() {
     <section id="availability" className={styles.panel} aria-live="polite"><h2>{ended ? "انتهى عرض أكتوبر" : "عرض محدود"}</h2>{ended ? <><p>انتهت فترة المطالبة أو اكتمل العدد المتاح. الرابط سيظل متاحًا؛ لو أكدت عرضك بالفعل احتفظ بتأكيدك وراجع صلاحيته.</p><Link href="/book" className={styles.secondary}>احجز زيارة في CUT</Link></> : loading ? <p>جارٍ التحقق من توفر العرض…</p> : campaign ? <p>المتبقي حاليًا: {campaign.remainingClaims} من أصل 100 طلب مؤكد.</p> : <><p>تأكيد العرض غير متاح حاليًا. لم يتم إرسال أي طلب. حاول مرة أخرى لاحقًا.</p><button className={styles.secondary} onClick={() => void load()}>تحقق مرة أخرى</button></>}</section>
     <section className={styles.panel}><h2>ثلاث خطوات وبس</h2><ol className={styles.steps}><li>أكد طلب العرض باسمك ورقمك</li><li>احجز موعدك الآن أو لاحقًا</li><li>ادفع 333 جنيه في الفرع عند الاستخدام</li></ol></section>
     {!ended && <section id="claim" className={styles.panel}><h2>خلي العرض باسمك</h2><p>الطلب لا يحجز موعدًا تلقائيًا. اختر موعدك بعد التأكيد.</p><form onSubmit={submit}><label htmlFor="offer-name">الاسم</label><input id="offer-name" name="name" autoComplete="name" required maxLength={100} disabled={busy} /><label htmlFor="offer-mobile">رقم الموبايل المصري</label><input id="offer-mobile" name="mobile" type="tel" dir="ltr" inputMode="tel" autoComplete="tel" placeholder="01012345678" required maxLength={25} disabled={busy} /><button className={styles.button} disabled={!available || busy}>{busy ? "جارٍ تأكيد الطلب…" : "أكد عرض الـ333 جنيه"}</button><p role="status">{message}</p></form></section>}
-    <section className={styles.panel}><h2>الشروط والصلاحية</h2><p>العرض لأول 100 طلب صالح ومؤكد. يشمل الخدمات الأربع الموضحة، والدفع في الفرع عند الاستخدام. تأكيد العرض منفصل عن حجز الموعد.</p>{campaign ? <><p>صالح حتى: <time dateTime={campaign.validUntil}>{new Date(campaign.validUntil).toLocaleDateString("ar-EG")}</time></p><p>{campaign.terms}</p></> : <p>تفاصيل فترة الصلاحية والشروط ستظهر عند توفر بيانات الحملة، قبل تأكيد الطلب.</p>}</section>
+    <section className={styles.panel}><h2>الشروط والصلاحية</h2><p>العرض لأول 100 طلب صالح ومؤكد. يشمل الخدمات الأربع الموضحة، والدفع في الفرع عند الاستخدام. تأكيد العرض منفصل عن حجز الموعد.</p>{campaign ? <><p>آخر موعد لتأكيد الطلب: <time dateTime={campaign.claimDeadline}>{new Date(campaign.claimDeadline).toLocaleDateString("ar-EG")}</time></p><p>صالح للاستخدام حتى: <time dateTime={campaign.redeemUntil}>{new Date(campaign.redeemUntil).toLocaleDateString("ar-EG")}</time></p><p>{campaign.terms}</p></> : <p>تفاصيل فترة الصلاحية والشروط ستظهر عند توفر بيانات الحملة، قبل تأكيد الطلب.</p>}</section>
     {!ended && <div className={styles.sticky}><span>333 جنيه <small>الدفع في الفرع</small></span><a className={styles.button} href="#claim">احجز عرضك</a></div>}
   </Shell>;
 }
 function Confirmation({ receipt }: { receipt: ClaimReceipt }) {
-  const expired = Date.parse(receipt.validUntil) <= Date.now();
-  return <section className={styles.hero}><p className={styles.eyebrow}>تم تأكيد طلب العرض</p><h1>{expired ? "انتهت صلاحية عرضك" : "عرضك جاهز."}</h1><Details /><p>رقم التأكيد: <b dir="ltr">{receipt.claimId}</b></p><p>صالح حتى {new Date(receipt.validUntil).toLocaleDateString("ar-EG")}. احتفظ برقم التأكيد وقدمه في الفرع.</p>{expired ? <p>انتهت الصلاحية الموضحة في التأكيد. يمكنك حجز زيارة عادية في CUT.</p> : <p>لم يتم حجز موعد بعد. لا يوجد دفع أونلاين؛ ادفع 333 جنيه في الفرع عند استخدام العرض.</p>}<Link href="/book" className={styles.button}>احجز موعدك الآن</Link><Link href="/offers/october-333" className={styles.secondary}>احجز لاحقًا</Link><p>يمكنك الرجوع إلى /book عندما تكون جاهزًا للحجز.</p></section>;
+  const expired = Date.parse(receipt.redeemUntil) <= Date.now();
+  return <section className={styles.hero}><p className={styles.eyebrow}>تم تأكيد طلب العرض</p><h1>{expired ? "انتهت صلاحية عرضك" : "عرضك جاهز."}</h1><Details /><p>رقم التأكيد: <b dir="ltr">{receipt.claimId}</b></p><p>صالح حتى {new Date(receipt.redeemUntil).toLocaleDateString("ar-EG")}. احتفظ برقم التأكيد وقدمه في الفرع.</p>{expired ? <p>انتهت الصلاحية الموضحة في التأكيد. يمكنك حجز زيارة عادية في CUT.</p> : <p>لم يتم حجز موعد بعد. لا يوجد دفع أونلاين؛ ادفع 333 جنيه في الفرع عند استخدام العرض.</p>}<Link href="/book" className={styles.button}>احجز موعدك الآن</Link><Link href="/offers/october-333" className={styles.secondary}>احجز لاحقًا</Link><p>يمكنك الرجوع إلى /book عندما تكون جاهزًا للحجز.</p></section>;
 }
 export function OctoberOfferSuccess() {
   const [receipt, setReceipt] = useState<ClaimReceipt | null>(null);

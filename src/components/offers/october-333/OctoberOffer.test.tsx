@@ -5,7 +5,7 @@ import { octoberOfferApi } from "@/lib/offers/octoberOfferApi";
 const push = vi.hoisted(() => vi.fn());
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
 vi.mock("@/lib/offers/octoberOfferApi", async importOriginal => ({ ...await importOriginal<typeof import("@/lib/offers/octoberOfferApi")>(), octoberOfferApi: { campaign: vi.fn(), claim: vi.fn() } }));
-const campaign = { status: "active" as const, remainingClaims: 8, terms: "Test terms", validUntil: "2099-10-31T23:59:59Z" };
+const campaign = { status: "active" as const, remainingClaims: 8, terms: "Test terms", claimDeadline: "2099-10-31T23:59:59Z", redeemUntil: "2099-11-30T23:59:59Z" };
 beforeEach(() => { vi.clearAllMocks(); sessionStorage.clear(); vi.mocked(octoberOfferApi.campaign).mockResolvedValue(campaign); });
 describe("October offer funnel", () => {
   it("disables claims when unavailable", async () => {
@@ -22,7 +22,7 @@ describe("October offer funnel", () => {
     expect(screen.queryByLabelText("الاسم")).not.toBeInTheDocument();
   });
   it("only navigates to success after a confirmed mock claim", async () => {
-    vi.mocked(octoberOfferApi.claim).mockResolvedValue({ claimId: "mock-confirmation", validUntil: campaign.validUntil });
+    vi.mocked(octoberOfferApi.claim).mockResolvedValue({ claimId: "mock-confirmation", redeemUntil: campaign.redeemUntil });
     render(<OctoberOffer />);
     await waitFor(() => expect(screen.getByRole("button", { name: "أكد عرض الـ333 جنيه" })).toBeEnabled());
     fireEvent.change(screen.getByLabelText("الاسم"), { target: { value: "Test Customer" } });
@@ -55,8 +55,36 @@ describe("October offer funnel", () => {
     await act(async () => { fireEvent.click(button); });
     expect(octoberOfferApi.claim).toHaveBeenCalledTimes(2);
   });
+  it("displays separate claim and redemption dates", async () => {
+    const { container } = render(<OctoberOffer />);
+    await screen.findByText(campaign.terms);
+    expect(container.querySelector('time[datetime="' + campaign.claimDeadline + '"]')).toHaveTextContent(new Date(campaign.claimDeadline).toLocaleDateString("ar-EG"));
+    expect(container.querySelector('time[datetime="' + campaign.redeemUntil + '"]')).toHaveTextContent(new Date(campaign.redeemUntil).toLocaleDateString("ar-EG"));
+  });
+  it("blocks submission at the claim deadline after the form has loaded", async () => {
+    render(<OctoberOffer />);
+    const button = screen.getByRole("button", { name: "أكد عرض الـ333 جنيه" });
+    await waitFor(() => expect(button).toBeEnabled());
+    fireEvent.change(screen.getByLabelText("الاسم"), { target: { value: "Test" } });
+    fireEvent.change(screen.getByLabelText("رقم الموبايل المصري"), { target: { value: "01012345678" } });
+    const now = vi.spyOn(Date, "now").mockReturnValue(Date.parse(campaign.claimDeadline));
+    try {
+      await act(async () => { fireEvent.click(button); });
+      expect(screen.getByRole("heading", { name: "انتهى عرض أكتوبر" })).toBeInTheDocument();
+      expect(octoberOfferApi.claim).not.toHaveBeenCalled();
+    } finally { now.mockRestore(); }
+  });
+  it.each([
+    ["2099-11-30T23:59:59Z", "عرضك جاهز."],
+    ["2020-11-30T23:59:59Z", "انتهت صلاحية عرضك"],
+  ])("uses receipt redemption expiry %s for confirmation", async (redeemUntil, heading) => {
+    sessionStorage.setItem("cut:october-333:receipt", JSON.stringify({ claimId: "mock-confirmation", redeemUntil }));
+    render(<OctoberOfferSuccess />);
+    expect(await screen.findByRole("heading", { name: heading })).toBeInTheDocument();
+    expect(screen.getByText(/صالح حتى/)).toHaveTextContent(new Date(redeemUntil).toLocaleDateString("ar-EG"));
+  });
   it("renders an expired campaign at its existing URL", async () => {
-    vi.mocked(octoberOfferApi.campaign).mockResolvedValue({ ...campaign, validUntil: "2020-10-31T23:59:59Z" });
+    vi.mocked(octoberOfferApi.campaign).mockResolvedValue({ ...campaign, claimDeadline: "2020-10-31T23:59:59Z" });
     render(<OctoberOffer />);
     await screen.findByRole("heading", { name: "انتهى عرض أكتوبر" });
     expect(screen.queryByLabelText("الاسم")).not.toBeInTheDocument();

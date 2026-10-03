@@ -2,9 +2,10 @@ export type Campaign = {
   status: "active" | "ended";
   remainingClaims: number;
   terms: string;
-  validUntil: string;
+  claimDeadline: string;
+  redeemUntil: string;
 };
-export type ClaimReceipt = { claimId: string; validUntil: string };
+export type ClaimReceipt = { claimId: string; redeemUntil: string };
 export const attributionKeys = ["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term", "fbclid"] as const;
 export function getAttribution(search: string) {
   const params = new URLSearchParams(search);
@@ -18,7 +19,7 @@ export function normalizeEgyptianMobile(value: string): string | null {
 export function isReceipt(value: unknown): value is ClaimReceipt {
   if (!value || typeof value !== "object") return false;
   const receipt = value as ClaimReceipt;
-  return typeof receipt.claimId === "string" && !!receipt.claimId.trim() && typeof receipt.validUntil === "string" && Number.isFinite(Date.parse(receipt.validUntil));
+  return typeof receipt.claimId === "string" && !!receipt.claimId.trim() && typeof receipt.redeemUntil === "string" && Number.isFinite(Date.parse(receipt.redeemUntil));
 }
 
 // Explicit opt-in integration; never fall back to the production booking API.
@@ -35,7 +36,7 @@ export function createOctoberOfferApi(endpoint: string | undefined, request: typ
   return {
     async campaign(): Promise<Campaign> {
       const data = await call("");
-      if (!["active", "ended"].includes(data?.status) || !Number.isInteger(data.remainingClaims) || data.remainingClaims < 0 || data.remainingClaims > 100 || typeof data.terms !== "string" || !data.terms.trim() || typeof data.validUntil !== "string" || !Number.isFinite(Date.parse(data.validUntil))) throw new Error("unavailable");
+      if (!["active", "ended"].includes(data?.status) || !Number.isInteger(data.remainingClaims) || data.remainingClaims < 0 || data.remainingClaims > 100 || typeof data.terms !== "string" || !data.terms.trim() || typeof data.claimDeadline !== "string" || !Number.isFinite(Date.parse(data.claimDeadline)) || typeof data.redeemUntil !== "string" || !Number.isFinite(Date.parse(data.redeemUntil))) throw new Error("unavailable");
       return data;
     },
     async claim(name: string, mobile: string, attribution: Record<string, string>, requestId: string): Promise<ClaimReceipt> {

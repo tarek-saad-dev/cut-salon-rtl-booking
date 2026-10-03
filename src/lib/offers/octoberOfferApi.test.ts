@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { createOctoberOfferApi, getAttribution, normalizeEgyptianMobile } from "./octoberOfferApi";
-const campaign = { status: "active", remainingClaims: 12, terms: "Campaign terms", validUntil: "2026-10-31T23:59:59Z" };
+const campaign = { status: "active", remainingClaims: 12, terms: "Campaign terms", claimDeadline: "2026-10-31T23:59:59Z", redeemUntil: "2026-11-30T23:59:59Z" };
 describe("October offer API", () => {
   it("fails closed without an endpoint and never sends a request", async () => {
     const fetcher = vi.fn();
@@ -16,8 +16,18 @@ describe("October offer API", () => {
     fetcher.mockResolvedValue({ ok: true, json: async () => ({ ...campaign, remainingClaims: 101 }) });
     await expect(api.campaign()).rejects.toThrow("unavailable");
   });
+  it.each(["claimDeadline", "redeemUntil"])("rejects a missing or invalid campaign %s", async field => {
+    for (const value of [undefined, "invalid-date"]) {
+      const fetcher = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ ...campaign, [field]: value }) });
+      await expect(createOctoberOfferApi("https://example.test/campaign", fetcher).campaign()).rejects.toThrow("unavailable");
+    }
+  });
+  it("rejects legacy receipts without an explicit redemption expiry", async () => {
+    const fetcher = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ claimId: "mock-123", validUntil: campaign.claimDeadline }) });
+    await expect(createOctoberOfferApi("https://example.test/campaign", fetcher).claim("Test", "01012345678", {}, "key")).rejects.toThrow("unavailable");
+  });
   it("sends normalized claims, attribution, and a stable retry key only to the configured endpoint", async () => {
-    const receipt = { claimId: "mock-123", validUntil: campaign.validUntil };
+    const receipt = { claimId: "mock-123", redeemUntil: campaign.redeemUntil };
     const fetcher = vi.fn().mockResolvedValue({ ok: true, json: async () => receipt });
     const api = createOctoberOfferApi("https://example.test/campaign/", fetcher);
     const attribution = getAttribution("?utm_source=meta&utm_medium=paid&utm_campaign=october&utm_content=video&utm_term=cut&fbclid=abc&secret=ignored");
