@@ -4,10 +4,13 @@ import {
   type OctoberSoundConfig,
   type OctoberSoundSlot,
 } from "@/config/octoberOffer";
+import { SYNTH_RECIPES, type SynthLayer, type Sweep } from "./octoberSynth";
 
 export const OCTOBER_SOUND_STORAGE_KEY = "cut:october-experience:sound";
 /** Slot volume at which the synthesized stand-ins play at their designed level. */
 const SYNTH_REFERENCE_VOLUME = 0.5;
+/** Short cues may overlap (a snip over a clipper tail); beyond this the oldest is released. */
+export const MAX_ONE_SHOTS = 6;
 
 export interface SoundManager {
   isEnabled(): boolean;
@@ -17,6 +20,8 @@ export interface SoundManager {
   setEnabled(enabled: boolean): void;
   play(slot: OctoberSoundSlot): void;
   prefetch(slots: readonly OctoberSoundSlot[]): void;
+  /** The looping ambience currently playing, if any. */
+  ambient(): OctoberSoundSlot | null;
   stopAmbient(): void;
   /** Stops scene effects only; the campaign music is controlled separately. */
   stopAll(): void;
@@ -69,8 +74,8 @@ export function createSoundManager(options: SoundManagerOptions = {}): SoundMana
   let ctx: AudioContext | null = null;
   let master: GainNode | null = null;
   let noise: AudioBuffer | null = null;
-  let shot: Voice | null = null;
-  let ambient: { slot: OctoberSoundSlot; voice: Voice } | null = null;
+  let shots: { voice: Voice; end: number }[] = [];
+  let ambience: { slot: OctoberSoundSlot; voice: Voice } | null = null;
   let disposed = false;
 
   try {
@@ -115,17 +120,13 @@ export function createSoundManager(options: SoundManagerOptions = {}): SoundMana
     return pending;
   }
 
-  function envelope(gain: GainNode, peak: number, attack: number, release: number, at = 0) {
-    const t = ctx!.currentTime + at;
-    gain.gain.setValueAtTime(0.0001, t);
-    gain.gain.exponentialRampToValueAtTime(Math.max(peak, 0.0002), t + attack);
-    gain.gain.exponentialRampToValueAtTime(0.0001, t + attack + release);
-    return t + attack + release;
-  }
-
-  function ramp(param: AudioParam, start: number, points: readonly (readonly [number, number])[]) {
-    param.setValueAtTime(points[0][1], start + points[0][0]);
-    for (const [at, value] of points.slice(1)) param.linearRampToValueAtTime(value, start + at);
+  function sweep(param: AudioParam, value: Sweep, start: number, end: number) {
+    if (typeof value === "number") {
+      param.setValueAtTime(value, start);
+      return;
+    }
+    param.setValueAtTime(value[0], start);
+    param.exponentialRampToValueAtTime(value[1], end);
   }
 
   function noiseSource(): AudioBufferSourceNode {
@@ -141,123 +142,80 @@ export function createSoundManager(options: SoundManagerOptions = {}): SoundMana
     return source;
   }
 
-  function voiceOf(nodes: AudioScheduledSourceNode[], out: GainNode, end: number): Voice {
-    nodes.forEach((node) => {
-      node.start();
-      node.stop(end + 0.05);
-    });
-    return {
-      stop(fade = 0.08) {
-        const t = ctx?.currentTime ?? 0;
-        try {
-          out.gain.cancelScheduledValues(t);
-          out.gain.setTargetAtTime(0.0001, t, fade / 3);
-          nodes.forEach((node) => node.stop(t + fade + 0.02));
-        } catch {
-          /* already stopped */
-        }
-      },
-    };
+  /** Builds one layer; returns its source and the time it falls silent (Infinity when sustained). */
+  function layer(spec: SynthLayer, out: GainNode, now: number, sustain: boolean) {
+    const audio = ctx!;
+    const start = now + (spec.at ?? 0);
+    const end = start + spec.attack + (sustain ? 0 : spec.release);
+    const gain = audio.createGain();
+    gain.gain.setValueAtTime(0.0001, start);
+    if (sustain) {
+      gain.gain.linearRampToValueAtTime(spec.peak, start + spec.attack);
+    } else {
+      gain.gain.exponentialRampToValueAtTime(Math.max(spec.peak, 0.0002), start + spec.attack);
+      gain.gain.exponentialRampToValueAtTime(0.0001, end);
+    }
+
+    let source: AudioScheduledSourceNode;
+    let head: AudioNode;
+    if (spec.kind === "noise") {
+      source = noiseSource();
+      const filter = audio.createBiquadFilter();
+      filter.type = spec.filter;
+      if (spec.q) filter.Q.value = spec.q;
+      sweep(filter.frequency, spec.freq, start, end);
+      source.connect(filter);
+      head = filter;
+    } else {
+      const osc = audio.createOscillator();
+      osc.type = spec.wave;
+      sweep(osc.frequency, spec.freq, start, end);
+      source = osc;
+      head = osc;
+      if (spec.filter) {
+        const filter = audio.createBiquadFilter();
+        filter.type = spec.filter.type;
+        filter.frequency.value = spec.filter.freq;
+        if (spec.filter.q) filter.Q.value = spec.filter.q;
+        osc.connect(filter);
+        head = filter;
+      }
+    }
+    head.connect(gain).connect(out);
+    source.start(start);
+    if (!sustain) source.stop(end + 0.05);
+    return { source, end: sustain ? Infinity : end };
   }
 
   /** Quiet synthesized stand-ins used until real assets are uploaded. */
-  function synthesize(slot: OctoberSoundSlot): Voice | null {
+  function synthesize(slot: OctoberSoundSlot): { voice: Voice; end: number } {
     const audio = ctx!;
+    const recipe = SYNTH_RECIPES[slot];
+    const sustain = !!recipe.sustain;
     const out = audio.createGain();
     out.gain.value = sounds[slot].volume / SYNTH_REFERENCE_VOLUME;
     out.connect(master!);
     const now = audio.currentTime;
-
-    if (slot === "reveal") {
-      const sub = audio.createOscillator();
-      sub.type = "sine";
-      sub.frequency.setValueAtTime(92, now);
-      sub.frequency.exponentialRampToValueAtTime(34, now + 1.4);
-      const subGain = audio.createGain();
-      const end = envelope(subGain, 0.9, 0.012, 1.6);
-      sub.connect(subGain).connect(out);
-      const click = noiseSource();
-      const lowpass = audio.createBiquadFilter();
-      lowpass.type = "lowpass";
-      lowpass.frequency.value = 900;
-      const clickGain = audio.createGain();
-      envelope(clickGain, 0.35, 0.004, 0.14);
-      click.connect(lowpass).connect(clickGain).connect(out);
-      return voiceOf([sub, click], out, end);
-    }
-
-    if (slot === "opening") {
-      // A thin band of radio static over the archival dark; the music carries the emotion.
-      const staticNoise = noiseSource();
-      const radio = audio.createBiquadFilter();
-      radio.type = "bandpass";
-      radio.frequency.value = 1700;
-      radio.Q.value = 0.8;
-      const staticGain = audio.createGain();
-      ramp(staticGain.gain, now, [[0, 0], [0.6, 0.06], [1.8, 0.04], [2.6, 0]]);
-      staticNoise.connect(radio).connect(staticGain).connect(out);
-      return voiceOf([staticNoise], out, now + 2.8);
-    }
-
-    const source = noiseSource();
-    const filter = audio.createBiquadFilter();
-    const gain = audio.createGain();
-    source.connect(filter).connect(gain).connect(out);
-    const extra: AudioScheduledSourceNode[] = [];
-    let end: number;
-
-    if (slot === "clipper") {
-      filter.type = "bandpass";
-      filter.frequency.value = 3400;
-      filter.Q.value = 3;
-      end = envelope(gain, 0.08, 0.05, 1.6);
-      const motor = audio.createOscillator();
-      motor.type = "sawtooth";
-      motor.frequency.value = 118;
-      const motorTone = audio.createBiquadFilter();
-      motorTone.type = "bandpass";
-      motorTone.frequency.value = 1400;
-      motorTone.Q.value = 1.4;
-      const motorGain = audio.createGain();
-      ramp(motorGain.gain, now, [[0, 0.07], [1.2, 0.05], [1.7, 0]]);
-      motor.connect(motorTone).connect(motorGain).connect(out);
-      extra.push(motor);
-    } else if (slot === "razor") {
-      filter.type = "bandpass";
-      filter.Q.value = 1.4;
-      filter.frequency.setValueAtTime(600, now);
-      filter.frequency.exponentialRampToValueAtTime(5200, now + 0.5);
-      end = envelope(gain, 0.12, 0.22, 0.35);
-      for (const [freq, at] of [[2350, 0.42], [3120, 0.46]] as const) {
-        const ping = audio.createOscillator();
-        ping.type = "sine";
-        ping.frequency.value = freq;
-        const pingGain = audio.createGain();
-        envelope(pingGain, 0.045, 0.004, 0.9, at);
-        ping.connect(pingGain).connect(out);
-        extra.push(ping);
-      }
-    } else if (slot === "oil") {
-      filter.type = "lowpass";
-      filter.frequency.value = 500;
-      end = envelope(gain, 0.03, 0.4, 1.2);
-      const drop = audio.createOscillator();
-      drop.type = "sine";
-      drop.frequency.setValueAtTime(720, now);
-      drop.frequency.exponentialRampToValueAtTime(190, now + 0.22);
-      const dropGain = audio.createGain();
-      envelope(dropGain, 0.16, 0.008, 0.3);
-      drop.connect(dropGain).connect(out);
-      extra.push(drop);
-    } else {
-      filter.type = "highpass";
-      filter.frequency.value = 2600;
-      end = envelope(gain, 0.06, 0.9, 1.6);
-    }
-    return voiceOf([source, ...extra], out, end);
+    const built = recipe.layers.map((spec) => layer(spec, out, now, sustain));
+    const end = Math.max(...built.map((b) => b.end));
+    return {
+      end,
+      voice: {
+        stop(fade = 0.08) {
+          const t = ctx?.currentTime ?? 0;
+          try {
+            out.gain.cancelScheduledValues(t);
+            out.gain.setTargetAtTime(0.0001, t, fade / 3);
+            built.forEach((b) => b.source.stop(t + fade + 0.02));
+          } catch {
+            /* already stopped */
+          }
+        },
+      },
+    };
   }
 
-  function playBuffer(buffer: AudioBuffer, config: OctoberSoundConfig): Voice {
+  function playBuffer(buffer: AudioBuffer, config: OctoberSoundConfig): { voice: Voice; end: number } {
     const audio = ctx!;
     const source = audio.createBufferSource();
     source.buffer = buffer;
@@ -269,24 +227,38 @@ export function createSoundManager(options: SoundManagerOptions = {}): SoundMana
     source.connect(out).connect(master!);
     source.start();
     return {
-      stop(fade = 0.4) {
-        const now = ctx?.currentTime ?? 0;
-        try {
-          out.gain.cancelScheduledValues(now);
-          out.gain.setTargetAtTime(0.0001, now, fade / 3);
-          source.stop(now + fade + 0.05);
-        } catch {
-          /* already stopped */
-        }
+      end: config.loop ? Infinity : t + buffer.duration,
+      voice: {
+        stop(fade = 0.4) {
+          const now = ctx?.currentTime ?? 0;
+          try {
+            out.gain.cancelScheduledValues(now);
+            out.gain.setTargetAtTime(0.0001, now, fade / 3);
+            source.stop(now + fade + 0.05);
+          } catch {
+            /* already stopped */
+          }
+        },
       },
     };
   }
 
+  function addShot(shot: { voice: Voice; end: number }) {
+    const now = ctx?.currentTime ?? 0;
+    shots = shots.filter((s) => s.end > now);
+    while (shots.length >= MAX_ONE_SHOTS) shots.shift()?.voice.stop(0.15);
+    shots.push(shot);
+  }
+
+  function stopAmbient(fade = 1.4) {
+    ambience?.voice.stop(fade);
+    ambience = null;
+  }
+
   function stopAll() {
-    shot?.stop();
-    shot = null;
-    ambient?.voice.stop();
-    ambient = null;
+    shots.forEach((s) => s.voice.stop());
+    shots = [];
+    stopAmbient(0.4);
   }
 
   const onVisibility = () => {
@@ -326,17 +298,22 @@ export function createSoundManager(options: SoundManagerOptions = {}): SoundMana
     play(slot) {
       if (!ready()) return;
       const config = sounds[slot];
-      if (config.loop && ambient?.slot === slot) return;
+      if (config.loop && ambience?.slot === slot) return;
+      if (config.loop) {
+        stopAmbient(1.2);
+        ambience = { slot, voice: { stop: () => {} } };
+      }
+      const claim = ambience;
       void load(slot).then((buffer) => {
         if (!ready()) return;
         try {
-          if (config.loop && buffer) {
-            ambient?.voice.stop(1.2);
-            ambient = { slot, voice: playBuffer(buffer, config) };
+          if (config.loop) {
+            if (ambience !== claim) return;
+            const built = buffer ? playBuffer(buffer, config) : synthesize(slot);
+            ambience = { slot, voice: built.voice };
             return;
           }
-          shot?.stop(0.35);
-          shot = buffer ? playBuffer(buffer, config) : synthesize(slot);
+          addShot(buffer ? playBuffer(buffer, config) : synthesize(slot));
         } catch {
           /* never let audio break the page */
         }
@@ -345,10 +322,8 @@ export function createSoundManager(options: SoundManagerOptions = {}): SoundMana
     prefetch(slots) {
       if (ctx) slots.forEach((slot) => void load(slot));
     },
-    stopAmbient() {
-      ambient?.voice.stop(1.4);
-      ambient = null;
-    },
+    ambient: () => ambience?.slot ?? null,
+    stopAmbient: () => stopAmbient(),
     stopAll,
     connectMedia(element) {
       const audio = ensureContext();

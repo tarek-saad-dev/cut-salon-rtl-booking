@@ -5,6 +5,8 @@ import type { MediaRoute } from "./octoberSound";
 export const MUSIC_DRIFT_TOLERANCE_MS = 350;
 const FADE_IN_MS = 250;
 const FADE_STEP_MS = 40;
+const DUCK_IN_MS = 90;
+const DUCK_OUT_MS = 700;
 
 export interface MusicController {
   /** Starts or continues the track at film time `atMs`. Call from a user gesture. */
@@ -17,6 +19,8 @@ export interface MusicController {
   setMuted(muted: boolean): void;
   /** Fades to silence over `ms`, then pauses. */
   fadeOut(ms: number): void;
+  /** Dips to `level` × volume for `holdMs` so a hero effect reads, then breathes back. */
+  duck(level: number, holdMs: number): void;
   /** True while the track should be running (muted counts; paused or fading out does not). */
   isPlaying(): boolean;
   dispose(): void;
@@ -46,6 +50,7 @@ export function createMusicController(options: MusicControllerOptions = {}): Mus
   let disposed = false;
   let fadeStep = 0;
   let pauseAfterFade = 0;
+  let duckRelease = 0;
 
   function audio() {
     if (!element && !disposed) {
@@ -70,8 +75,10 @@ export function createMusicController(options: MusicControllerOptions = {}): Mus
   function clearFade() {
     window.clearInterval(fadeStep);
     window.clearTimeout(pauseAfterFade);
+    window.clearTimeout(duckRelease);
     fadeStep = 0;
     pauseAfterFade = 0;
+    duckRelease = 0;
   }
 
   function setLevel(target: number, ms: number) {
@@ -147,6 +154,14 @@ export function createMusicController(options: MusicControllerOptions = {}): Mus
       clearFade();
       setLevel(0, ms);
       pauseAfterFade = window.setTimeout(() => el.pause(), ms);
+    },
+    duck(level, holdMs) {
+      if (!playing || !element) return;
+      window.clearTimeout(duckRelease);
+      setLevel(volume * level, DUCK_IN_MS);
+      duckRelease = window.setTimeout(() => {
+        if (playing) setLevel(volume, DUCK_OUT_MS);
+      }, DUCK_IN_MS + holdMs);
     },
     isPlaying: () => playing,
     dispose() {

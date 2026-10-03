@@ -1,8 +1,15 @@
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { OctoberExperience } from "./OctoberExperience";
-import { disposeOctoberSound } from "@/lib/offers/octoberSound";
-import { MUSIC_END_FADE_MS, OCTOBER_BRANCHES, OCTOBER_CHAPTERS, OCTOBER_MUSIC } from "@/config/octoberOffer";
+import { disposeOctoberSound, getOctoberSound } from "@/lib/offers/octoberSound";
+import {
+  MUSIC_END_FADE_MS,
+  OCTOBER_BRANCHES,
+  OCTOBER_CHAPTER_AMBIENCE,
+  OCTOBER_CHAPTERS,
+  OCTOBER_MUSIC,
+  OCTOBER_SOUND_CUES,
+} from "@/config/octoberOffer";
 
 const VIEWPORT = 844;
 const OFFER_TOP = (OCTOBER_CHAPTERS.length - 1) * VIEWPORT;
@@ -338,6 +345,37 @@ describe("October soundtrack", () => {
       expect(window.scrollTo).toHaveBeenLastCalledWith({ top: OFFER_TOP, behavior: "smooth" });
       expect(music().paused).toBe(true);
       expect(music().volume).toBe(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("plays the cue map in film order and never carries ambience into the wrong chapter", async () => {
+    vi.useFakeTimers({
+      toFake: ["setTimeout", "clearTimeout", "setInterval", "clearInterval", "requestAnimationFrame", "cancelAnimationFrame", "performance", "Date"],
+    });
+    try {
+      const sound = getOctoberSound();
+      const log: string[] = [];
+      vi.spyOn(sound, "play").mockImplementation((slot) => void log.push(slot));
+      vi.spyOn(sound, "stopAmbient").mockImplementation(() => void log.push("stop-ambience"));
+      let ambience: string | null = null;
+      vi.spyOn(sound, "ambient").mockImplementation(() => ambience as never);
+
+      render(<OctoberExperience />);
+      await startExperience();
+      for (const chapter of OCTOBER_CHAPTERS) {
+        ambience = OCTOBER_CHAPTER_AMBIENCE[chapter.id as keyof typeof OCTOBER_CHAPTER_AMBIENCE] ?? ambience;
+        act(() => {
+          vi.advanceTimersByTime(chapter.duration);
+        });
+      }
+
+      const expected = OCTOBER_CHAPTERS.flatMap((chapter) => OCTOBER_SOUND_CUES[chapter.id].map((cue) => cue.sound));
+      expect(log.filter((entry) => entry !== "stop-ambience")).toEqual(expected);
+      const lastSpa = log.lastIndexOf("spa-air");
+      const firstPriceCue = log.indexOf(OCTOBER_SOUND_CUES.price[0].sound, lastSpa);
+      expect(log.slice(lastSpa, firstPriceCue)).toContain("stop-ambience");
     } finally {
       vi.useRealTimers();
     }

@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
-import { createSoundManager, OCTOBER_SOUND_STORAGE_KEY } from "./octoberSound";
+import { OCTOBER_SOUND_SLOTS } from "@/config/octoberOffer";
+import { createSoundManager, MAX_ONE_SHOTS, OCTOBER_SOUND_STORAGE_KEY } from "./octoberSound";
 
 function param() {
   return {
@@ -76,10 +77,68 @@ describe("October sound manager", () => {
     });
     await manager.unlock();
     manager.setEnabled(true);
-    for (const slot of ["opening", "clipper", "razor", "oil", "steam", "reveal"] as const) manager.play(slot);
+    for (const slot of OCTOBER_SOUND_SLOTS) expect(() => manager.play(slot)).not.toThrow();
     await flush();
     expect(fetcher).not.toHaveBeenCalled();
     expect(ctx.createOscillator).toHaveBeenCalled();
+    expect(ctx.createBufferSource).toHaveBeenCalled();
+  });
+
+  it("layers one-shots instead of cutting the previous one off", async () => {
+    const ctx = fakeContext();
+    const gains: ReturnType<typeof node>[] = [];
+    ctx.createGain = vi.fn(() => {
+      const n = node();
+      gains.push(n);
+      return n;
+    });
+    const manager = createSoundManager({ createContext: () => ctx as unknown as AudioContext, resolveUrl: () => undefined, storage: memoryStorage() });
+    await manager.unlock();
+    manager.setEnabled(true);
+    manager.play("riser");
+    await flush();
+    const afterRiser = gains.length;
+    manager.play("reveal");
+    await flush();
+    expect(gains.length).toBeGreaterThan(afterRiser);
+    expect(gains.some((g) => g.gain.setTargetAtTime.mock.calls.length > 0)).toBe(false);
+  });
+
+  it("caps simultaneous one-shots", async () => {
+    const ctx = fakeContext();
+    const gains: ReturnType<typeof node>[] = [];
+    ctx.createGain = vi.fn(() => {
+      const n = node();
+      gains.push(n);
+      return n;
+    });
+    const manager = createSoundManager({ createContext: () => ctx as unknown as AudioContext, resolveUrl: () => undefined, storage: memoryStorage() });
+    await manager.unlock();
+    manager.setEnabled(true);
+    for (let i = 0; i < MAX_ONE_SHOTS + 3; i++) manager.play("tick");
+    await flush();
+    const silenced = gains.filter((g) => g.gain.setTargetAtTime.mock.calls.length > 0);
+    expect(silenced).toHaveLength(3);
+  });
+
+  it("keeps a single ambience bed and swaps it when the chapter changes", async () => {
+    const ctx = fakeContext();
+    const manager = createSoundManager({ createContext: () => ctx as unknown as AudioContext, resolveUrl: () => undefined, storage: memoryStorage() });
+    await manager.unlock();
+    manager.setEnabled(true);
+    expect(manager.ambient()).toBeNull();
+    manager.play("warm-air");
+    await flush();
+    expect(manager.ambient()).toBe("warm-air");
+    const sourcesBefore = ctx.createBufferSource.mock.calls.length;
+    manager.play("warm-air");
+    await flush();
+    expect(ctx.createBufferSource.mock.calls.length).toBe(sourcesBefore);
+    manager.play("spa-air");
+    await flush();
+    expect(manager.ambient()).toBe("spa-air");
+    manager.stopAmbient();
+    expect(manager.ambient()).toBeNull();
   });
 
   it("survives a failing asset request", async () => {

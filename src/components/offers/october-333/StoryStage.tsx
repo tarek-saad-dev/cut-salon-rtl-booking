@@ -1,11 +1,27 @@
 "use client";
 
 import { motion, useMotionValue, useTransform, type MotionValue } from "framer-motion";
-import { OCTOBER_SCENES, octoberMediaUrl, type OctoberScene } from "@/config/octoberOffer";
+import {
+  OCTOBER_SCENES,
+  octoberMediaUrl,
+  resolveSceneFrames,
+  type OctoberScene,
+  type OctoberSceneId,
+  type ResolvedSceneFrame,
+} from "@/config/octoberOffer";
 import { SceneArt } from "./SceneArt";
+import { FinalFrame, SceneGallery, SceneGalleryStill } from "./SceneGallery";
 import { SceneMedia } from "./SceneMedia";
 import { easeInOut, easeOut, segment } from "./motion";
 import styles from "./experience.module.css";
+
+const SCENE_FRAMES = Object.fromEntries(OCTOBER_SCENES.map((scene) => [scene.id, resolveSceneFrames(scene)])) as Record<
+  OctoberSceneId,
+  ResolvedSceneFrame[]
+>;
+
+/** Video poster, else the scene's hero frame; undefined falls back to the built-in art. */
+const heroStill = (scene: OctoberScene) => octoberMediaUrl(scene.poster) ?? SCENE_FRAMES[scene.id][0]?.src;
 
 interface ServiceSceneProps {
   scene: OctoberScene;
@@ -48,15 +64,17 @@ export function ServiceScene({ scene, zIndex, local, visibility, active, near, l
         <motion.div className={styles.mediaFrame} style={{ scale: mediaScale, y: mediaY }}>
           <SceneMedia
             video={octoberMediaUrl(scene.video)}
-            poster={octoberMediaUrl(scene.poster)}
+            poster={heroStill(scene)}
             active={active}
             near={near}
             allowVideo={allowVideo}
             slotName={scene.video}
             fallback={<SceneArt id={scene.id} local={local} still={false} />}
           />
+          <FinalFrame frame={SCENE_FRAMES[scene.id][3]} local={local} near={near} />
         </motion.div>
         <div className={styles.sceneShade} />
+        <SceneGallery sceneId={scene.id} frames={SCENE_FRAMES[scene.id]} local={local} near={near} lite={lite} />
 
         <div className={styles.sceneCopy}>
           <motion.span className={styles.sceneNumber} dir="ltr" style={{ opacity: numberOpacity, x: numberX }} aria-hidden="true">
@@ -175,7 +193,7 @@ function StaticScene({ scene, allowVideo, onEnter }: { scene: OctoberScene; allo
       <div className={styles.mediaFrame}>
         <SceneMedia
           video={octoberMediaUrl(scene.video)}
-          poster={octoberMediaUrl(scene.poster)}
+          poster={heroStill(scene)}
           active={false}
           near
           allowVideo={allowVideo}
@@ -184,6 +202,7 @@ function StaticScene({ scene, allowVideo, onEnter }: { scene: OctoberScene; allo
         />
       </div>
       <div className={styles.sceneShade} />
+      <SceneGalleryStill sceneId={scene.id} frames={SCENE_FRAMES[scene.id]} />
       <div className={styles.sceneCopy}>
         <span className={styles.sceneNumber} dir="ltr" aria-hidden="true">
           {scene.number}

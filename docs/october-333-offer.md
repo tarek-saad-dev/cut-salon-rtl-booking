@@ -41,7 +41,10 @@ Durations and cue points live in `OCTOBER_CHAPTERS` (`src/config/octoberOffer.ts
 | `OpeningScene.tsx`, `StoryStage.tsx`, `PriceReveal.tsx` | Chapter visuals (plus static reduced-motion versions) |
 | `Conversion.tsx` | Offer dates, steps, branches and booking CTAs |
 | `SceneMedia.tsx`, `SceneArt.tsx` | Lazy video/poster slots and the built-in CSS/SVG art shown until real media exists |
-| `src/lib/offers/octoberSound.ts` | Web Audio sound manager with synthesized fallbacks |
+| `SceneGallery.tsx` | Per-service story frames: two detail cards and a final hero frame, with built-in panels as fallback |
+| `src/lib/offers/octoberSound.ts` | Web Audio effects manager (polyphonic one-shots, one ambience bed) |
+| `src/lib/offers/octoberSynth.ts` | Synthesized stand-in recipes for every effect slot |
+| `src/lib/offers/octoberMusic.ts` | The single persistent soundtrack element (play/pause/sync/fade/duck) |
 
 Motion uses the existing Framer Motion stack only (transforms, opacity and `clip-path`). GSAP was not needed.
 
@@ -56,11 +59,26 @@ public/media/october-experience/
   beard.mp4        beard-poster.webp
   oil-bath.mp4     oil-bath-poster.webp
   skincare.mp4     skincare-poster.webp
-  sounds/opening.mp3  sounds/clipper.mp3  sounds/razor.mp3
-  sounds/oil.mp3      sounds/steam.mp3    sounds/reveal.mp3
+  images/haircut-1.webp … images/haircut-4.webp
+  images/beard-1.webp   … images/beard-4.webp
+  images/oil-bath-1.webp … images/oil-bath-4.webp
+  images/skincare-1.webp … images/skincare-4.webp
+  sounds/<slot>.mp3   (one per slot in OCTOBER_SOUND_SLOTS)
 ```
 
-Video guidance: portrait-first (9:16 crop safe), H.264 MP4, muted, 6–10 s, ≤ 2–3 MB each, plus a WebP poster. The opening video replaces the built-in flag; keep it a dignified tribute (no war footage, explosions or gunfire). Videos load only for the current and adjacent chapters, play only while their chapter is on screen, and are skipped under Save-Data. `oil.mp3` and `steam.mp3` loop as ambience; the others are one-shots. Use only original or properly licensed audio, never historical recordings.
+Video guidance: portrait-first (9:16 crop safe), H.264 MP4, muted, 6–10 s, ≤ 2–3 MB each, plus a WebP poster. The opening video replaces the built-in flag; keep it a dignified tribute (no war footage, explosions or gunfire). Videos load only for the current and adjacent chapters, play only while their chapter is on screen, and are skipped under Save-Data. Use only original or properly licensed audio, never historical recordings.
+
+**Story frames.** Each service has four frames in `scene.frames`, each with a caption and alt text:
+
+1. `-1` is the hero. It is used as the background still when the scene has no video poster.
+2. `-2` and `-3` are detail cards that clip in over the hero at about 22 % and 38 % of the chapter, then drift out.
+3. `-4` is the final hero frame, which crossfades in at about 64 % so the scene settles on its best shot.
+
+- Every service has its own card layout and reveal (side wipe, rise, circle, mist), so the result is an edited composition rather than a carousel.
+- Recommended images: WebP, about 1080 px on the long side, ≤ 200 KB. Use portrait 4:5 for `-2`, square for `-3`, and 9:16 for `-1` and `-4`.
+- A frame that is unlisted or fails to load shows a built-in panel in the scene's art style, so nothing breaks.
+- Images are requested only for the current and adjacent chapters. Low-capability devices get one card.
+- Reduced motion shows the two detail cards as still frames.
 
 ## Sound
 
@@ -73,7 +91,22 @@ Video guidance: portrait-first (9:16 crop safe), H.264 MP4, muted, 6–10 s, ≤
 - When the tab is hidden the music pauses. It comes back only if the film is still playing. Leaving the page releases the element.
 - Reduced-motion mode has no autoplay and no background music.
 
-**Scene effects** sit under the music: clipper and razor at about 0.3, oil and steam ambience at 0.15, and the 333 impact at 0.5. The opening adds only a faint radio texture. Nothing plays before an explicit tap, a mute chosen before starting is respected, and effects play only during autoplay. Until real effect files are added, quiet synthesized stand-ins play. Missing files fall back silently, and the film is fully understandable muted.
+**Sound design.** Effects are layered under the music by a cue map, `OCTOBER_SOUND_CUES` in `src/config/octoberOffer.ts`. Each cue is a chapter-relative moment (`at`, from 0 to 1) and a slot from `OCTOBER_SOUNDS`. The cues become master-timeline cues, so they pause, resume and skip with the film and never fire during manual browsing.
+
+| Chapter | Cues |
+| --- | --- |
+| Opening | radio static → swell → fabric/wind as the flag rises → whoosh into the title |
+| Hair Cut | clipper → title whoosh → two snips → comb → snip → transition swipe |
+| Beard | razor → title whoosh → metallic click → detail tick → edge-up razor → tick → swipe |
+| Oil Bath | drop → warm ambience bed → pour → massage → towel |
+| Skin Care | steam → spa ambience bed → foam → towel → shimmer |
+| Price | four service ticks → tension riser → swipe as 670 is struck → the 333 hit → shimmer tail |
+
+- **Mix:** effects sit at 0.12–0.28 and the 333 hit at 0.5. The music stays at its level, and only the 333 hit ducks it, to 50 % for about one second.
+- **Ambience:** there is one ambience bed at a time (`OCTOBER_CHAPTER_AMBIENCE`). It fades out as soon as the film enters a chapter that doesn't own it, so it never bleeds into the next chapter.
+- **Overlap:** one-shots may overlap (a snip over the clipper tail), capped at six voices.
+- **Safety:** nothing plays before an explicit tap, a mute chosen before starting is respected, and effects play only during autoplay.
+- **Missing files:** until real files are uploaded to `sounds/<slot>.mp3`, quiet synthesized stand-ins (`octoberSynth.ts`) play. Missing files fall back silently, and the film is fully understandable muted.
 
 ## Accessibility and performance
 

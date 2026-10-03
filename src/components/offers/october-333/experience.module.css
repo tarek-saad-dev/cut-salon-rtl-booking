@@ -421,6 +421,128 @@
   font-size: 10px;
 }
 
+.finalFrame {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  will-change: opacity, transform;
+}
+
+/* Detail cards: frames[1] and frames[2] floating over the hero, never over the scene copy. */
+
+.gallery {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.galleryCard {
+  position: absolute;
+  margin: 0;
+  overflow: hidden;
+  border: 1px solid rgba(232, 200, 150, 0.32);
+  background: var(--ink);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6);
+  will-change: clip-path, transform, opacity;
+}
+
+.galleryCard[data-slot="a"] {
+  top: calc(var(--safe-top) + 15dvh);
+  width: min(46vw, 300px);
+  aspect-ratio: 4 / 5;
+}
+
+.galleryCard[data-slot="b"] {
+  top: 37dvh;
+  width: min(38vw, 240px);
+  aspect-ratio: 1;
+}
+
+.galleryStill .galleryCard {
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.55);
+}
+
+.galleryCard[data-side="end"] { right: 6vw; }
+.galleryCard[data-side="start"] { left: 6vw; }
+
+.galleryImage {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.galleryCaption {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  padding: 18px 10px 8px;
+  background: linear-gradient(to top, rgba(5, 5, 5, 0.85), transparent);
+  color: var(--gold);
+  font-size: 12px;
+  font-weight: 600;
+  text-align: right;
+}
+
+/* Built-in panels in the scene art language, shown until real frames are uploaded. */
+
+.galleryPanel {
+  position: absolute;
+  inset: 0;
+  display: block;
+}
+
+.panel-haircut {
+  background:
+    repeating-linear-gradient(115deg, rgba(232, 200, 150, 0.1) 0 1px, transparent 1px 9px),
+    radial-gradient(120% 90% at 70% 20%, #3a2a1c, #0c0907 70%);
+}
+
+.panel-beard {
+  background:
+    radial-gradient(80% 60% at 50% 35%, rgba(232, 200, 150, 0.16), transparent 60%),
+    linear-gradient(90deg, transparent 49.7%, rgba(232, 200, 150, 0.22) 50%, transparent 50.3%),
+    #0a0706;
+}
+
+.panel-beard::after {
+  content: "";
+  position: absolute;
+  inset: 20% 22% 30%;
+  border: 1px solid rgba(232, 200, 150, 0.45);
+  border-top: 0;
+  border-radius: 0 0 50% 50% / 0 0 70% 70%;
+}
+
+.panel-oil-bath {
+  background: radial-gradient(70% 55% at 40% 38%, rgba(242, 207, 146, 0.5), rgba(160, 90, 20, 0.35) 42%, #1d1006 78%);
+}
+
+.panel-oil-bath::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 30%;
+  width: 14%;
+  aspect-ratio: 3 / 4;
+  border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+  background: radial-gradient(circle at 35% 30%, #fff1cf, #d79a3c 55%, #7a4510);
+  transform: translateX(-50%);
+}
+
+.panel-skincare {
+  background:
+    radial-gradient(90% 70% at 30% 20%, rgba(255, 255, 255, 0.55), transparent 60%),
+    linear-gradient(170deg, #e9dfcf, #b9ab97 60%, #6f6457);
+}
+
+.panel-skincare + .galleryCaption {
+  background: linear-gradient(to top, rgba(40, 33, 26, 0.75), transparent);
+}
+
 .sceneShade {
   position: absolute;
   inset: 0;
@@ -1153,6 +1275,11 @@
 
 @media (min-width: 900px) {
   .topBar { padding-inline: 36px; }
+
+  .galleryCard[data-slot="a"] { top: 14vh; width: min(22vw, 320px); }
+  .galleryCard[data-slot="b"] { top: 42vh; width: min(16vw, 240px); }
+  .galleryCard[data-side="end"] { right: 12vw; }
+  .galleryCard[data-side="start"] { left: 14vw; }
 
   .controls {
     left: 28px;

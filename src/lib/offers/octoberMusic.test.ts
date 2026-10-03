@@ -108,6 +108,33 @@ describe("October music controller", () => {
     expect(audio.volume).toBeCloseTo(0.6);
   });
 
+  it("ducks briefly under a hero hit and recovers to the base level", () => {
+    const music = create();
+    music.duck(0.5, 1000);
+    expect(audio.volume).toBe(1);
+    music.play(0);
+    vi.advanceTimersByTime(300);
+    music.duck(0.5, 1000);
+    vi.advanceTimersByTime(150);
+    expect(audio.volume).toBeCloseTo(0.3);
+    vi.advanceTimersByTime(900);
+    expect(audio.volume).toBeCloseTo(0.3);
+    vi.advanceTimersByTime(900);
+    expect(audio.volume).toBeCloseTo(0.6);
+    expect(audio.paused).toBe(false);
+  });
+
+  it("does not let a duck release undo a fade-out", () => {
+    const music = create();
+    music.play(0);
+    vi.advanceTimersByTime(300);
+    music.duck(0.5, 1000);
+    music.fadeOut(400);
+    vi.advanceTimersByTime(3000);
+    expect(audio.volume).toBe(0);
+    expect(audio.paused).toBe(true);
+  });
+
   it("uses a Web Audio gain route for volume when available", () => {
     const gain = { value: 1, cancelScheduledValues: vi.fn(), setValueAtTime: vi.fn(), linearRampToValueAtTime: vi.fn() };
     audio = new FakeAudio();
