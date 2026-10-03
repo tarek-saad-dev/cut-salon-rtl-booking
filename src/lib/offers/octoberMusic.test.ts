@@ -86,25 +86,38 @@ describe("October music controller", () => {
     expect(music.isPlaying()).toBe(true);
   });
 
-  it("fades out, then pauses; playing again cancels the fade", () => {
+  it("fades to a persistent level and keeps playing without seeking", () => {
     const music = create();
     music.play(0);
     vi.advanceTimersByTime(300);
-    music.fadeOut(400);
-    expect(music.isPlaying()).toBe(false);
-    vi.advanceTimersByTime(200);
+    audio.currentTime = 40;
+    music.fadeTo(0.18, 1800);
+    vi.advanceTimersByTime(900);
     expect(audio.volume).toBeLessThan(0.6);
+    expect(audio.volume).toBeGreaterThan(0.18);
+    vi.advanceTimersByTime(1000);
+    expect(audio.volume).toBeCloseTo(0.18);
     expect(audio.paused).toBe(false);
-    vi.advanceTimersByTime(250);
-    expect(audio.volume).toBe(0);
-    expect(audio.paused).toBe(true);
+    expect(music.isPlaying()).toBe(true);
+    expect(audio.currentTime).toBe(40);
+    expect(audio.play).toHaveBeenCalledTimes(1);
+  });
 
-    music.play(30_000);
-    music.fadeOut(400);
-    vi.advanceTimersByTime(100);
-    music.play(30_100);
-    vi.advanceTimersByTime(600);
-    expect(audio.paused).toBe(false);
+  it("resumes at the target level without seeking, and film playback restores the film level", () => {
+    const music = create();
+    music.play(0);
+    music.fadeTo(0.18, 0);
+    music.pause();
+    audio.currentTime = 55;
+    music.play();
+    vi.advanceTimersByTime(400);
+    expect(audio.currentTime).toBe(55);
+    expect(audio.volume).toBeCloseTo(0.18);
+
+    music.pause();
+    music.play(10_000);
+    vi.advanceTimersByTime(400);
+    expect(audio.currentTime).toBe(10);
     expect(audio.volume).toBeCloseTo(0.6);
   });
 
@@ -124,15 +137,15 @@ describe("October music controller", () => {
     expect(audio.paused).toBe(false);
   });
 
-  it("does not let a duck release undo a fade-out", () => {
+  it("does not let a duck release undo a fade to the offer level", () => {
     const music = create();
     music.play(0);
     vi.advanceTimersByTime(300);
     music.duck(0.5, 1000);
-    music.fadeOut(400);
+    music.fadeTo(0.18, 400);
     vi.advanceTimersByTime(3000);
-    expect(audio.volume).toBe(0);
-    expect(audio.paused).toBe(true);
+    expect(audio.volume).toBeCloseTo(0.18);
+    expect(audio.paused).toBe(false);
   });
 
   it("uses a Web Audio gain route for volume when available", () => {
@@ -145,8 +158,8 @@ describe("October music controller", () => {
     });
     music.play(0);
     expect(gain.linearRampToValueAtTime).toHaveBeenLastCalledWith(0.6, 5.25);
-    music.fadeOut(400);
-    expect(gain.linearRampToValueAtTime).toHaveBeenLastCalledWith(0, 5.4);
+    music.fadeTo(0.18, 400);
+    expect(gain.linearRampToValueAtTime).toHaveBeenLastCalledWith(0.18, 5.4);
     expect(audio.volume).toBe(1);
   });
 

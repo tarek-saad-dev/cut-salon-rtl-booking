@@ -7,6 +7,7 @@ import {
   MUSIC_FADE_CUE,
   OCTOBER_CHAPTER_AMBIENCE,
   OCTOBER_CHAPTERS,
+  OCTOBER_MUSIC,
   OCTOBER_SOUNDS,
   soundFromCue,
 } from "@/config/octoberOffer";
@@ -24,7 +25,6 @@ const OFFER_INDEX = OCTOBER_CHAPTERS.length - 1;
 const NAV_KEYS = new Set(["ArrowDown", "ArrowUp", "PageDown", "PageUp", "Home", "End", " "]);
 const DRAG_PX = 12;
 const PROGRAMMATIC_TIMEOUT_MS = 2500;
-const SKIP_FADE_MS = 400;
 const MUSIC_SYNC_INTERVAL_MS = 1000;
 
 function useDeviceProfile() {
@@ -177,7 +177,7 @@ function CinematicExperience({ lite, allowVideo }: { lite: boolean; allowVideo: 
       const id = OCTOBER_CHAPTERS[index].id;
       if (cause !== "manual") scrollToChapter(index);
       if (sound.ambient() !== OCTOBER_CHAPTER_AMBIENCE[id]) sound.stopAmbient();
-      if (index === OFFER_INDEX && music().isPlaying()) music().fadeOut(SKIP_FADE_MS);
+      if (index === OFFER_INDEX) music().fadeTo(OCTOBER_MUSIC.offerVolume, MUSIC_END_FADE_MS);
     },
     status(status) {
       const track = music();
@@ -185,11 +185,11 @@ function CinematicExperience({ lite, allowVideo }: { lite: boolean; allowVideo: 
         track.play(timelineRef.current.elapsedMs());
         const ambience = OCTOBER_CHAPTER_AMBIENCE[OCTOBER_CHAPTERS[timelineRef.current.current().index].id];
         if (ambience && startedRef.current) getOctoberSound().play(ambience);
-      } else if (status === "ended") {
-        if (track.isPlaying()) track.fadeOut(SKIP_FADE_MS);
-      } else track.pause();
+      } else if (status !== "ended") track.pause();
     },
     progress() {
+      const { status, index } = timelineRef.current.current();
+      if (status !== "playing" || index === OFFER_INDEX) return;
       const now = performance.now();
       if (now - lastMusicSync.current < MUSIC_SYNC_INTERVAL_MS) return;
       lastMusicSync.current = now;
@@ -198,7 +198,7 @@ function CinematicExperience({ lite, allowVideo }: { lite: boolean; allowVideo: 
     cue(id) {
       if (timelineRef.current.current().status !== "playing") return;
       if (id === MUSIC_FADE_CUE) {
-        music().fadeOut(MUSIC_END_FADE_MS);
+        music().fadeTo(OCTOBER_MUSIC.offerVolume, MUSIC_END_FADE_MS);
         return;
       }
       const slot = soundFromCue(id);
@@ -325,10 +325,15 @@ function CinematicExperience({ lite, allowVideo }: { lite: boolean; allowVideo: 
   }, [interrupt, releaseProgrammatic, syncFromScroll, updateStageHidden]);
 
   useEffect(() => {
+    let offerBedWasPlaying = false;
     const onVisibility = () => {
       const tl = timelineRef.current;
-      if (document.visibilityState === "hidden") music().pause();
-      else if (tl.current().status === "playing") music().play(tl.elapsedMs());
+      const { status } = tl.current();
+      if (document.visibilityState === "hidden") {
+        offerBedWasPlaying = status === "ended" && music().isPlaying();
+        music().pause();
+      } else if (status === "playing") music().play(tl.elapsedMs());
+      else if (status === "ended" && offerBedWasPlaying) music().play();
     };
     document.addEventListener("visibilitychange", onVisibility);
     return () => document.removeEventListener("visibilitychange", onVisibility);
@@ -337,7 +342,7 @@ function CinematicExperience({ lite, allowVideo }: { lite: boolean; allowVideo: 
   useEffect(() => {
     const track = music();
     track.setMuted(!soundOn);
-    if (soundOn) track.sync(timelineRef.current.elapsedMs());
+    if (soundOn && timelineRef.current.current().status === "playing") track.sync(timelineRef.current.elapsedMs());
   }, [music, soundOn]);
 
   const markStarted = () => {

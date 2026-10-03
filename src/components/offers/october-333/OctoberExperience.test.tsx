@@ -316,18 +316,31 @@ describe("October soundtrack", () => {
     expect(music().paused).toBe(false);
   });
 
-  it("fades the music out and stops it on skip", async () => {
-    render(<OctoberExperience />);
-    await startExperience();
-    act(() => {
-      fireEvent.click(screen.getByRole("button", { name: "تخطي" }));
-    });
-    expect(music().paused).toBe(false);
-    await waitFor(() => expect(music().paused).toBe(true), { timeout: 1500 });
-    expect(music().volume).toBe(0);
+  it("on skip, lowers the music to the offer level and keeps it playing", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "setInterval", "clearInterval", "Date"] });
+    try {
+      render(<OctoberExperience />);
+      await startExperience();
+      act(() => {
+        vi.advanceTimersByTime(400);
+      });
+      const position = music().currentTime;
+      act(() => {
+        fireEvent.click(screen.getByRole("button", { name: "تخطي" }));
+      });
+      act(() => {
+        vi.advanceTimersByTime(MUSIC_END_FADE_MS + 200);
+      });
+      expect(music().paused).toBe(false);
+      expect(music().volume).toBeCloseTo(OCTOBER_MUSIC.offerVolume);
+      expect(music().currentTime).toBe(position);
+      expect(music().play).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
-  it("lets the music fade out as the film lands on the offer", async () => {
+  it("keeps the same track playing quietly once an untouched film lands on the offer", async () => {
     vi.useFakeTimers({
       toFake: ["setTimeout", "clearTimeout", "setInterval", "clearInterval", "requestAnimationFrame", "cancelAnimationFrame", "performance", "Date"],
     });
@@ -335,19 +348,50 @@ describe("October soundtrack", () => {
       render(<OctoberExperience />);
       await startExperience();
       const filmMs = OCTOBER_CHAPTERS.reduce((sum, chapter) => sum + chapter.duration, 0);
+      const priceMs = OCTOBER_CHAPTERS.find((chapter) => chapter.id === "price")!.duration;
       act(() => {
-        vi.advanceTimersByTime(filmMs - MUSIC_END_FADE_MS - 500);
+        vi.advanceTimersByTime(filmMs - priceMs - 500);
       });
-      expect(music().paused).toBe(false);
+      expect(music().volume).toBeCloseTo(OCTOBER_MUSIC.volume);
       act(() => {
-        vi.advanceTimersByTime(MUSIC_END_FADE_MS + 1500);
+        vi.advanceTimersByTime(priceMs + 2000);
       });
       expect(window.scrollTo).toHaveBeenLastCalledWith({ top: OFFER_TOP, behavior: "smooth" });
-      expect(music().paused).toBe(true);
-      expect(music().volume).toBe(0);
+      expect(music().paused).toBe(false);
+      expect(music().volume).toBeCloseTo(OCTOBER_MUSIC.offerVolume);
+      expect(music().play).toHaveBeenCalledTimes(1);
+
+      const position = music().currentTime;
+      act(() => {
+        vi.advanceTimersByTime(10_000);
+      });
+      expect(music().paused).toBe(false);
+      expect(music().volume).toBeCloseTo(OCTOBER_MUSIC.offerVolume);
+      expect(music().currentTime).toBe(position);
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it("mutes and unmutes in the offer section without pausing or seeking", async () => {
+    render(<OctoberExperience />);
+    await startExperience();
+    act(() => {
+      fireEvent.click(screen.getByRole("button", { name: "تخطي" }));
+    });
+    const position = music().currentTime;
+    const toggle = () => screen.getAllByRole("button", { name: /(إيقاف|تشغيل) الصوت/ })[0];
+    act(() => {
+      fireEvent.click(toggle());
+    });
+    expect(music().muted).toBe(true);
+    expect(music().paused).toBe(false);
+    act(() => {
+      fireEvent.click(toggle());
+    });
+    await waitFor(() => expect(music().muted).toBe(false));
+    expect(music().paused).toBe(false);
+    expect(music().currentTime).toBe(position);
   });
 
   it("plays the cue map in film order and never carries ambience into the wrong chapter", async () => {
@@ -387,6 +431,19 @@ describe("October soundtrack", () => {
     const audio = music();
     unmount();
     expect(audio.pause).toHaveBeenCalled();
+    expect(audio.src).toBe("");
+  });
+
+  it("releases the music when leaving from the offer section", async () => {
+    const { unmount } = render(<OctoberExperience />);
+    await startExperience();
+    act(() => {
+      fireEvent.click(screen.getByRole("button", { name: "تخطي" }));
+    });
+    const audio = music();
+    expect(audio.paused).toBe(false);
+    unmount();
+    expect(audio.paused).toBe(true);
     expect(audio.src).toBe("");
   });
 

@@ -91,6 +91,8 @@ export const OCTOBER_SOUNDS: Record<OctoberSoundSlot, OctoberSoundConfig> = {
 export const OCTOBER_MUSIC = {
   src: "/audio/oct.mp3",
   volume: 0.62,
+  /** Quiet bed under the offer section once the film lands. */
+  offerVolume: 0.18,
   /** Track position (seconds) that lines up with the start of the film. */
   startAt: 12,
 } as const;
@@ -244,7 +246,7 @@ export type OctoberChapterId = "opening" | OctoberSceneId | "price" | "offer";
 export const PRICE_IMPACT_AT = 0.64;
 
 const PRICE_DURATION_MS = 7000;
-/** The soundtrack fades over the last part of the price chapter so the offer lands in silence. */
+/** The soundtrack settles to its offer level over the last part of the price chapter (and on skip). */
 export const MUSIC_END_FADE_MS = 1800;
 export const MUSIC_FADE_CUE = "music-fade";
 

@@ -87,8 +87,8 @@ Video guidance: portrait-first (9:16 crop safe), H.264 MP4, muted, 6–10 s, ≤
 - The master timeline is the source of truth, and the music follows it. The track is first requested by the **ابدأ التجربة** tap and starts in that same tap. It is never restarted between chapters.
 - Pausing, or any interruption (wheel, swipe, drag, navigation keys), pauses the track and keeps its position. Resume seeks to the film time, and the music re-aligns about once a second while playing. It only seeks when the drift exceeds 350 ms.
 - 🔊/🔇 mutes the music and the effects without pausing the film. Unmuting continues at the current film position.
-- **تخطي** fades the music out over 400 ms and pauses it. During a normal run the music fades over the last 1.8 s of the price chapter, so the offer section lands in silence.
-- When the tab is hidden the music pauses. It comes back only if the film is still playing. Leaving the page releases the element.
+- The music never stops at the offer. During a normal run it fades over the last 1.8 s of the price chapter from 0.62 to `OCTOBER_MUSIC.offerVolume` (0.18). **تخطي** makes the same 1.8 s fade. The same track then keeps playing quietly under the offer, branches and CTAs, with no restart and no seek.
+- When the tab is hidden the music pauses. It comes back only if the film is still playing, or if it was already playing under the offer. Leaving the page stops and releases the element.
 - Reduced-motion mode has no autoplay and no background music.
 
 **Sound design.** Effects are layered under the music by a cue map, `OCTOBER_SOUND_CUES` in `src/config/octoberOffer.ts`. Each cue is a chapter-relative moment (`at`, from 0 to 1) and a slot from `OCTOBER_SOUNDS`. The cues become master-timeline cues, so they pause, resume and skip with the film and never fire during manual browsing.

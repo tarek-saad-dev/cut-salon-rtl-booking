@@ -9,19 +9,22 @@ const DUCK_IN_MS = 90;
 const DUCK_OUT_MS = 700;
 
 export interface MusicController {
-  /** Starts or continues the track at film time `atMs`. Call from a user gesture. */
-  play(atMs: number): void;
+  /**
+   * Starts or continues the track at film time `atMs`, at the film volume. Without `atMs` it resumes
+   * where it is, at the current target volume. Call from a user gesture.
+   */
+  play(atMs?: number): void;
   /** Pauses and keeps the position. */
   pause(): void;
   /** Re-aligns with the film only when the drift is meaningful. */
   sync(atMs: number): void;
   /** Silences without pausing, so the track stays aligned with the film. */
   setMuted(muted: boolean): void;
-  /** Fades to silence over `ms`, then pauses. */
-  fadeOut(ms: number): void;
-  /** Dips to `level` × volume for `holdMs` so a hero effect reads, then breathes back. */
-  duck(level: number, holdMs: number): void;
-  /** True while the track should be running (muted counts; paused or fading out does not). */
+  /** Moves the persistent target volume to `level` over `ms` and keeps playing there. */
+  fadeTo(level: number, ms: number): void;
+  /** Dips to `depth` × the target volume for `holdMs` so a hero effect reads, then breathes back. */
+  duck(depth: number, holdMs: number): void;
+  /** True while the track should be running (muted counts; paused does not). */
   isPlaying(): boolean;
   dispose(): void;
 }
@@ -48,8 +51,8 @@ export function createMusicController(options: MusicControllerOptions = {}): Mus
   let playing = false;
   let muted = false;
   let disposed = false;
+  let level = volume;
   let fadeStep = 0;
-  let pauseAfterFade = 0;
   let duckRelease = 0;
 
   function audio() {
@@ -74,10 +77,8 @@ export function createMusicController(options: MusicControllerOptions = {}): Mus
 
   function clearFade() {
     window.clearInterval(fadeStep);
-    window.clearTimeout(pauseAfterFade);
     window.clearTimeout(duckRelease);
     fadeStep = 0;
-    pauseAfterFade = 0;
     duckRelease = 0;
   }
 
@@ -126,9 +127,12 @@ export function createMusicController(options: MusicControllerOptions = {}): Mus
       const wasPaused = el.paused;
       playing = true;
       el.muted = muted;
-      align(el, atMs);
+      if (atMs !== undefined) {
+        level = volume;
+        align(el, atMs);
+      }
       if (wasPaused) setLevel(0, 0);
-      setLevel(volume, FADE_IN_MS);
+      setLevel(level, FADE_IN_MS);
       try {
         void el.play()?.catch(() => {});
       } catch {
@@ -147,20 +151,19 @@ export function createMusicController(options: MusicControllerOptions = {}): Mus
       muted = next;
       if (element) element.muted = next;
     },
-    fadeOut(ms) {
-      const el = element;
-      playing = false;
-      if (!el || el.paused) return;
+    fadeTo(target, ms) {
+      if (target === level) return;
+      level = target;
+      if (!playing || !element) return;
       clearFade();
-      setLevel(0, ms);
-      pauseAfterFade = window.setTimeout(() => el.pause(), ms);
+      setLevel(target, ms);
     },
-    duck(level, holdMs) {
+    duck(depth, holdMs) {
       if (!playing || !element) return;
       window.clearTimeout(duckRelease);
-      setLevel(volume * level, DUCK_IN_MS);
+      setLevel(level * depth, DUCK_IN_MS);
       duckRelease = window.setTimeout(() => {
-        if (playing) setLevel(volume, DUCK_OUT_MS);
+        if (playing) setLevel(level, DUCK_OUT_MS);
       }, DUCK_IN_MS + holdMs);
     },
     isPlaying: () => playing,
