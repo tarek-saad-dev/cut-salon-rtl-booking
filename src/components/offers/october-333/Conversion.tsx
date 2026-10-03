@@ -25,22 +25,31 @@ export const Conversion = forwardRef<HTMLElement, { reduced: boolean }>(function
         <div className={styles.recap}>
           <p className={styles.eyebrow}>{offer.campaignName}</p>
           <p className={styles.recapPrice}>
-            أربع خدمات ·{" "}
-            <del>
-              <span dir="ltr">{offer.originalPrice}</span>
-            </del>{" "}
-            <strong>
-              <span dir="ltr">{offer.price}</span> {offer.currency}
-            </strong>
+            <span className={styles.recapLabel}>أربع خدمات</span>
+            <span className={styles.recapValues}>
+              <del>
+                <span dir="ltr">{offer.originalPrice}</span> {offer.currency}
+              </del>
+              <span className={styles.recapArrow} aria-hidden="true">
+                ←
+              </span>
+              <strong>
+                <span dir="ltr">{offer.price}</span> {offer.currency}
+              </strong>
+            </span>
           </p>
         </div>
 
         <h2 id="october-how" className={styles.howTitle}>
-          العرض متاح من <time dateTime={offer.startsOn}>{offer.startsLabel}</time> حتى{" "}
-          <time dateTime={offer.endsOn}>{offer.endsLabel}</time>
+          عرض أكتوبر
         </h2>
+        <p className={styles.howLead}>٤ خدمات. تجربة كاملة.</p>
+        <p className={styles.howWindow}>
+          متاح من <time dateTime={offer.startsOn}>{offer.startsLabel}</time> حتى{" "}
+          <time dateTime={offer.endsOn}>{offer.endsLabel}</time>
+        </p>
 
-        <ol className={styles.steps}>
+        <ol className={styles.steps} data-offer-block="steps">
           {STEPS.map((text, index) => (
             <motion.li key={text} {...reveal(index * 0.12)}>
               <span className={styles.stepNumber} dir="ltr">{`0${index + 1}`}</span>
@@ -49,15 +58,15 @@ export const Conversion = forwardRef<HTMLElement, { reduced: boolean }>(function
           ))}
         </ol>
 
-        <motion.div className={styles.howNote} {...reveal(0.2)}>
+        <motion.div className={styles.howNote} data-offer-block="note" {...reveal(0.2)}>
           <p className={styles.howNoteLead}>مش لازم تستخدم الأربع خدمات في نفس الزيارة.</p>
-          <p>بمجرد تفعيل العرض في الفرع، تقدر تستفيد من خدماته خلال أكتوبر وفق شروط العرض.</p>
+          <p>بمجرد تفعيل العرض في الفرع، تقدر تستفيد من خدماتك خلال أكتوبر وفق شروط العرض.</p>
         </motion.div>
 
         <p className={styles.howFine}>لا يوجد دفع أو شراء للعرض أونلاين.</p>
       </div>
 
-      <div className={styles.branches}>
+      <div className={styles.branches} data-offer-block="branches">
         <h2 id="october-branches" className={styles.branchesTitle}>
           جاهز تبدأ التجربة؟
         </h2>

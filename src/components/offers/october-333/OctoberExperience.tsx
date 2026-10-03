@@ -15,10 +15,12 @@ import { createMusicController, type MusicController } from "@/lib/offers/octobe
 import { getOctoberSound } from "@/lib/offers/octoberSound";
 import { CinematicStage } from "./CinematicStage";
 import { Conversion } from "./Conversion";
+import { OfferScrollHint } from "./OfferScrollHint";
 import { OpeningStatic } from "./OpeningScene";
 import { PriceRevealStatic } from "./PriceReveal";
 import { StoryStatic } from "./StoryStage";
 import { useCinematicTimeline } from "./useCinematicTimeline";
+import { useOfferAutoScroll } from "./useOfferAutoScroll";
 import styles from "./experience.module.css";
 
 const OFFER_INDEX = OCTOBER_CHAPTERS.length - 1;
@@ -26,6 +28,19 @@ const NAV_KEYS = new Set(["ArrowDown", "ArrowUp", "PageDown", "PageUp", "Home", 
 const DRAG_PX = 12;
 const PROGRAMMATIC_TIMEOUT_MS = 2500;
 const MUSIC_SYNC_INTERVAL_MS = 1000;
+/** Clearance for the fixed top bar when bringing an offer block into view. */
+const OFFER_BLOCK_OFFSET_PX = 88;
+/** The drift rests once the branches block has risen to this share of the viewport. */
+const DRIFT_REST_VIEWPORT = 0.6;
+
+function offerBlockTop(offer: HTMLElement | null | undefined, block: string) {
+  const el = offer?.querySelector<HTMLElement>(`[data-offer-block="${block}"]`);
+  return el ? el.getBoundingClientRect().top + window.scrollY : null;
+}
+
+function maxScrollY() {
+  return Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
+}
 
 function useDeviceProfile() {
   const [profile, setProfile] = useState({ lite: false, allowVideo: true });
@@ -171,11 +186,29 @@ function CinematicExperience({ lite, allowVideo }: { lite: boolean; allowVideo: 
     [],
   );
 
+  const offerDrift = useOfferAutoScroll({
+    canMove: () => programmatic.current.target === null,
+    stopY: () => {
+      const branches = offerBlockTop(anchors.current[OFFER_INDEX], "branches");
+      return branches === null ? null : Math.min(maxScrollY(), branches - window.innerHeight * DRIFT_REST_VIEWPORT);
+    },
+    nextY: () => {
+      const offer = anchors.current[OFFER_INDEX];
+      const threshold = window.scrollY + OFFER_BLOCK_OFFSET_PX + 8;
+      for (const block of ["steps", "note", "branches"]) {
+        const top = offerBlockTop(offer, block);
+        if (top !== null && top > threshold) return Math.min(maxScrollY(), top - OFFER_BLOCK_OFFSET_PX);
+      }
+      return null;
+    },
+  });
+
   const timeline = useCinematicTimeline(OCTOBER_CHAPTERS, {
     chapter(index, _previous, cause) {
       const sound = getOctoberSound();
       const id = OCTOBER_CHAPTERS[index].id;
       if (cause !== "manual") scrollToChapter(index);
+      if (index === OFFER_INDEX && cause === "auto") offerDrift.arm();
       if (sound.ambient() !== OCTOBER_CHAPTER_AMBIENCE[id]) sound.stopAmbient();
       if (index === OFFER_INDEX) music().fadeTo(OCTOBER_MUSIC.offerVolume, MUSIC_END_FADE_MS);
     },
@@ -399,6 +432,9 @@ function CinematicExperience({ lite, allowVideo }: { lite: boolean; allowVideo: 
         ))}
       </div>
       <Conversion ref={(el) => void (anchors.current[OFFER_INDEX] = el)} reduced={false} />
+      {offerDrift.phase !== "idle" && offerDrift.phase !== "waiting" && (
+        <OfferScrollHint visible={offerDrift.phase === "drifting"} onNudge={offerDrift.nudge} />
+      )}
 
       {showControls && (
         <div className={styles.controls} data-cinema-control>

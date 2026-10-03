@@ -177,7 +177,7 @@ describe("October cinematic experience", () => {
         expect(screen.getByRole("heading", { level: 2, name: title })).toBeInTheDocument();
       }
       expect(screen.getByRole("heading", { name: /333/ })).toBeVisible();
-      expect(screen.getByRole("heading", { name: "العرض متاح من 5 أكتوبر حتى 31 أكتوبر" })).toBeVisible();
+      expect(screen.getByRole("heading", { level: 2, name: "عرض أكتوبر" })).toBeVisible();
     } finally {
       window.matchMedia = matchMedia;
     }
@@ -205,7 +205,11 @@ describe("October cinematic experience", () => {
 
   it("states the offer window, in-branch activation and flexible usage", () => {
     render(<OctoberExperience />);
-    expect(screen.getByRole("heading", { name: "العرض متاح من 5 أكتوبر حتى 31 أكتوبر" })).toBeInTheDocument();
+    const offer = document.getElementById("october-offer")!;
+    expect(within(offer).getByRole("heading", { level: 2, name: "عرض أكتوبر" })).toBeInTheDocument();
+    expect(within(offer).getByText("٤ خدمات. تجربة كاملة.")).toBeInTheDocument();
+    expect(within(offer).getByText(/^متاح من/)).toHaveTextContent("متاح من 5 أكتوبر حتى 31 أكتوبر");
+    expect(within(offer).getByText("أربع خدمات").closest("p")).toHaveTextContent(/670 جنيه.*333 جنيه/);
     expect(document.querySelector('time[datetime="2026-10-05"]')).toBeInTheDocument();
     expect(document.querySelector('time[datetime="2026-10-31"]')).toBeInTheDocument();
     expect(screen.getByText("زور أقرب فرع CUT")).toBeInTheDocument();
@@ -456,6 +460,216 @@ describe("October soundtrack", () => {
       for (const audio of FakeAudio.instances) expect(audio.play).not.toHaveBeenCalled();
     } finally {
       window.matchMedia = matchMedia;
+    }
+  });
+});
+
+describe("Offer discovery drift", () => {
+  const FILM_MS = OCTOBER_CHAPTERS.reduce((sum, chapter) => sum + chapter.duration, 0);
+  const BLOCK_TOPS: Record<string, number> = { steps: 400, note: 700, branches: 1400 };
+  const rect = Object.getOwnPropertyDescriptor(Element.prototype, "getBoundingClientRect")!;
+  const scrollHeight = Object.getOwnPropertyDescriptor(document.documentElement, "scrollHeight");
+  let scrollY = 0;
+  let landingMs = 0;
+
+  const setScrollY = (value: number) => {
+    scrollY = value;
+    Object.defineProperty(window, "scrollY", { configurable: true, value });
+  };
+  const driftCalls = () =>
+    vi.mocked(window.scrollTo).mock.calls.filter(([arg]) => (arg as ScrollToOptions | undefined)?.behavior === "instant");
+  const hint = () => screen.queryByRole("button", { name: "كمّل" });
+  const advance = (ms: number) =>
+    act(() => {
+      vi.advanceTimersByTime(ms);
+    });
+
+  beforeEach(() => {
+    vi.useFakeTimers({
+      toFake: ["setTimeout", "clearTimeout", "setInterval", "clearInterval", "requestAnimationFrame", "cancelAnimationFrame", "performance", "Date"],
+    });
+    setScrollY(0);
+    landingMs = 0;
+    window.scrollTo = vi.fn((arg?: ScrollToOptions | number) => {
+      if (typeof arg !== "object" || arg.top === undefined) return;
+      const top = arg.top;
+      const land = () => {
+        setScrollY(top);
+        window.dispatchEvent(new Event("scroll"));
+      };
+      if (landingMs && arg.behavior === "smooth" && top === OFFER_TOP) setTimeout(land, landingMs);
+      else land();
+    }) as typeof window.scrollTo;
+    Object.defineProperty(document.documentElement, "scrollHeight", { configurable: true, value: 20_000 });
+    Element.prototype.getBoundingClientRect = function (this: Element) {
+      const block = (this as HTMLElement).dataset?.offerBlock;
+      const top = block ? OFFER_TOP + BLOCK_TOPS[block] - scrollY : 0;
+      return { top, bottom: top, left: 0, right: 0, width: 0, height: 0, x: 0, y: top, toJSON() {} } as DOMRect;
+    };
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    Object.defineProperty(Element.prototype, "getBoundingClientRect", rect);
+    if (scrollHeight) Object.defineProperty(document.documentElement, "scrollHeight", scrollHeight);
+    else delete (document.documentElement as { scrollHeight?: number }).scrollHeight;
+  });
+
+  async function filmLandsOnOffer() {
+    const view = render(<OctoberExperience />);
+    await startExperience();
+    advance(FILM_MS + 100);
+    expect(scrollY).toBe(OFFER_TOP);
+    return view;
+  }
+
+  async function filmDrifting() {
+    const view = await filmLandsOnOffer();
+    advance(1500);
+    expect(hint()).toBeInTheDocument();
+    return view;
+  }
+
+  it("starts only after the film completes, after a short pause, creeping downward slowly", async () => {
+    render(<OctoberExperience />);
+    await startExperience();
+    advance(FILM_MS - 1000);
+    expect(driftCalls()).toHaveLength(0);
+    expect(hint()).not.toBeInTheDocument();
+
+    advance(1100);
+    expect(scrollY).toBe(OFFER_TOP);
+    advance(1000);
+    expect(driftCalls()).toHaveLength(0);
+    expect(hint()).not.toBeInTheDocument();
+
+    advance(500);
+    expect(hint()).toBeInTheDocument();
+    advance(5000);
+    const moved = scrollY - OFFER_TOP;
+    expect(moved).toBeGreaterThan(5000 * 0.015 * 0.8);
+    expect(moved).toBeLessThan(5000 * 0.03);
+  });
+
+  it("counts the pause from when the landing scroll settles, not from the film's last frame", async () => {
+    landingMs = 800;
+    render(<OctoberExperience />);
+    await startExperience();
+    advance(FILM_MS + 100);
+    expect(scrollY).toBeLessThan(OFFER_TOP);
+    advance(800);
+    expect(scrollY).toBe(OFFER_TOP);
+    advance(1000);
+    expect(hint()).not.toBeInTheDocument();
+    expect(driftCalls()).toHaveLength(0);
+    advance(400);
+    expect(hint()).toBeInTheDocument();
+  });
+
+  it("does not start when the visitor skips to the offer", async () => {
+    render(<OctoberExperience />);
+    await startExperience();
+    act(() => {
+      fireEvent.click(screen.getByRole("button", { name: "تخطي" }));
+    });
+    advance(6000);
+    expect(driftCalls()).toHaveLength(0);
+    expect(hint()).not.toBeInTheDocument();
+  });
+
+  it("wheel stops it permanently and hides the hint", async () => {
+    await filmDrifting();
+    act(() => {
+      fireEvent.wheel(window, { deltaY: 40 });
+    });
+    expect(hint()).not.toBeInTheDocument();
+    const calls = driftCalls().length;
+    advance(20_000);
+    expect(driftCalls()).toHaveLength(calls);
+    expect(hint()).not.toBeInTheDocument();
+  });
+
+  it("a touch swipe stops it permanently", async () => {
+    await filmDrifting();
+    act(() => {
+      fireEvent.touchStart(window, { touches: [{ clientX: 100, clientY: 400 }] });
+      fireEvent.touchMove(window, { touches: [{ clientX: 100, clientY: 360 }] });
+    });
+    expect(hint()).not.toBeInTheDocument();
+    const calls = driftCalls().length;
+    advance(20_000);
+    expect(driftCalls()).toHaveLength(calls);
+  });
+
+  it.each(["PageDown", "ArrowDown", "ArrowUp", "Home", "End"])("%s stops it permanently", async (key) => {
+    await filmDrifting();
+    act(() => {
+      fireEvent.keyDown(window, { key });
+    });
+    expect(hint()).not.toBeInTheDocument();
+    const calls = driftCalls().length;
+    advance(20_000);
+    expect(driftCalls()).toHaveLength(calls);
+  });
+
+  it("input during the pause means it never starts", async () => {
+    await filmLandsOnOffer();
+    act(() => {
+      fireEvent.wheel(window, { deltaY: 40 });
+    });
+    advance(10_000);
+    expect(driftCalls()).toHaveLength(0);
+    expect(hint()).not.toBeInTheDocument();
+  });
+
+  it("comes to rest once the branches are in view and hides the hint", async () => {
+    await filmDrifting();
+    const rest = OFFER_TOP + BLOCK_TOPS.branches - window.innerHeight * 0.6;
+    advance(((rest - OFFER_TOP) / 24) * 1000 + 3000);
+    expect(scrollY).toBeLessThanOrEqual(Math.ceil(rest));
+    expect(scrollY).toBeGreaterThan(rest - 3);
+    expect(hint()).not.toBeInTheDocument();
+  });
+
+  it("tapping the hint glides to the next block and hands over control", async () => {
+    await filmDrifting();
+    act(() => {
+      fireEvent.click(hint()!);
+    });
+    expect(window.scrollTo).toHaveBeenLastCalledWith({ top: OFFER_TOP + BLOCK_TOPS.steps - 88, behavior: "smooth" });
+    expect(hint()).not.toBeInTheDocument();
+    const calls = driftCalls().length;
+    advance(20_000);
+    expect(driftCalls()).toHaveLength(calls);
+  });
+
+  it("never starts with reduced motion", async () => {
+    const matchMedia = window.matchMedia;
+    window.matchMedia = ((query: string) => ({ ...matchMedia(query), matches: query.includes("reduce") })) as typeof window.matchMedia;
+    try {
+      render(<OctoberExperience />);
+      await startExperience();
+      advance(FILM_MS + 20_000);
+      expect(driftCalls()).toHaveLength(0);
+      expect(hint()).not.toBeInTheDocument();
+    } finally {
+      window.matchMedia = matchMedia;
+    }
+  });
+
+  it("leaves no listener, timer or frame behind after unmount", async () => {
+    const add = vi.spyOn(window, "addEventListener");
+    const remove = vi.spyOn(window, "removeEventListener");
+    const { unmount } = await filmDrifting();
+    const calls = driftCalls().length;
+    unmount();
+    advance(20_000);
+    expect(driftCalls()).toHaveLength(calls);
+    expect(vi.getTimerCount()).toBe(0);
+    for (const type of ["wheel", "touchstart", "touchmove", "pointerdown", "pointermove", "pointerup", "keydown", "scroll"]) {
+      const added = add.mock.calls.filter(([t]) => t === type).map(([, fn]) => fn);
+      const removed = new Set(remove.mock.calls.filter(([t]) => t === type).map(([, fn]) => fn));
+      expect(added.filter((fn) => !removed.has(fn))).toEqual([]);
     }
   });
 });
