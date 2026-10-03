@@ -137,7 +137,6 @@ export function OpeningStatic({ onStart }: { onStart: () => void }) {
       <div className={styles.openingBase} />
       <GateBackdrop still />
       <div className={styles.openingCopy}>
-        <p className={styles.gateEyebrow}>{GATE_COPY.eyebrow}</p>
         <p className={styles.openingTribute}>{OPENING_LINES.tribute}</p>
         <p className={styles.openingHandoff}>{OPENING_LINES.handoff}</p>
         <h1 id="october-title" className={styles.openingTitle}>
