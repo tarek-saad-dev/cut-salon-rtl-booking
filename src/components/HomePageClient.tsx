@@ -8,6 +8,7 @@ import BenefitsSection from "@/components/BenefitsSection";
 import HowItWorksSection from "@/components/HowItWorksSection";
 import FooterSection from "@/components/FooterSection";
 import HomeUpcomingBookingsPopup from "@/components/home/HomeUpcomingBookingsPopup";
+import OctoberGiftPopup from "@/components/home/OctoberGiftPopup";
 
 /**
  * Single home composition for all languages.
@@ -17,6 +18,7 @@ export default function HomePageClient() {
   return (
     <main className="min-h-screen bg-cut-black">
       <HomeUpcomingBookingsPopup />
+      <OctoberGiftPopup />
       <HeroSection />
       <ArabicServicesSection />
       <BarbersSection />
