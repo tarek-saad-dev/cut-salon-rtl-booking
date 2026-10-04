@@ -4,9 +4,7 @@ import { Alexandria } from "next/font/google";
 import localFont from "next/font/local";
 import "./globals.css";
 import { Providers } from "@/components/providers";
-import MainNav from "@/components/MainNav";
-import GlobalMobileNav from "@/components/GlobalMobileNav";
-import CampCaesarCampaign from "@/components/campaign/CampCaesarCampaign";
+import SiteChrome from "@/components/SiteChrome";
 import {
   CAMPAIGN_ANNOUNCEMENT_BAR_HEIGHT_PX,
   getActiveCampaign,
@@ -121,9 +119,7 @@ export default function RootLayout({
     >
       <body className={`${alexandria.variable} ${laxr.variable} antialiased`}>
         <Providers>
-          <CampCaesarCampaign />
-          <GlobalMobileNav />
-          <MainNav />
+          <SiteChrome />
           {children}
         </Providers>
       </body>
