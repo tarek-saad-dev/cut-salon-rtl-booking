@@ -1,7 +1,12 @@
 // Central booking API client
 export { bookingApiRequest } from "./client";
 export { getBookingApiBaseUrl } from "./env";
-export { BookingApiError, getArabicErrorMessage, getLocalizedBookingErrorMessage } from "./errors";
+export {
+  BookingApiError,
+  getArabicErrorMessage,
+  getLocalizedBookingErrorMessage,
+  packageBookingErrorMessage,
+} from "./errors";
 
 // API modules
 export { listPublicBranches } from "./branches";

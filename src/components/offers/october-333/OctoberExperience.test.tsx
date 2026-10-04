@@ -251,15 +251,18 @@ describe("October cinematic experience", () => {
     expect(fetch).not.toHaveBeenCalled();
   });
 
-  it("drives branch visits and the existing booking flow", () => {
+  it("books the October package through the existing package flow", () => {
     render(<OctoberExperience />);
     expect(screen.getByRole("heading", { name: "جاهز تبدأ التجربة؟" })).toBeInTheDocument();
     for (const branch of OCTOBER_BRANCHES) {
       const item = screen.getByRole("heading", { level: 3, name: branch.name }).closest("li")!;
       expect(within(item).getByRole("link", { name: "افتح اللوكيشن" })).toHaveAttribute("href", branch.mapUrl);
-      expect(within(item).getByRole("link", { name: "احجز في الفرع ده" })).toHaveAttribute("href", branch.bookHref);
+      expect(within(item).getByRole("link", { name: "احجز في الفرع ده" })).toHaveAttribute(
+        "href",
+        `/book?mode=nearest&branch=${branch.code}&packageId=7`,
+      );
     }
-    expect(screen.getByRole("link", { name: "احجز زيارتك لـ CUT" })).toHaveAttribute("href", "/book");
+    expect(screen.getByRole("link", { name: "احجز الباكدج" })).toHaveAttribute("href", "/book?mode=nearest&packageId=7");
     expect(screen.getByRole("link", { name: "اسألنا عن عرض أكتوبر" }).getAttribute("href")).toMatch(/^https:\/\/wa\.me\/201012126899/);
   });
 

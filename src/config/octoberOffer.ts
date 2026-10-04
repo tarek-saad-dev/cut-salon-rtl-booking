@@ -1,7 +1,11 @@
 import { CAMP_CAESAR_OPENING_2026 } from "@/config/campaigns";
+import { buildBookHref } from "@/lib/book-o2/buildBookHref";
 import { landingCopy } from "@/lib/i18n/landing";
 
 export const OCTOBER_MEDIA_ROOT = "/media/october-experience";
+
+/** Casher TblServicePackage id; booking price and duration always come from the backend. */
+export const OCTOBER_PACKAGE_ID = 7;
 
 /**
  * Files that actually exist under public/media/october-experience.
@@ -223,7 +227,7 @@ export const OCTOBER_BRANCHES: readonly OctoberBranch[] = [
     tag: "الفرع الرئيسي",
     address: footer.branchAddress.ar,
     mapUrl: "https://share.google/F4o7oOQVs3EJSgxaw",
-    bookHref: "/book?mode=nearest&branch=GLEEM",
+    bookHref: buildBookHref({ mode: "nearest", branch: "GLEEM", packageId: OCTOBER_PACKAGE_ID }),
   },
   {
     code: "CAMP_CAESAR",
@@ -231,7 +235,11 @@ export const OCTOBER_BRANCHES: readonly OctoberBranch[] = [
     tag: "الفرع الجديد",
     address: footer.campBranchAddress.ar,
     mapUrl: CAMP_CAESAR_OPENING_2026.locationUrl,
-    bookHref: `/book?mode=nearest&branch=${CAMP_CAESAR_OPENING_2026.branchCode}`,
+    bookHref: buildBookHref({
+      mode: "nearest",
+      branch: CAMP_CAESAR_OPENING_2026.branchCode,
+      packageId: OCTOBER_PACKAGE_ID,
+    }),
   },
 ];
 
@@ -349,6 +357,7 @@ export const OCTOBER_CHAPTERS: readonly { id: OctoberChapterId; duration: number
 
 export const octoberOffer = {
   id: "october-333",
+  packageId: OCTOBER_PACKAGE_ID,
   campaignName: "احتفال أكتوبر من CUT",
   startsOn: "2026-10-05",
   startsLabel: "5 أكتوبر",
@@ -358,6 +367,6 @@ export const octoberOffer = {
   originalPrice: 670,
   currency: "جنيه",
   opening: { video: "opening.mp4", poster: "opening-poster.webp" },
-  bookHref: "/book",
+  bookHref: buildBookHref({ mode: "nearest", packageId: OCTOBER_PACKAGE_ID }),
   whatsappHref: `https://wa.me/201012126899?text=${encodeURIComponent("أهلاً، عايز أعرف تفاصيل عرض أكتوبر من CUT")}`,
 } as const;

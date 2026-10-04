@@ -3,6 +3,7 @@ import { buildBookHref } from "@/lib/book-o2/buildBookHref";
 import {
   buildGroomCartModel,
   groomCartToResolvableServices,
+  packageBookHref,
   parseIdListParam,
 } from "@/lib/book-o2/groomHandoff";
 import { normalizeApiPackage } from "@/lib/packagesApi";
@@ -92,6 +93,51 @@ describe("Signature + city home visit cart", () => {
     expect(cart.unresolvedAddonProIds).toEqual([99999]);
     expect(cart.addons).toEqual([]);
     expect(cart.totalPrice).toBe(1500);
+  });
+});
+
+const october = normalizeApiPackage({
+  packageId: 7,
+  kind: "regular",
+  nameEn: "October Package",
+  nameAr: "باكدج أكتوبر",
+  price: 333,
+  originalPrice: 720,
+  durationMinutes: 85,
+  includes: [
+    { serviceId: 9, nameEn: "Hair Cut", optional: false, listPrice: 200, durationMinutes: 30 },
+    { serviceId: 10, nameEn: "Beard Styling & Fade", optional: false, listPrice: 100, durationMinutes: 20 },
+    { serviceId: 22, nameEn: "Hair Oil Treatment", optional: false, listPrice: 120, durationMinutes: 5 },
+    { serviceId: 29, nameEn: "Classic Skin Care", optional: false, listPrice: 300, durationMinutes: 30 },
+  ],
+})!;
+
+describe("regular package (October) through the generic package flow", () => {
+  it("uses the backend package price and duration, not the sum of list prices", () => {
+    const cart = buildGroomCartModel(october, []);
+    expect(cart.kind).toBe("regular");
+    expect(cart.packageId).toBe(7);
+    expect(cart.totalPrice).toBe(333);
+    expect(cart.totalDurationMinutes).toBe(85);
+    expect(cart.serviceIds).toEqual([9, 10, 22, 29]);
+    expect(cart.addons).toEqual([]);
+  });
+
+  it("prices included lines at 0 so ala-carte sums never double count", () => {
+    const rows = groomCartToResolvableServices(buildGroomCartModel(october, []));
+    expect(rows.map((row) => row.price)).toEqual([0, 0, 0, 0]);
+    expect(rows.every((row) => row.categoryName === "Package")).toBe(true);
+  });
+
+  it("links into /book with packageId and the package services, branch first", () => {
+    expect(packageBookHref(october)).toBe("/book?mode=nearest&packageId=7&services=9%2C10%2C22%2C29");
+    expect(packageBookHref(october, "CAMP_CAESAR")).toBe(
+      "/book?mode=nearest&branch=CAMP_CAESAR&packageId=7&services=9%2C10%2C22%2C29",
+    );
+  });
+
+  it("keeps groom carts labelled as groom", () => {
+    expect(buildGroomCartModel(signature, []).kind).toBe("groom");
   });
 });
 

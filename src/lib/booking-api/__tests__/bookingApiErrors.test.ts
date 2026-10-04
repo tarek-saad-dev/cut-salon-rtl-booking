@@ -1,5 +1,12 @@
 import { describe, it, expect } from "vitest";
-import { parseBackendError, createNetworkError, createMalformedResponseError, BookingApiError } from "../errors";
+import {
+  parseBackendError,
+  createNetworkError,
+  createMalformedResponseError,
+  BookingApiError,
+  packageBookingErrorMessage,
+  PACKAGE_UNAVAILABLE_IN_BRANCH_MESSAGE,
+} from "../errors";
 import type { ResponseMetadata } from "../types";
 
 const emptyMetadata: ResponseMetadata = {
@@ -81,5 +88,23 @@ describe("createMalformedResponseError", () => {
     const err = createMalformedResponseError(200, "req-1", new SyntaxError());
     expect(err.code).toBe("INTERNAL_ERROR");
     expect(err.isRetryable).toBe(true);
+  });
+});
+
+describe("packageBookingErrorMessage", () => {
+  const backendError = (code: string) =>
+    parseBackendError({ ok: false, error: { code, message: code } }, 409, emptyMetadata);
+
+  it("reports the package as unavailable when a package service isn't bookable in the branch", () => {
+    for (const code of ["SERVICE_NOT_BOOKABLE", "SERVICE_NOT_FOUND"]) {
+      expect(packageBookingErrorMessage(backendError(code))).toBe(PACKAGE_UNAVAILABLE_IN_BRANCH_MESSAGE);
+    }
+  });
+
+  it("localizes package errors and leaves unrelated errors untouched", () => {
+    expect(packageBookingErrorMessage(backendError("PACKAGE_NOT_ACTIVE"))).toBe("الباكدج غير متاحة حالياً");
+    expect(packageBookingErrorMessage(backendError("SLOT_CONFLICT"))).toBe(
+      "الموعد محجوز بالفعل، يرجى اختيار وقت آخر",
+    );
   });
 });

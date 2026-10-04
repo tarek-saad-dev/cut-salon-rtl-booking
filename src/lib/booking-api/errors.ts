@@ -78,12 +78,31 @@ const ARABIC_ERROR_MESSAGES: Partial<Record<PublicBookingErrorCode, string>> = {
   RATE_LIMIT_EXCEEDED: "عدد الطلبات كثير جداً، يرجى الانتظار قليلاً",
   VALIDATION_ERROR: "بيانات غير صالحة، يرجى المراجعة",
   IDEMPOTENT_REQUEST_CONFLICT: "يتم معالجة طلبك، يرجى الانتظار",
+  PACKAGE_NOT_FOUND: "الباكدج غير موجودة",
+  PACKAGE_NOT_ACTIVE: "الباكدج غير متاحة حالياً",
+  PACKAGE_EMPTY: "الباكدج غير متاحة حالياً",
+  PACKAGE_SERVICE_INVALID: "الباكدج غير متاحة حالياً",
   INTERNAL_ERROR: "حدث خطأ، يرجى المحاولة لاحقاً",
   UNKNOWN_ERROR: "حدث خطأ غير متوقع، يرجى المحاولة مرة أخرى",
 };
 
 export function getArabicErrorMessage(code: PublicBookingErrorCode): string {
   return ARABIC_ERROR_MESSAGES[code] ?? ARABIC_ERROR_MESSAGES.UNKNOWN_ERROR!;
+}
+
+export const PACKAGE_UNAVAILABLE_IN_BRANCH_MESSAGE =
+  "الباكدج غير متاحة في الفرع ده حالياً. جرّب الفرع التاني.";
+
+/**
+ * Regular packages are validated against the branch catalog: a package service the
+ * branch can't book comes back as a service error, which means the package itself
+ * is unavailable there.
+ */
+export function packageBookingErrorMessage(err: BookingApiError): string {
+  if (err.code === "SERVICE_NOT_FOUND" || err.code === "SERVICE_NOT_BOOKABLE") {
+    return PACKAGE_UNAVAILABLE_IN_BRANCH_MESSAGE;
+  }
+  return err.message;
 }
 
 const ENGLISH_ERROR_MESSAGES: Partial<Record<PublicBookingErrorCode, string>> = {
@@ -123,6 +142,10 @@ const ENGLISH_ERROR_MESSAGES: Partial<Record<PublicBookingErrorCode, string>> = 
   RATE_LIMIT_EXCEEDED: "Too many requests — please wait a moment",
   VALIDATION_ERROR: "Invalid data — please review",
   IDEMPOTENT_REQUEST_CONFLICT: "Your request is being processed — please wait",
+  PACKAGE_NOT_FOUND: "Package not found",
+  PACKAGE_NOT_ACTIVE: "This package isn’t available right now",
+  PACKAGE_EMPTY: "This package isn’t available right now",
+  PACKAGE_SERVICE_INVALID: "This package isn’t available right now",
   INTERNAL_ERROR: "Something went wrong — please try again later",
   UNKNOWN_ERROR: "An unexpected error occurred — please try again",
 };

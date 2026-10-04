@@ -445,7 +445,7 @@ export default function BookO2Client() {
                   s.groomCart
                     ? [
                         {
-                          name: `${s.groomCart.nameEn || s.groomCart.nameAr || "Groom package"} (${s.groomCart.included.length} ${ar ? "خدمات" : "services"})`,
+                          name: `${s.groomCart.nameEn || s.groomCart.nameAr || (s.groomCart.kind === "groom" ? "Groom package" : "Package")} (${s.groomCart.included.length} ${ar ? "خدمات" : "services"})`,
                           durationLabel: `${s.groomCart.packageDurationMinutes ?? 0} ${ar ? "د" : "m"}`,
                         },
                         ...s.groomCart.addons.map((addon) => ({
@@ -596,15 +596,13 @@ function GroomPackageBookingPanel({
   onContinue: () => void;
   onBack: () => void;
 }) {
-  const packageName = ar
-    ? cart.nameAr ?? cart.nameEn ?? "باكدج العريس"
-    : cart.nameEn ?? cart.nameAr ?? "Groom package";
+  const kindLabel =
+    cart.kind === "groom" ? (ar ? "باكدج العريس" : "Groom package") : ar ? "الباكدج" : "Package";
+  const packageName = ar ? cart.nameAr ?? cart.nameEn ?? kindLabel : cart.nameEn ?? cart.nameAr ?? kindLabel;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <h2 className="hidden text-xl font-black text-cut-black md:block">
-        {ar ? "باكدج العريس" : "Groom package"}
-      </h2>
+      <h2 className="hidden text-xl font-black text-cut-black md:block">{kindLabel}</h2>
       <p className="mt-2 text-sm text-cut-black/55 md:mt-3">
         {ar
           ? "السعر من الباكدج نفسه، مش مجموع الخدمات الفردية."

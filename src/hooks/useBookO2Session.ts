@@ -18,6 +18,7 @@ import {
 import {
   BookingApiError,
   createBookingPlan,
+  packageBookingErrorMessage,
   submitBookingFromPlan,
   type AvailableSlot,
   type BarberAvailableSlot,
@@ -818,7 +819,12 @@ export function useBookO2Session() {
         return;
       }
       setConfirmStatus("error");
-      const message = err instanceof BookingApiError ? err.message : "plan_failed";
+      const message =
+        err instanceof BookingApiError
+          ? groomCart || packageId
+            ? packageBookingErrorMessage(err)
+            : err.message
+          : "plan_failed";
       trackBookingError("plan_failure", {
         message,
         httpStatus: err instanceof BookingApiError ? err.httpStatus : undefined,

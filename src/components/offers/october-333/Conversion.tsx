@@ -91,7 +91,7 @@ export const Conversion = forwardRef<HTMLElement, { reduced: boolean }>(function
 
         <div className={styles.finalActions}>
           <Link href={offer.bookHref} className={styles.primaryButton}>
-            احجز زيارتك لـ CUT
+            احجز الباكدج
           </Link>
           <a href={offer.whatsappHref} target="_blank" rel="noopener noreferrer" className={styles.secondaryButton}>
             اسألنا عن عرض أكتوبر

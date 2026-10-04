@@ -8,6 +8,7 @@ import {
   getPackageCoreIncludes,
   getSelectableOptionalExtras,
 } from "@/lib/packagesApi";
+import { buildBookHref } from "@/lib/book-o2/buildBookHref";
 
 const STORAGE_KEY = "cut-groom-book-handoff";
 
@@ -30,6 +31,7 @@ export type GroomCartAddon = {
 
 export type GroomCartModel = {
   packageId: number;
+  kind: ApiPackage["kind"];
   nameAr: string | null;
   nameEn: string | null;
   packagePrice: number;
@@ -127,6 +129,16 @@ export function resolveGroomAddon(
   return null;
 }
 
+/** /book entry for a package with no add-ons; price and duration are resolved from packageId. */
+export function packageBookHref(pack: ApiPackage, branch?: string | null): string {
+  return buildBookHref({
+    mode: "nearest",
+    branch,
+    packageId: pack.packageId,
+    serviceIds: getPackageCoreIncludes(pack).map((item) => item.serviceId),
+  });
+}
+
 /** Build cart from Cashier package contract — package price is authoritative. */
 export function buildGroomCartModel(
   pack: ApiPackage,
@@ -181,6 +193,7 @@ export function buildGroomCartModel(
 
   return {
     packageId: pack.packageId,
+    kind: pack.kind,
     nameAr: pack.nameAr,
     nameEn: pack.nameEn,
     packagePrice: pack.price,
@@ -229,7 +242,7 @@ export function groomCartToResolvableServices(
       nameEn: item.nameEn,
       price: 0, // priced via package line — avoid double-counting in ala-carte sums
       durationMinutes: 0,
-      categoryName: "Groom Package",
+      categoryName: cart.kind === "groom" ? "Groom Package" : "Package",
       isBookableOnline: true,
       groomContextOnly: true,
     });
