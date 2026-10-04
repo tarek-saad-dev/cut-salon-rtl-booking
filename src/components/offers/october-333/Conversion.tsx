@@ -6,7 +6,11 @@ import { motion } from "framer-motion";
 import { OCTOBER_BRANCHES, octoberOffer as offer } from "@/config/octoberOffer";
 import styles from "./experience.module.css";
 
-const STEPS = ["زور أقرب فرع CUT", "فعّل العرض وادفع قيمته في الفرع", "استخدم خدماتك خلال شهر أكتوبر"] as const;
+const STEPS = [
+  "احجز الباكدج أونلاين واختار الفرع والميعاد",
+  "تعالى في ميعادك وخد الأربع خدمات في زيارة واحدة",
+  "ادفع قيمة الباكدج داخل الفرع",
+] as const;
 
 export const Conversion = forwardRef<HTMLElement, { reduced: boolean }>(function Conversion({ reduced }, ref) {
   const reveal = (delay = 0) =>
@@ -59,11 +63,11 @@ export const Conversion = forwardRef<HTMLElement, { reduced: boolean }>(function
         </ol>
 
         <motion.div className={styles.howNote} data-offer-block="note" {...reveal(0.2)}>
-          <p className={styles.howNoteLead}>مش لازم تستخدم الأربع خدمات في نفس الزيارة.</p>
-          <p>بمجرد تفعيل العرض في الفرع، تقدر تستفيد من خدماتك خلال أكتوبر وفق شروط العرض.</p>
+          <p className={styles.howNoteLead}>الأربع خدمات في زيارة واحدة.</p>
+          <p>قص الشعر، الذقن والفيد، حمام الزيت وتنظيف البشرة الكلاسيكي ورا بعض في ميعاد واحد مدته 85 دقيقة.</p>
         </motion.div>
 
-        <p className={styles.howFine}>لا يوجد دفع أو شراء للعرض أونلاين.</p>
+        <p className={styles.howFine}>احجز الباكدج أونلاين، والدفع داخل الفرع.</p>
       </div>
 
       <div className={styles.branches} data-offer-block="branches">
@@ -100,7 +104,7 @@ export const Conversion = forwardRef<HTMLElement, { reduced: boolean }>(function
       </div>
 
       <footer className={styles.footer}>
-        <p>الدفع وتفعيل العرض داخل فروع CUT فقط. تطبق شروط العرض.</p>
+        <p>الدفع داخل فروع CUT فقط. تطبق شروط العرض.</p>
         <p dir="ltr">© {new Date().getFullYear()} CUT Salon</p>
       </footer>
     </section>

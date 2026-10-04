@@ -218,29 +218,31 @@ describe("October cinematic experience", () => {
     }
   });
 
-  it("reveals 333 against the 670 original value", () => {
+  it("reveals 333 against the 720 original value", () => {
     render(<OctoberExperience />);
     const price = document.getElementById("october-price")!;
     expect(price).toHaveTextContent("333جنيه");
     expect(screen.getByText("القيمة الأصلية")).toBeInTheDocument();
-    expect(price.closest("section")!.querySelector("del")).toHaveTextContent("670 جنيه");
+    expect(price.closest("section")!.querySelector("del")).toHaveTextContent("720 جنيه");
     expect(screen.getByText("أربع خدمات. تجربة كاملة.")).toBeInTheDocument();
   });
 
-  it("states the offer window, in-branch activation and flexible usage", () => {
+  it("states the offer window, the single 85-minute visit and in-branch payment", () => {
     render(<OctoberExperience />);
     const offer = document.getElementById("october-offer")!;
     expect(within(offer).getByRole("heading", { level: 2, name: "عرض أكتوبر" })).toBeInTheDocument();
     expect(within(offer).getByText("٤ خدمات. تجربة كاملة.")).toBeInTheDocument();
     expect(within(offer).getByText(/^متاح من/)).toHaveTextContent("متاح من 5 أكتوبر حتى 31 أكتوبر");
-    expect(within(offer).getByText("أربع خدمات").closest("p")).toHaveTextContent(/670 جنيه.*333 جنيه/);
+    expect(within(offer).getByText("أربع خدمات").closest("p")).toHaveTextContent(/720 جنيه.*333 جنيه/);
     expect(document.querySelector('time[datetime="2026-10-05"]')).toBeInTheDocument();
     expect(document.querySelector('time[datetime="2026-10-31"]')).toBeInTheDocument();
-    expect(screen.getByText("زور أقرب فرع CUT")).toBeInTheDocument();
-    expect(screen.getByText("فعّل العرض وادفع قيمته في الفرع")).toBeInTheDocument();
-    expect(screen.getByText("استخدم خدماتك خلال شهر أكتوبر")).toBeInTheDocument();
-    expect(screen.getByText("مش لازم تستخدم الأربع خدمات في نفس الزيارة.")).toBeInTheDocument();
-    expect(screen.getByText("لا يوجد دفع أو شراء للعرض أونلاين.")).toBeInTheDocument();
+    expect(screen.getByText("احجز الباكدج أونلاين واختار الفرع والميعاد")).toBeInTheDocument();
+    expect(screen.getByText("تعالى في ميعادك وخد الأربع خدمات في زيارة واحدة")).toBeInTheDocument();
+    expect(screen.getByText("ادفع قيمة الباكدج داخل الفرع")).toBeInTheDocument();
+    expect(screen.getByText("الأربع خدمات في زيارة واحدة.")).toBeInTheDocument();
+    expect(within(offer).getByText(/ميعاد واحد مدته 85 دقيقة/)).toBeInTheDocument();
+    expect(screen.getByText("احجز الباكدج أونلاين، والدفع داخل الفرع.")).toBeInTheDocument();
+    expect(offer).not.toHaveTextContent(/670|نفس الزيارة|زيارات منفصلة|خلال شهر أكتوبر/);
   });
 
   it("has no claim form, personal-data inputs, stock counter or claim API calls", () => {

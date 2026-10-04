@@ -11,7 +11,7 @@ interface PriceSceneProps {
   zIndex: number;
 }
 
-/** Near-black climax: services one by one → gather → 670 struck → pause → 333. */
+/** Near-black climax: services one by one → gather → 720 struck → pause → 333. */
 export function PriceScene({ local: q, visibility, zIndex }: PriceSceneProps) {
   const sceneOpacity = useTransform(q, (v) => segment(v, 0, 0.08));
 

@@ -364,7 +364,7 @@ export const octoberOffer = {
   endsOn: "2026-10-31",
   endsLabel: "31 أكتوبر",
   price: 333,
-  originalPrice: 670,
+  originalPrice: 720,
   currency: "جنيه",
   opening: { video: "opening.mp4", poster: "opening-poster.webp" },
   bookHref: buildBookHref({ mode: "nearest", packageId: OCTOBER_PACKAGE_ID }),
