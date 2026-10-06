@@ -44,12 +44,12 @@ function toView(pack: ApiPackage): PackageView {
 
 const serviceCardId = (serviceId: number) => `october-service-card-${serviceId}`;
 
-function BookButton({ tabIndex }: { tabIndex?: number }) {
+function BookButton({ tabIndex, compact = false }: { tabIndex?: number; compact?: boolean }) {
   return (
     <Link
       href={octoberOffer.bookHref}
       tabIndex={tabIndex}
-      className="flex h-14 w-full touch-manipulation select-none items-center justify-center rounded-[18px] bg-cut-gold px-6 text-[clamp(1.25rem,5.4vw,1.375rem)] font-bold text-cut-black shadow-[0_8px_24px_rgba(212,175,55,0.22)] transition active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-cut-gold"
+      className={`flex h-14 w-full touch-manipulation select-none items-center justify-center whitespace-nowrap rounded-[18px] bg-cut-gold ${compact ? "px-4" : "px-6"} text-[clamp(1.25rem,5.4vw,1.375rem)] font-bold text-cut-black shadow-[0_8px_24px_rgba(212,175,55,0.22)] transition active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-cut-gold`}
     >
       احجز دلوقتي
     </Link>
@@ -118,14 +118,14 @@ export function OctoberPackageClient() {
         <section aria-labelledby="october-package-name" className="flex flex-col items-center text-center">
           <h1
             id="october-package-name"
-            className="text-balance font-laxr text-[clamp(2.5rem,13vw,3.5rem)] leading-[0.95] text-cut-ivory"
+            className="whitespace-nowrap font-laxr text-[clamp(2.375rem,12vw,3.25rem)] leading-none text-cut-ivory"
           >
             {view.name}
           </h1>
 
           <div className="mt-8 flex flex-col items-center" data-testid="october-package-price">
-            <strong className="flex items-baseline justify-center gap-[0.12em] whitespace-nowrap font-laxr text-[clamp(4rem,20vw,5.25rem)] leading-[0.88] text-cut-gold">
-              <span dir="ltr">{view.price}</span> <span className="text-[0.56em]">جنيه</span>
+            <strong className="flex items-baseline justify-center gap-[0.12em] whitespace-nowrap font-laxr text-[clamp(3.75rem,19vw,5rem)] leading-[0.9] text-cut-gold">
+              <span dir="ltr">{view.price}</span> <span className="text-[0.5em]">جنيه</span>
             </strong>
             {view.originalPrice ? (
               <span className="mt-3 flex flex-wrap items-baseline justify-center gap-3 text-[15px] leading-6 text-cut-ivory/60">
@@ -175,7 +175,7 @@ export function OctoberPackageClient() {
         <section aria-labelledby="october-package-services" className="mt-9 flex flex-col">
           <h2
             id="october-package-services"
-            className="text-balance font-laxr text-[clamp(2.125rem,9.5vw,2.5rem)] leading-[1.2] text-cut-ivory"
+            className="whitespace-nowrap font-ui text-[clamp(1.375rem,6.2vw,1.625rem)] font-extrabold leading-[1.3] text-cut-ivory"
           >
             إيه اللي في الباكدج؟
           </h2>
@@ -234,7 +234,7 @@ export function OctoberPackageClient() {
             />
           ) : (
             <div className="flex aspect-video w-full flex-col items-center justify-center gap-2 p-6 text-center">
-              <p className="font-laxr text-xl text-cut-ivory/85">فيديو الباكدج</p>
+              <p className="whitespace-nowrap font-laxr text-[1.375rem] leading-none text-cut-ivory/85">فيديو الباكدج</p>
               <p className="text-sm text-cut-ivory/55">قص شعر · ذقن وفيد · حمام زيت · تنظيف بشرة كلاسيكي</p>
             </div>
           )}
@@ -255,7 +255,7 @@ export function OctoberPackageClient() {
       >
         <div className="mx-auto flex w-full max-w-md items-center gap-3 px-5 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3">
           <p className="flex shrink-0 flex-col leading-tight">
-            <strong className="font-laxr text-2xl text-cut-gold">
+            <strong className="whitespace-nowrap font-laxr text-2xl leading-none text-cut-gold">
               <span dir="ltr">{view.price}</span> جنيه
             </strong>
             {view.originalPrice ? (
@@ -265,7 +265,7 @@ export function OctoberPackageClient() {
             ) : null}
           </p>
           <div className="flex-1">
-            <BookButton tabIndex={showStickyBar ? undefined : -1} />
+            <BookButton compact tabIndex={showStickyBar ? undefined : -1} />
           </div>
         </div>
       </div>
