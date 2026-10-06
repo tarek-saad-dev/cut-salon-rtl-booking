@@ -8,6 +8,76 @@ export const OCTOBER_MEDIA_ROOT = "/media/october-experience";
 export const OCTOBER_PACKAGE_ID = 7;
 
 /**
+ * Explainer video for /offers/october-package. Upload the files to public/media/october-package
+ * and flip `available` to true; until then the page shows a placeholder instead of a 404ing <video>.
+ */
+export const OCTOBER_PACKAGE_VIDEO = {
+  src: "/media/october-package/explainer.mp4",
+  poster: "/media/october-package/explainer-poster.webp",
+  available: false,
+} as const;
+
+export interface OctoberPackageService {
+  /** Casher ProID; durations are read from the package includes for this id. */
+  serviceId: number;
+  name: string;
+  about: string;
+  steps: readonly string[];
+  benefit: string;
+}
+
+/** Marketing copy for the package services, in visit order (the backend has no steps for these yet). */
+export const OCTOBER_PACKAGE_SERVICES: readonly OctoberPackageService[] = [
+  {
+    serviceId: 9,
+    name: "قص الشعر",
+    about: "قصة مختارة على حسب شكل وشك وطبيعة شعرك والستايل اللي يناسبك.",
+    steps: [
+      "استشارة سريعة مع الحلاق لاختيار القصة",
+      "تجهيز الشعر قبل القص",
+      "قص بالماكينة والمقص وتدرّج فيد نضيف",
+      "تشطيب وتصفيف بالمنتج المناسب لشعرك",
+    ],
+    benefit: "شكل مرتب ومتناسق يفضل معاك لحد زيارتك الجاية.",
+  },
+  {
+    serviceId: 10,
+    name: "الذقن والفيد",
+    about: "تحديد وتهذيب الذقن مع فيد ناعم يربطها بالشعر.",
+    steps: [
+      "اختيار شكل الذقن المناسب لملامحك",
+      "تهذيب الطول والكثافة",
+      "تحديد الخطوط على الخد والرقبة",
+      "فيد متدرج بين الذقن والسوالف",
+    ],
+    benefit: "ذقن نضيفة ومحددة بتبرز ملامح الوش.",
+  },
+  {
+    serviceId: 22,
+    name: "حمام الزيت",
+    about: "جلسة زيت لفروة الراس والشعر لترطيب وتغذية من الجذور.",
+    steps: [
+      "توزيع الزيت على فروة الراس والشعر",
+      "مساج خفيف يساعد الزيت يتمتص",
+      "فوطة دافية تكمّل الامتصاص",
+    ],
+    benefit: "شعر أنعم ولامع وأقل جفاف وهيشان.",
+  },
+  {
+    serviceId: 29,
+    name: "تنظيف البشرة الكلاسيكي",
+    about: "تنظيف عميق للبشرة يشيل آثار الشمس والتراب والإرهاق.",
+    steps: [
+      "بخار دافي يجهّز البشرة ويفتح المسام",
+      "غسول وكريم تنظيف مناسب لنوع بشرتك",
+      "تنظيف المسام والشوائب",
+      "ترطيب في الآخر",
+    ],
+    benefit: "بشرة نضيفة ومنتعشة وإحساس فريش طول اليوم.",
+  },
+];
+
+/**
  * Files that actually exist under public/media/october-experience.
  * Add the filename here after uploading it (e.g. "haircut.mp4", "sounds/reveal.mp3").
  * Anything not listed renders the built-in art / synthesized sound, so the page
