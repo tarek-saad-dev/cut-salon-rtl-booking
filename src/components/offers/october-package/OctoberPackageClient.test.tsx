@@ -1,11 +1,19 @@
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+﻿import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { OCTOBER_PACKAGE_SERVICES } from "@/config/octoberOffer";
 
 const getPackageById = vi.fn();
 vi.mock("@/lib/packagesApi", () => ({ getPackageById: (id: number) => getPackageById(id) }));
 
+import { LanguageProvider } from "@/context/LanguageContext";
 import { OctoberPackageClient } from "./OctoberPackageClient";
+
+const renderPage = () =>
+  render(
+    <LanguageProvider>
+      <OctoberPackageClient />
+    </LanguageProvider>,
+  );
 
 const livePackage = {
   packageId: 7,
@@ -31,7 +39,7 @@ describe("October package simple page", () => {
 
   it("shows the package name, backend price and duration from packageId 7", async () => {
     getPackageById.mockResolvedValue(livePackage);
-    render(<OctoberPackageClient />);
+    renderPage();
 
     expect(getPackageById).toHaveBeenCalledWith(7);
     expect(screen.getByRole("heading", { level: 1, name: "باكدج أكتوبر" })).toBeInTheDocument();
@@ -44,7 +52,7 @@ describe("October package simple page", () => {
 
   it("has a booking CTA above and below the video, both into the packageId 7 flow", () => {
     getPackageById.mockResolvedValue(livePackage);
-    render(<OctoberPackageClient />);
+    renderPage();
 
     const ctas = screen.getAllByRole("link", { name: "احجز دلوقتي" });
     expect(ctas).toHaveLength(2);
@@ -57,15 +65,15 @@ describe("October package simple page", () => {
 
   it("explains every package service with what it is, its steps and its benefit", async () => {
     getPackageById.mockResolvedValue(livePackage);
-    render(<OctoberPackageClient />);
+    renderPage();
 
     const section = screen.getByRole("heading", { level: 2, name: "إيه اللي في الباكدج؟" }).closest("section")!;
     const services = within(section).getAllByRole("heading", { level: 3 });
     expect(services.map((h) => h.textContent)).toEqual([
-      "01قص الشعر",
-      "02الذقن والفيد",
-      "03حمام الزيت",
-      "04تنظيف البشرة الكلاسيكي",
+      "قص الشعر",
+      "الذقن والفيد",
+      "حمام الزيت",
+      "تنظيف البشرة الكلاسيكي",
     ]);
     for (const service of OCTOBER_PACKAGE_SERVICES) {
       const card = within(section).getByRole("heading", { level: 3, name: new RegExp(service.name) }).closest("li")!;
@@ -83,7 +91,7 @@ describe("October package simple page", () => {
 
   it("keeps the campaign price if the package can't be loaded", async () => {
     getPackageById.mockRejectedValue(new Error("offline"));
-    render(<OctoberPackageClient />);
+    renderPage();
     await waitFor(() => expect(getPackageById).toHaveBeenCalled());
     expect(screen.getByTestId("october-package-price")).toHaveTextContent(/333 جنيه.*720 جنيه/);
     expect(screen.getAllByRole("link", { name: "احجز دلوقتي" })).toHaveLength(2);
@@ -91,20 +99,20 @@ describe("October package simple page", () => {
 
   it("shows a placeholder instead of requesting a video file that isn't uploaded yet", () => {
     getPackageById.mockResolvedValue(livePackage);
-    const { container } = render(<OctoberPackageClient />);
+    const { container } = renderPage();
     expect(container.querySelector("video")).toBeNull();
     expect(screen.getByRole("region", { name: "فيديو الباكدج" })).toHaveTextContent("فيديو الباكدج");
   });
 
   it("shows how much the customer saves", async () => {
     getPackageById.mockResolvedValue(livePackage);
-    render(<OctoberPackageClient />);
+    renderPage();
     await waitFor(() => expect(screen.getByTestId("october-package-price")).toHaveTextContent("وفّر 387 جنيه"));
   });
 
   it("keeps the sticky booking bar hidden and unfocusable while an inline CTA is on screen", () => {
     getPackageById.mockResolvedValue(livePackage);
-    render(<OctoberPackageClient />);
+    renderPage();
     const bar = screen.getByTestId("october-package-sticky-bar");
     expect(bar).toHaveAttribute("aria-hidden", "true");
     const link = bar.querySelector("a")!;
@@ -115,7 +123,7 @@ describe("October package simple page", () => {
   it("opens a service's details when its summary tile is tapped", () => {
     getPackageById.mockResolvedValue(livePackage);
     Element.prototype.scrollIntoView = vi.fn();
-    const { container } = render(<OctoberPackageClient />);
+    const { container } = renderPage();
 
     const card = container.querySelector<HTMLDetailsElement>("#october-service-card-22")!;
     expect(card.open).toBe(false);
@@ -126,9 +134,26 @@ describe("October package simple page", () => {
     expect(card.scrollIntoView).toHaveBeenCalled();
   });
 
+  it("has a top header with a home logo and a hamburger that opens the site menu", async () => {
+    getPackageById.mockResolvedValue(livePackage);
+    renderPage();
+    const header = screen.getByRole("banner");
+    expect(within(header).getByRole("link", { name: "CUT Salon - Home" })).toHaveAttribute("href", "/");
+
+    const hamburger = within(header).getByRole("button", { name: "فتح القائمة" });
+    expect(hamburger).toHaveAttribute("aria-expanded", "false");
+    fireEvent.click(hamburger);
+    expect(hamburger).toHaveAttribute("aria-expanded", "true");
+    const menu = await screen.findByRole("dialog");
+    expect(within(menu).getByRole("navigation")).toBeInTheDocument();
+
+    fireEvent.keyDown(window, { key: "Escape" });
+    await waitFor(() => expect(hamburger).toHaveAttribute("aria-expanded", "false"));
+  });
+
   it("has none of the cinematic experience", () => {
     getPackageById.mockResolvedValue(livePackage);
-    const { container } = render(<OctoberPackageClient />);
+    const { container } = renderPage();
     expect(screen.queryByRole("button", { name: "ابدأ التجربة" })).toBeNull();
     expect(container.querySelector("audio")).toBeNull();
   });
