@@ -9,6 +9,7 @@ import {
   octoberOffer,
 } from "@/config/octoberOffer";
 import { getPackageById, type ApiPackage } from "@/lib/packagesApi";
+import { OfferMobileHeader } from "@/components/offers/OfferMobileHeader";
 
 type PackageView = {
   name: string;
@@ -48,7 +49,7 @@ function BookButton({ tabIndex }: { tabIndex?: number }) {
     <Link
       href={octoberOffer.bookHref}
       tabIndex={tabIndex}
-      className="flex min-h-14 w-full touch-manipulation select-none items-center justify-center rounded-2xl bg-cut-gold px-6 text-lg font-bold text-cut-black shadow-cut-glow transition active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-cut-gold"
+      className="flex h-14 w-full touch-manipulation select-none items-center justify-center rounded-[18px] bg-cut-gold px-6 text-[clamp(1.25rem,5.4vw,1.375rem)] font-bold text-cut-black shadow-[0_8px_24px_rgba(212,175,55,0.22)] transition active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-cut-gold"
     >
       احجز دلوقتي
     </Link>
@@ -60,7 +61,7 @@ function Chevron() {
     <svg
       aria-hidden
       viewBox="0 0 20 20"
-      className="size-5 shrink-0 text-cut-bronze transition-transform duration-200 group-open:rotate-180"
+      className="mt-1 size-5 shrink-0 text-cut-bronze transition-transform duration-200 group-open:rotate-180"
     >
       <path d="M5 7.5 10 12.5 15 7.5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
@@ -110,34 +111,29 @@ export function OctoberPackageClient() {
   const savings = view.originalPrice ? view.originalPrice - view.price : null;
 
   return (
-    <main dir="rtl" lang="ar" className="min-h-svh overflow-x-hidden bg-cut-black font-ui text-cut-ivory antialiased">
-      <div className="mx-auto flex w-full max-w-md flex-col gap-10 px-4 pb-[max(2rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))] sm:px-5">
-        <header className="flex justify-center">
-          <Link
-            href="/"
-            className="inline-flex min-h-11 items-center px-4 font-brand text-xl tracking-[0.3em] text-cut-ivory"
-            aria-label="CUT Salon — الرئيسية"
-          >
-            CUT
-          </Link>
-        </header>
+    <main dir="rtl" lang="ar" className="min-h-svh overflow-x-clip bg-cut-black font-ui text-cut-ivory antialiased">
+      <OfferMobileHeader />
 
-        <section aria-labelledby="october-package-name" className="-mt-4 flex flex-col items-center gap-5 text-center">
-          <h1 id="october-package-name" className="font-laxr text-[2.5rem] leading-tight text-cut-ivory">
+      <div className="mx-auto flex w-full max-w-md flex-col px-5 pb-[max(3rem,env(safe-area-inset-bottom))] pt-5">
+        <section aria-labelledby="october-package-name" className="flex flex-col items-center text-center">
+          <h1
+            id="october-package-name"
+            className="text-balance font-laxr text-[clamp(2.5rem,13vw,3.5rem)] leading-[0.95] text-cut-ivory"
+          >
             {view.name}
           </h1>
 
-          <div className="flex flex-col items-center gap-2" data-testid="october-package-price">
-            <strong className="font-laxr text-[4rem] leading-none text-cut-gold">
-              <span dir="ltr">{view.price}</span> جنيه
+          <div className="mt-8 flex flex-col items-center" data-testid="october-package-price">
+            <strong className="flex items-baseline justify-center gap-[0.12em] whitespace-nowrap font-laxr text-[clamp(4rem,20vw,5.25rem)] leading-[0.88] text-cut-gold">
+              <span dir="ltr">{view.price}</span> <span className="text-[0.56em]">جنيه</span>
             </strong>
             {view.originalPrice ? (
-              <span className="flex flex-wrap items-center justify-center gap-2 text-base text-cut-ivory/60">
+              <span className="mt-3 flex flex-wrap items-baseline justify-center gap-3 text-[15px] leading-6 text-cut-ivory/60">
                 <span>
                   بدل <del><span dir="ltr">{view.originalPrice}</span> جنيه</del>
                 </span>
                 {savings ? (
-                  <span className="rounded-full bg-cut-gold/15 px-3 py-1 text-sm font-bold text-cut-gold">
+                  <span className="rounded-full bg-cut-gold/15 px-3 py-1.5 text-sm font-bold leading-none text-cut-gold">
                     وفّر <span dir="ltr">{savings}</span> جنيه
                   </span>
                 ) : null}
@@ -145,11 +141,11 @@ export function OctoberPackageClient() {
             ) : null}
           </div>
 
-          <p className="text-[15px] text-cut-ivory/75">
+          <p className="mt-6 text-[17px] leading-[1.45] text-cut-ivory/80">
             ٤ خدمات في زيارة واحدة{view.durationMinutes ? ` · ${view.durationMinutes} دقيقة` : ""}
           </p>
 
-          <ul aria-label="خدمات الباكدج" className="grid w-full grid-cols-2 gap-2.5">
+          <ul aria-label="خدمات الباكدج" className="mt-5 grid w-full grid-cols-2 gap-3">
             {OCTOBER_PACKAGE_SERVICES.map((service, index) => {
               const minutes = view.serviceMinutes[service.serviceId];
               return (
@@ -157,53 +153,57 @@ export function OctoberPackageClient() {
                   <a
                     href={`#${serviceCardId(service.serviceId)}`}
                     onClick={(event) => openService(event, service.serviceId)}
-                    className="flex h-full min-h-[4.5rem] touch-manipulation flex-col items-start justify-center gap-0.5 rounded-xl border border-cut-bronze/25 bg-cut-soft-black px-3 py-2.5 text-start transition active:scale-[0.98] active:border-cut-gold/50"
+                    className="flex h-full min-h-20 touch-manipulation flex-col items-start justify-center gap-1 rounded-2xl border border-cut-bronze/25 bg-cut-soft-black px-3.5 py-3 text-start transition active:scale-[0.98] active:border-cut-gold/50"
                   >
-                    <span className="text-xs font-bold text-cut-gold" dir="ltr">{`0${index + 1}`}</span>
-                    <span className="text-[15px] font-bold leading-snug text-cut-ivory">{service.name}</span>
-                    {minutes ? <span className="text-xs text-cut-ivory/55">{minutes} دقيقة</span> : null}
+                    <span className="text-[13px] font-bold leading-none text-cut-gold" dir="ltr">{`0${index + 1}`}</span>
+                    <span className="text-[clamp(1rem,4.6vw,1.1875rem)] font-bold leading-snug text-cut-ivory">
+                      {service.name}
+                    </span>
+                    {minutes ? <span className="text-[13px] leading-none text-cut-ivory/60">{minutes} دقيقة</span> : null}
                   </a>
                 </li>
               );
             })}
           </ul>
 
-          <div ref={heroCtaRef} className="flex w-full flex-col items-center gap-2.5">
+          <div ref={heroCtaRef} className="mt-5 flex w-full flex-col items-center">
             <BookButton />
-            <p className="text-[13px] text-cut-ivory/60">احجز الباكدج أونلاين، والدفع داخل الفرع.</p>
+            <p className="mt-3 text-sm leading-[1.6] text-cut-ivory/75">احجز الباكدج أونلاين، والدفع داخل الفرع.</p>
           </div>
         </section>
 
-        <section aria-labelledby="october-package-services" className="flex flex-col gap-4">
-          <div className="flex flex-col gap-1">
-            <h2 id="october-package-services" className="font-laxr text-[1.75rem] text-cut-ivory">
-              إيه اللي في الباكدج؟
-            </h2>
-            <p className="text-[13px] text-cut-ivory/55">دوس على أي خدمة تشوف مراحلها وفايدتها.</p>
-          </div>
-          <ol className="flex flex-col gap-3">
+        <section aria-labelledby="october-package-services" className="mt-9 flex flex-col">
+          <h2
+            id="october-package-services"
+            className="text-balance font-laxr text-[clamp(2.125rem,9.5vw,2.5rem)] leading-[1.2] text-cut-ivory"
+          >
+            إيه اللي في الباكدج؟
+          </h2>
+          <p className="mt-3 text-[15px] leading-7 text-cut-ivory/65">دوس على أي خدمة تشوف مراحلها وفايدتها.</p>
+
+          <ol className="mt-5 flex flex-col gap-3">
             {OCTOBER_PACKAGE_SERVICES.map((service, index) => {
               const minutes = view.serviceMinutes[service.serviceId];
               return (
                 <li key={service.serviceId}>
                   <details
                     id={serviceCardId(service.serviceId)}
-                    className="group scroll-mt-4 rounded-2xl border border-cut-bronze/25 bg-cut-soft-black open:border-cut-gold/40"
+                    className="group scroll-mt-20 rounded-2xl border border-cut-bronze/25 bg-cut-soft-black transition-colors open:border-cut-gold/40"
                   >
-                    <summary className="flex min-h-14 cursor-pointer touch-manipulation list-none flex-col gap-2 p-4 [&::-webkit-details-marker]:hidden">
-                      <div className="flex items-center justify-between gap-3">
-                        <h3 id={`october-service-${service.serviceId}`} className="text-lg font-bold text-cut-ivory">
-                          <span className="ml-2 text-cut-gold" dir="ltr">{`0${index + 1}`}</span>
-                          {service.name}
-                        </h3>
-                        <div className="flex items-center gap-2">
-                          {minutes ? <span className="text-xs text-cut-ivory/55">{minutes} دقيقة</span> : null}
-                          <Chevron />
+                    <summary className="flex cursor-pointer touch-manipulation list-none flex-col px-4 py-[18px] [&::-webkit-details-marker]:hidden">
+                      <div className="flex items-start gap-3">
+                        <span className="pt-1 text-[13px] font-bold leading-6 text-cut-gold" dir="ltr">{`0${index + 1}`}</span>
+                        <div className="min-w-0 flex-1">
+                          <h3 id={`october-service-${service.serviceId}`} className="text-lg font-bold leading-7 text-cut-ivory">
+                            {service.name}
+                          </h3>
+                          {minutes ? <p className="text-[13px] leading-5 text-cut-ivory/55">{minutes} دقيقة</p> : null}
                         </div>
+                        <Chevron />
                       </div>
-                      <p className="text-[15px] leading-7 text-cut-ivory/80">{service.about}</p>
+                      <p className="mt-3 text-[15px] leading-7 text-cut-ivory/80">{service.about}</p>
                     </summary>
-                    <div className="border-t border-cut-bronze/15 px-4 pb-4 pt-3">
+                    <div className="border-t border-cut-bronze/15 px-4 pb-[18px] pt-4">
                       <p className="text-xs font-bold text-cut-bronze">المراحل</p>
                       <ol className="mt-2 list-decimal space-y-2 ps-5 text-[15px] leading-6 text-cut-ivory/80 marker:text-cut-bronze">
                         {service.steps.map((step) => (
@@ -222,7 +222,7 @@ export function OctoberPackageClient() {
           </ol>
         </section>
 
-        <section aria-label="فيديو الباكدج" className="overflow-hidden rounded-2xl border border-cut-bronze/25 bg-cut-soft-black">
+        <section aria-label="فيديو الباكدج" className="mt-10 overflow-hidden rounded-2xl border border-cut-bronze/25 bg-cut-soft-black">
           {OCTOBER_PACKAGE_VIDEO.available ? (
             <video
               className="aspect-[9/16] max-h-[80svh] w-full bg-black object-cover"
@@ -240,9 +240,9 @@ export function OctoberPackageClient() {
           )}
         </section>
 
-        <div ref={endCtaRef} className="flex flex-col items-center gap-2.5">
+        <div ref={endCtaRef} className="mt-6 flex flex-col items-center">
           <BookButton />
-          <p className="text-[13px] text-cut-ivory/60">الدفع داخل فروع CUT فقط.</p>
+          <p className="mt-3 text-sm leading-[1.6] text-cut-ivory/75">الدفع داخل فروع CUT فقط.</p>
         </div>
       </div>
 
@@ -253,7 +253,7 @@ export function OctoberPackageClient() {
           showStickyBar ? "translate-y-0" : "pointer-events-none translate-y-full"
         }`}
       >
-        <div className="mx-auto flex w-full max-w-md items-center gap-3 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3">
+        <div className="mx-auto flex w-full max-w-md items-center gap-3 px-5 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3">
           <p className="flex shrink-0 flex-col leading-tight">
             <strong className="font-laxr text-2xl text-cut-gold">
               <span dir="ltr">{view.price}</span> جنيه
