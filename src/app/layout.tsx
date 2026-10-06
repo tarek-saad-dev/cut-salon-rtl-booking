@@ -13,7 +13,7 @@ import {
 const alexandria = Alexandria({
   variable: "--font-alexandria-loaded",
   subsets: ["latin", "arabic"],
-  weight: ["400", "500", "600", "700"],
+  weight: ["400", "500", "600", "700", "900"],
   display: "swap",
 });
 

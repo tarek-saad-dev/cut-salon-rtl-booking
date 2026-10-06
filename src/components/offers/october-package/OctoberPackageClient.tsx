@@ -124,8 +124,8 @@ export function OctoberPackageClient() {
           </h1>
 
           <div className="mt-8 flex flex-col items-center" data-testid="october-package-price">
-            <strong className="flex items-baseline justify-center gap-[0.12em] whitespace-nowrap font-laxr text-[clamp(3.75rem,19vw,5rem)] leading-[0.9] text-cut-gold">
-              <span dir="ltr">{view.price}</span> <span className="text-[0.5em]">جنيه</span>
+            <strong className="flex items-baseline justify-center gap-[0.12em] whitespace-nowrap font-ui text-[clamp(3.5rem,17vw,4.5rem)] font-black leading-none text-cut-gold">
+              <span dir="ltr">{view.price}</span> <span className="text-[0.4em] font-bold">جنيه</span>
             </strong>
             {view.originalPrice ? (
               <span className="mt-3 flex flex-wrap items-baseline justify-center gap-3 text-[15px] leading-6 text-cut-ivory/60">
