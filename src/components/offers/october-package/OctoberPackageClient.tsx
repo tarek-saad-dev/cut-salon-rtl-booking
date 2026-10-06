@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, type MouseEvent } from "react";
 import Link from "next/link";
 import {
   OCTOBER_PACKAGE_ID,
@@ -41,19 +41,37 @@ function toView(pack: ApiPackage): PackageView {
   };
 }
 
-function BookButton() {
+const serviceCardId = (serviceId: number) => `october-service-card-${serviceId}`;
+
+function BookButton({ tabIndex }: { tabIndex?: number }) {
   return (
     <Link
       href={octoberOffer.bookHref}
-      className="flex min-h-14 w-full items-center justify-center rounded-2xl bg-cut-gold px-6 text-lg font-bold text-cut-black transition hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-cut-gold"
+      tabIndex={tabIndex}
+      className="flex min-h-14 w-full touch-manipulation select-none items-center justify-center rounded-2xl bg-cut-gold px-6 text-lg font-bold text-cut-black shadow-cut-glow transition active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-cut-gold"
     >
       احجز دلوقتي
     </Link>
   );
 }
 
+function Chevron() {
+  return (
+    <svg
+      aria-hidden
+      viewBox="0 0 20 20"
+      className="size-5 shrink-0 text-cut-bronze transition-transform duration-200 group-open:rotate-180"
+    >
+      <path d="M5 7.5 10 12.5 15 7.5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 export function OctoberPackageClient() {
   const [view, setView] = useState<PackageView>(FALLBACK);
+  const [showStickyBar, setShowStickyBar] = useState(false);
+  const heroCtaRef = useRef<HTMLDivElement>(null);
+  const endCtaRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -69,70 +87,135 @@ export function OctoberPackageClient() {
     };
   }, []);
 
+  useEffect(() => {
+    const targets = [heroCtaRef.current, endCtaRef.current].filter((el): el is HTMLDivElement => el !== null);
+    if (typeof IntersectionObserver === "undefined" || targets.length === 0) return;
+    const visible = new Map<Element, boolean>(targets.map((el) => [el, el === heroCtaRef.current]));
+    const observer = new IntersectionObserver((entries) => {
+      for (const entry of entries) visible.set(entry.target, entry.isIntersecting);
+      setShowStickyBar(![...visible.values()].some(Boolean));
+    });
+    for (const el of targets) observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  const openService = (event: MouseEvent<HTMLAnchorElement>, serviceId: number) => {
+    const card = document.getElementById(serviceCardId(serviceId));
+    if (!(card instanceof HTMLDetailsElement)) return;
+    event.preventDefault();
+    card.open = true;
+    card.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  const savings = view.originalPrice ? view.originalPrice - view.price : null;
+
   return (
-    <main dir="rtl" lang="ar" className="min-h-svh bg-cut-black font-ui text-cut-ivory">
-      <div className="mx-auto flex w-full max-w-md flex-col gap-8 px-5 pb-[max(2.5rem,env(safe-area-inset-bottom))] pt-6">
+    <main dir="rtl" lang="ar" className="min-h-svh overflow-x-hidden bg-cut-black font-ui text-cut-ivory antialiased">
+      <div className="mx-auto flex w-full max-w-md flex-col gap-10 px-4 pb-[max(2rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))] sm:px-5">
         <header className="flex justify-center">
-          <Link href="/" className="font-brand text-xl tracking-[0.3em] text-cut-ivory" aria-label="CUT Salon — الرئيسية">
+          <Link
+            href="/"
+            className="inline-flex min-h-11 items-center px-4 font-brand text-xl tracking-[0.3em] text-cut-ivory"
+            aria-label="CUT Salon — الرئيسية"
+          >
             CUT
           </Link>
         </header>
 
-        <section aria-labelledby="october-package-name" className="flex flex-col items-center gap-5 text-center">
-          <h1 id="october-package-name" className="font-laxr text-4xl leading-tight text-cut-ivory">
+        <section aria-labelledby="october-package-name" className="-mt-4 flex flex-col items-center gap-5 text-center">
+          <h1 id="october-package-name" className="font-laxr text-[2.5rem] leading-tight text-cut-ivory">
             {view.name}
           </h1>
 
-          <p className="flex flex-col items-center gap-1" data-testid="october-package-price">
-            <strong className="font-laxr text-6xl leading-none text-cut-gold">
+          <div className="flex flex-col items-center gap-2" data-testid="october-package-price">
+            <strong className="font-laxr text-[4rem] leading-none text-cut-gold">
               <span dir="ltr">{view.price}</span> جنيه
             </strong>
             {view.originalPrice ? (
-              <span className="text-base text-cut-ivory/55">
-                بدل <del><span dir="ltr">{view.originalPrice}</span> جنيه</del>
+              <span className="flex flex-wrap items-center justify-center gap-2 text-base text-cut-ivory/60">
+                <span>
+                  بدل <del><span dir="ltr">{view.originalPrice}</span> جنيه</del>
+                </span>
+                {savings ? (
+                  <span className="rounded-full bg-cut-gold/15 px-3 py-1 text-sm font-bold text-cut-gold">
+                    وفّر <span dir="ltr">{savings}</span> جنيه
+                  </span>
+                ) : null}
               </span>
             ) : null}
-          </p>
+          </div>
 
-          <p className="text-sm text-cut-ivory/70">
+          <p className="text-[15px] text-cut-ivory/75">
             ٤ خدمات في زيارة واحدة{view.durationMinutes ? ` · ${view.durationMinutes} دقيقة` : ""}
           </p>
 
-          <BookButton />
-          <p className="text-xs text-cut-ivory/55">احجز الباكدج أونلاين، والدفع داخل الفرع.</p>
-        </section>
-
-        <section aria-labelledby="october-package-services" className="flex flex-col gap-4">
-          <h2 id="october-package-services" className="font-laxr text-2xl text-cut-ivory">
-            إيه اللي في الباكدج؟
-          </h2>
-          <ol className="flex flex-col gap-4">
+          <ul aria-label="خدمات الباكدج" className="grid w-full grid-cols-2 gap-2.5">
             {OCTOBER_PACKAGE_SERVICES.map((service, index) => {
               const minutes = view.serviceMinutes[service.serviceId];
               return (
-                <li
-                  key={service.serviceId}
-                  className="rounded-2xl border border-cut-bronze/25 bg-cut-soft-black p-5"
-                  aria-labelledby={`october-service-${service.serviceId}`}
-                >
-                  <div className="flex items-baseline justify-between gap-3">
-                    <h3 id={`october-service-${service.serviceId}`} className="text-lg font-bold text-cut-ivory">
-                      <span className="ml-2 text-cut-gold" dir="ltr">{`0${index + 1}`}</span>
-                      {service.name}
-                    </h3>
-                    {minutes ? <span className="shrink-0 text-xs text-cut-ivory/55">{minutes} دقيقة</span> : null}
-                  </div>
-                  <p className="mt-2 text-sm leading-7 text-cut-ivory/80">{service.about}</p>
-                  <p className="mt-4 text-xs font-bold text-cut-bronze">المراحل</p>
-                  <ol className="mt-2 list-decimal space-y-1.5 ps-5 text-sm leading-6 text-cut-ivory/75 marker:text-cut-bronze">
-                    {service.steps.map((step) => (
-                      <li key={step}>{step}</li>
-                    ))}
-                  </ol>
-                  <p className="mt-4 rounded-xl bg-cut-wine-black/70 px-4 py-3 text-sm leading-6 text-cut-ivory/85">
-                    <span className="font-bold text-cut-gold">الفايدة: </span>
-                    {service.benefit}
-                  </p>
+                <li key={service.serviceId}>
+                  <a
+                    href={`#${serviceCardId(service.serviceId)}`}
+                    onClick={(event) => openService(event, service.serviceId)}
+                    className="flex h-full min-h-[4.5rem] touch-manipulation flex-col items-start justify-center gap-0.5 rounded-xl border border-cut-bronze/25 bg-cut-soft-black px-3 py-2.5 text-start transition active:scale-[0.98] active:border-cut-gold/50"
+                  >
+                    <span className="text-xs font-bold text-cut-gold" dir="ltr">{`0${index + 1}`}</span>
+                    <span className="text-[15px] font-bold leading-snug text-cut-ivory">{service.name}</span>
+                    {minutes ? <span className="text-xs text-cut-ivory/55">{minutes} دقيقة</span> : null}
+                  </a>
+                </li>
+              );
+            })}
+          </ul>
+
+          <div ref={heroCtaRef} className="flex w-full flex-col items-center gap-2.5">
+            <BookButton />
+            <p className="text-[13px] text-cut-ivory/60">احجز الباكدج أونلاين، والدفع داخل الفرع.</p>
+          </div>
+        </section>
+
+        <section aria-labelledby="october-package-services" className="flex flex-col gap-4">
+          <div className="flex flex-col gap-1">
+            <h2 id="october-package-services" className="font-laxr text-[1.75rem] text-cut-ivory">
+              إيه اللي في الباكدج؟
+            </h2>
+            <p className="text-[13px] text-cut-ivory/55">دوس على أي خدمة تشوف مراحلها وفايدتها.</p>
+          </div>
+          <ol className="flex flex-col gap-3">
+            {OCTOBER_PACKAGE_SERVICES.map((service, index) => {
+              const minutes = view.serviceMinutes[service.serviceId];
+              return (
+                <li key={service.serviceId}>
+                  <details
+                    id={serviceCardId(service.serviceId)}
+                    className="group scroll-mt-4 rounded-2xl border border-cut-bronze/25 bg-cut-soft-black open:border-cut-gold/40"
+                  >
+                    <summary className="flex min-h-14 cursor-pointer touch-manipulation list-none flex-col gap-2 p-4 [&::-webkit-details-marker]:hidden">
+                      <div className="flex items-center justify-between gap-3">
+                        <h3 id={`october-service-${service.serviceId}`} className="text-lg font-bold text-cut-ivory">
+                          <span className="ml-2 text-cut-gold" dir="ltr">{`0${index + 1}`}</span>
+                          {service.name}
+                        </h3>
+                        <div className="flex items-center gap-2">
+                          {minutes ? <span className="text-xs text-cut-ivory/55">{minutes} دقيقة</span> : null}
+                          <Chevron />
+                        </div>
+                      </div>
+                      <p className="text-[15px] leading-7 text-cut-ivory/80">{service.about}</p>
+                    </summary>
+                    <div className="border-t border-cut-bronze/15 px-4 pb-4 pt-3">
+                      <p className="text-xs font-bold text-cut-bronze">المراحل</p>
+                      <ol className="mt-2 list-decimal space-y-2 ps-5 text-[15px] leading-6 text-cut-ivory/80 marker:text-cut-bronze">
+                        {service.steps.map((step) => (
+                          <li key={step}>{step}</li>
+                        ))}
+                      </ol>
+                      <p className="mt-4 rounded-xl bg-cut-wine-black/70 px-4 py-3 text-[15px] leading-7 text-cut-ivory/85">
+                        <span className="font-bold text-cut-gold">الفايدة: </span>
+                        {service.benefit}
+                      </p>
+                    </div>
+                  </details>
                 </li>
               );
             })}
@@ -142,7 +225,7 @@ export function OctoberPackageClient() {
         <section aria-label="فيديو الباكدج" className="overflow-hidden rounded-2xl border border-cut-bronze/25 bg-cut-soft-black">
           {OCTOBER_PACKAGE_VIDEO.available ? (
             <video
-              className="aspect-[9/16] w-full bg-black object-cover"
+              className="aspect-[9/16] max-h-[80svh] w-full bg-black object-cover"
               src={OCTOBER_PACKAGE_VIDEO.src}
               poster={OCTOBER_PACKAGE_VIDEO.poster}
               controls
@@ -157,7 +240,34 @@ export function OctoberPackageClient() {
           )}
         </section>
 
-        <BookButton />
+        <div ref={endCtaRef} className="flex flex-col items-center gap-2.5">
+          <BookButton />
+          <p className="text-[13px] text-cut-ivory/60">الدفع داخل فروع CUT فقط.</p>
+        </div>
+      </div>
+
+      <div
+        data-testid="october-package-sticky-bar"
+        aria-hidden={!showStickyBar}
+        className={`fixed inset-x-0 bottom-0 z-40 border-t border-cut-bronze/20 bg-cut-black/90 backdrop-blur-md transition-transform duration-300 motion-reduce:transition-none ${
+          showStickyBar ? "translate-y-0" : "pointer-events-none translate-y-full"
+        }`}
+      >
+        <div className="mx-auto flex w-full max-w-md items-center gap-3 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3">
+          <p className="flex shrink-0 flex-col leading-tight">
+            <strong className="font-laxr text-2xl text-cut-gold">
+              <span dir="ltr">{view.price}</span> جنيه
+            </strong>
+            {view.originalPrice ? (
+              <del className="text-xs text-cut-ivory/50">
+                <span dir="ltr">{view.originalPrice}</span> جنيه
+              </del>
+            ) : null}
+          </p>
+          <div className="flex-1">
+            <BookButton tabIndex={showStickyBar ? undefined : -1} />
+          </div>
+        </div>
       </div>
     </main>
   );
