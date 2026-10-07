@@ -10,6 +10,7 @@ import {
 } from "@/config/octoberOffer";
 import { getPackageById, type ApiPackage } from "@/lib/packagesApi";
 import { OfferMobileHeader } from "@/components/offers/OfferMobileHeader";
+import { trackMetaEvent } from "@/lib/metaPixel";
 
 type PackageView = {
   name: string;
@@ -44,11 +45,20 @@ function toView(pack: ApiPackage): PackageView {
 
 const serviceCardId = (serviceId: number) => `october-service-card-${serviceId}`;
 
-function BookButton({ tabIndex, compact = false }: { tabIndex?: number; compact?: boolean }) {
+function BookButton({
+  tabIndex,
+  compact = false,
+  onClick,
+}: {
+  tabIndex?: number;
+  compact?: boolean;
+  onClick?: () => void;
+}) {
   return (
     <Link
       href={octoberOffer.bookHref}
       tabIndex={tabIndex}
+      onClick={onClick}
       className={`flex h-14 w-full touch-manipulation select-none items-center justify-center whitespace-nowrap rounded-[18px] bg-cut-gold ${compact ? "px-4" : "px-6"} text-[clamp(1.25rem,5.4vw,1.375rem)] font-bold text-cut-black shadow-[0_8px_24px_rgba(212,175,55,0.22)] transition active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-cut-gold`}
     >
       احجز دلوقتي
@@ -110,6 +120,14 @@ export function OctoberPackageClient() {
 
   const savings = view.originalPrice ? view.originalPrice - view.price : null;
 
+  const trackBookClick = () =>
+    trackMetaEvent("InitiateCheckout", {
+      content_name: "October Package",
+      content_ids: [String(OCTOBER_PACKAGE_ID)],
+      value: view.price,
+      currency: "EGP",
+    });
+
   return (
     <main dir="rtl" lang="ar" className="min-h-svh overflow-x-clip bg-cut-black font-ui text-cut-ivory antialiased">
       <OfferMobileHeader />
@@ -167,7 +185,7 @@ export function OctoberPackageClient() {
           </ul>
 
           <div ref={heroCtaRef} className="mt-5 flex w-full flex-col items-center">
-            <BookButton />
+            <BookButton onClick={trackBookClick} />
             <p className="mt-3 text-sm leading-[1.6] text-cut-ivory/75">احجز الباكدج أونلاين، والدفع داخل الفرع.</p>
           </div>
         </section>
@@ -241,7 +259,7 @@ export function OctoberPackageClient() {
         </section>
 
         <div ref={endCtaRef} className="mt-6 flex flex-col items-center">
-          <BookButton />
+          <BookButton onClick={trackBookClick} />
           <p className="mt-3 text-sm leading-[1.6] text-cut-ivory/75">الدفع داخل فروع CUT فقط.</p>
         </div>
       </div>
@@ -265,7 +283,7 @@ export function OctoberPackageClient() {
             ) : null}
           </p>
           <div className="flex-1">
-            <BookButton compact tabIndex={showStickyBar ? undefined : -1} />
+            <BookButton compact tabIndex={showStickyBar ? undefined : -1} onClick={trackBookClick} />
           </div>
         </div>
       </div>

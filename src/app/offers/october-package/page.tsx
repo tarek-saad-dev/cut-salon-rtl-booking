@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { MetaPixelPageView } from "@/components/analytics/MetaPixelPageView";
 import { OctoberPackageClient } from "@/components/offers/october-package/OctoberPackageClient";
 
 const description =
@@ -14,5 +15,10 @@ export const metadata: Metadata = {
 export const viewport: Viewport = { width: "device-width", initialScale: 1, themeColor: "#050505" };
 
 export default function Page() {
-  return <OctoberPackageClient />;
+  return (
+    <>
+      <MetaPixelPageView />
+      <OctoberPackageClient />
+    </>
+  );
 }

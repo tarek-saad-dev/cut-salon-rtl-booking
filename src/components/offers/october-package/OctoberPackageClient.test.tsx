@@ -151,6 +151,33 @@ describe("October package simple page", () => {
     await waitFor(() => expect(hamburger).toHaveAttribute("aria-expanded", "false"));
   });
 
+  it("sends a Meta InitiateCheckout event from every booking button without changing the link", async () => {
+    getPackageById.mockResolvedValue(livePackage);
+    const fbq = vi.fn();
+    window.fbq = fbq as unknown as Window["fbq"];
+    try {
+      renderPage();
+      await waitFor(() => expect(screen.getByText(/85 دقيقة/)).toBeInTheDocument());
+
+      const ctas = document.querySelectorAll<HTMLAnchorElement>('a[href="/book?mode=nearest&packageId=7"]');
+      expect(ctas).toHaveLength(3);
+      for (const cta of ctas) {
+        cta.addEventListener("click", (event) => event.preventDefault(), { once: true });
+        fireEvent.click(cta);
+      }
+
+      expect(fbq).toHaveBeenCalledTimes(3);
+      expect(fbq).toHaveBeenCalledWith("track", "InitiateCheckout", {
+        content_name: "October Package",
+        content_ids: ["7"],
+        value: 333,
+        currency: "EGP",
+      });
+    } finally {
+      delete window.fbq;
+    }
+  });
+
   it("has none of the cinematic experience", () => {
     getPackageById.mockResolvedValue(livePackage);
     const { container } = renderPage();
