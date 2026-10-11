@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useBranch } from "@/context/BranchContext";
 import { useQuery } from "@tanstack/react-query";
 import { Check, ChevronDown, MapPin, ShoppingBag, Sparkles } from "lucide-react";
 import type { Language } from "@/lib/i18n/types";
@@ -419,10 +420,12 @@ function GroomOrderBar({
 
 export default function GroomExperienceBuilder({ language }: Props) {
   const ar = language === "ar";
+  const { selectedBranch } = useBranch();
+  const branchCode = selectedBranch?.branchCode;
   const router = useRouter();
   const { data, isPending, isError } = useQuery({
-    queryKey: ["packages", "groom-experience"],
-    queryFn: getGroomExperience,
+    queryKey: ["packages", "groom-experience", branchCode],
+    queryFn: () => getGroomExperience(branchCode),
     staleTime: 60_000,
   });
 
@@ -506,6 +509,7 @@ export default function GroomExperienceBuilder({ language }: Props) {
     router.push(
       buildBookHref({
         mode: "nearest",
+        branch: branchCode,
         packageId: payload.packageId,
         addonProIds: payload.addonProIds,
         serviceIds: payload.serviceIds,

@@ -2,8 +2,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { OCTOBER_PACKAGE_SERVICES } from "@/config/octoberOffer";
 
+const branch = vi.hoisted(() => ({ selectedBranch: { branchCode: "PUBLIC_A" } as { branchCode: string } | null }));
+vi.mock("@/context/BranchContext", () => ({ useBranch: () => branch }));
 const getPackageById = vi.fn();
-vi.mock("@/lib/packagesApi", () => ({ getPackageById: (id: number) => getPackageById(id) }));
+vi.mock("@/lib/packagesApi", () => ({ getPackageById: (id: number, code?: string) => getPackageById(id, code) }));
 
 import { LanguageProvider } from "@/context/LanguageContext";
 import { OctoberPackageClient } from "./OctoberPackageClient";
@@ -35,13 +37,14 @@ const livePackage = {
 describe("October package simple page", () => {
   beforeEach(() => {
     getPackageById.mockReset();
+    branch.selectedBranch = { branchCode: "PUBLIC_A" };
   });
 
   it("shows the package name, backend price and duration from packageId 7", async () => {
     getPackageById.mockResolvedValue(livePackage);
     renderPage();
 
-    expect(getPackageById).toHaveBeenCalledWith(7);
+    expect(getPackageById).toHaveBeenCalledWith(7, "PUBLIC_A");
     expect(screen.getByRole("heading", { level: 1, name: "باكدج أكتوبر" })).toBeInTheDocument();
     await waitFor(() => expect(screen.getByText(/85 دقيقة/)).toBeInTheDocument());
     const price = screen.getByTestId("october-package-price");
@@ -184,4 +187,15 @@ describe("October package simple page", () => {
     expect(screen.queryByRole("button", { name: "ابدأ التجربة" })).toBeNull();
     expect(container.querySelector("audio")).toBeNull();
   });
+});
+
+it("defers campaign detail hydration until public branch context is available", async () => {
+  getPackageById.mockReset();
+  branch.selectedBranch = null;
+  getPackageById.mockResolvedValue(livePackage);
+  const { rerender } = renderPage();
+  expect(getPackageById).not.toHaveBeenCalled();
+  branch.selectedBranch = { branchCode: "PUBLIC_B" };
+  rerender(<LanguageProvider><OctoberPackageClient /></LanguageProvider>);
+  await waitFor(() => expect(getPackageById).toHaveBeenCalledWith(7, "PUBLIC_B"));
 });

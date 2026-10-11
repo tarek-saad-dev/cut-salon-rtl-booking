@@ -426,8 +426,15 @@ export function getPackageCoreIncludes(pack: ApiPackage): PackageIncludeItem[] {
   return pack.includes.filter((item) => !item.optional);
 }
 
-export async function getPackages(kind?: "regular" | "groom"): Promise<ApiPackage[]> {
-  const qs = kind ? `?kind=${kind}` : "";
+function packageQuery(branchCode?: string | null, kind?: "regular" | "groom"): string {
+  const params = new URLSearchParams();
+  if (kind) params.set("kind", kind);
+  if (branchCode?.trim()) params.set("branchCode", branchCode.trim());
+  return params.size ? `?${params.toString()}` : "";
+}
+
+export async function getPackages(kind?: "regular" | "groom", branchCode?: string | null): Promise<ApiPackage[]> {
+  const qs = packageQuery(branchCode, kind);
   const response = await fetch(buildCasherPublicApiUrl(`/api/public/client/packages${qs}`), {
     cache: "no-store",
   });
@@ -454,8 +461,8 @@ export async function getPackages(kind?: "regular" | "groom"): Promise<ApiPackag
  * Optionals come from each package's `groom.optionalExtras` / `groom.optionalGroups`
  * (or the includes bridge on the same payload).
  */
-export async function getGroomExperience(): Promise<GroomExperiencePayload> {
-  const response = await fetch(buildCasherPublicApiUrl("/api/public/client/packages?kind=groom"), {
+export async function getGroomExperience(branchCode?: string | null): Promise<GroomExperiencePayload> {
+  const response = await fetch(buildCasherPublicApiUrl(`/api/public/client/packages${packageQuery(branchCode, "groom")}`), {
     cache: "no-store",
   });
   const data: PackagesResponse | null = await response.json().catch(() => null);
@@ -474,8 +481,8 @@ export async function getGroomExperience(): Promise<GroomExperiencePayload> {
   };
 }
 
-export async function getPackageById(id: number): Promise<ApiPackage> {
-  const response = await fetch(buildCasherPublicApiUrl(`/api/public/client/packages/${id}`), {
+export async function getPackageById(id: number, branchCode?: string | null): Promise<ApiPackage> {
+  const response = await fetch(buildCasherPublicApiUrl(`/api/public/client/packages/${id}${packageQuery(branchCode)}`), {
     cache: "no-store",
   });
   const data: { ok: boolean; package?: unknown } | null = await response.json().catch(() => null);
