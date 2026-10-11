@@ -243,18 +243,23 @@ function PackageCard({ item, language, branchCode }: { item: ApiPackage; languag
 }
 
 export default function PricesClient() {
-  const { selectedBranch } = useBranch();
+  const { selectedBranch, branches } = useBranch();
   const branchCode = selectedBranch?.branchCode;
+  // Prices are tenant-owned, not branch-owned. Before the user explicitly picks a branch,
+  // use one of the already tenant-scoped public branches only as the anonymous tenant identity.
+  const catalogBranchCode = branchCode ?? branches[0]?.branchCode;
   const { lang: language } = useLanguage();
   const [stepsTarget, setStepsTarget] = useState<ServiceStepsTarget | null>(null);
   const { data: categories = [], isPending, isError } = useQuery({
-    queryKey: ["service-catalog"],
-    queryFn: getServiceCatalog,
+    queryKey: ["service-catalog", catalogBranchCode],
+    queryFn: () => getServiceCatalog(catalogBranchCode),
+    enabled: Boolean(catalogBranchCode),
     staleTime: 60_000,
   });
   const { data: regularPackages = [], isPending: isPackagesPending, isError: isPackagesError } = useQuery({
-    queryKey: ["packages", "regular", branchCode],
-    queryFn: () => getPackages("regular", branchCode),
+    queryKey: ["packages", "regular", catalogBranchCode],
+    queryFn: () => getPackages("regular", catalogBranchCode),
+    enabled: Boolean(catalogBranchCode),
     staleTime: 60_000,
   });
   const catalogSections: PriceSectionData[] = categories.map((category, index) => ({
