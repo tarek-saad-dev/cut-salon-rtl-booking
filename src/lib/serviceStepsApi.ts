@@ -81,14 +81,16 @@ export class ServiceStepsUnavailableError extends Error {
   }
 }
 
-export async function getServiceSteps(serviceId: number | string): Promise<ServiceStep[]> {
+export async function getServiceSteps(serviceId: number | string, branchCode: string): Promise<ServiceStep[]> {
   const apiBase = getBookingApiBaseUrl();
+  if (!branchCode?.trim()) throw new ServiceStepsUnavailableError("Branch required", 400);
+  const params = new URLSearchParams({ branchCode: branchCode.trim() });
   let lastStatus = 404;
   let lastError: Error | null = null;
 
   for (const path of PUBLIC_STEPS_PATHS(serviceId)) {
     try {
-      const response = await fetch(`${apiBase}${path}`, { cache: "no-store" });
+      const response = await fetch(`${apiBase}${path}?${params}`, { cache: "no-store" });
       lastStatus = response.status;
       if (response.status === 404) continue;
       const data: unknown = await response.json().catch(() => null);
