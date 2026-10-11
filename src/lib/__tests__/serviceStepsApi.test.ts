@@ -1,8 +1,9 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   normalizeServiceStep,
   normalizeServiceSteps,
   serviceCatalogHasSteps,
+  getServiceSteps,
 } from "@/lib/serviceStepsApi";
 
 describe("serviceStepsApi", () => {
@@ -61,4 +62,19 @@ describe("serviceStepsApi", () => {
     expect(serviceCatalogHasSteps({ steps: [{ TitleAr: "أ", SortOrder: 10 }] })).toBe(true);
     expect(serviceCatalogHasSteps({})).toBe(false);
   });
+});
+
+afterEach(() => vi.unstubAllGlobals());
+
+it("sends branch identity for public execution stages", async () => {
+  const fetchMock = vi.fn().mockResolvedValue({
+    ok: true,
+    status: 200,
+    json: async () => ({ ok: true, steps: [] }),
+  });
+  vi.stubGlobal("fetch", fetchMock);
+  await getServiceSteps(11, "GLEEM");
+  const requestUrl = new URL(String(fetchMock.mock.calls[0][0]));
+  expect(requestUrl.pathname).toBe("/api/public/services/11/steps");
+  expect(requestUrl.searchParams.get("branchCode")).toBe("GLEEM");
 });

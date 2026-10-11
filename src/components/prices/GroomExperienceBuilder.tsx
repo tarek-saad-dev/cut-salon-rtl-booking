@@ -420,12 +420,14 @@ function GroomOrderBar({
 
 export default function GroomExperienceBuilder({ language }: Props) {
   const ar = language === "ar";
-  const { selectedBranch } = useBranch();
+  const { selectedBranch, branches } = useBranch();
   const branchCode = selectedBranch?.branchCode;
+  const catalogBranchCode = branchCode ?? branches[0]?.branchCode;
   const router = useRouter();
   const { data, isPending, isError } = useQuery({
-    queryKey: ["packages", "groom-experience", branchCode],
-    queryFn: () => getGroomExperience(branchCode),
+    queryKey: ["packages", "groom-experience", catalogBranchCode],
+    queryFn: () => getGroomExperience(catalogBranchCode),
+    enabled: Boolean(catalogBranchCode),
     staleTime: 60_000,
   });
 

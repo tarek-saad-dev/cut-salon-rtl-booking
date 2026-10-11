@@ -31,9 +31,16 @@ type ServiceCatalogResponse = {
   categories: ServiceCatalogCategory[];
 };
 
-export async function getServiceCatalog(): Promise<ServiceCatalogCategory[]> {
+export async function getServiceCatalog(
+  branchCode?: string | null,
+): Promise<ServiceCatalogCategory[]> {
   const apiBase = getBookingApiBaseUrl();
-  const response = await fetch(`${apiBase}/api/services/catalog?type=serv`, { cache: "no-store" });
+  const params = new URLSearchParams({ type: "serv" });
+  if (branchCode?.trim()) params.set("branchCode", branchCode.trim());
+
+  const response = await fetch(`${apiBase}/api/services/catalog?${params.toString()}`, {
+    cache: "no-store",
+  });
   const data: ServiceCatalogResponse | null = await response.json().catch(() => null);
 
   if (!response.ok || !data?.ok) {

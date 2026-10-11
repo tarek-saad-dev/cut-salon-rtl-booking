@@ -24,6 +24,7 @@ type ServiceStepsSheetProps = {
   onClose: () => void;
   service: ServiceStepsTarget | null;
   language: Language;
+  branchCode?: string;
 };
 
 const t = (value: Localized, language: Language) => value[language];
@@ -42,16 +43,16 @@ const stepTitle = (step: ServiceStep, language: Language) =>
 const stepDetail = (step: ServiceStep, language: Language) =>
   language === "ar" ? step.detailAr || step.detailEn : step.detailEn || step.detailAr;
 
-export default function ServiceStepsSheet({ open, onClose, service, language }: ServiceStepsSheetProps) {
+export default function ServiceStepsSheet({ open, onClose, service, language, branchCode }: ServiceStepsSheetProps) {
   const ar = language === "ar";
   const dir = ar ? "rtl" : "ltr";
   const serviceId = service?.id ?? "";
   const embeddedSteps = service?.steps?.length ? service.steps : null;
 
   const { data, isPending, isError, isFetching } = useQuery({
-    queryKey: ["service-steps", serviceId],
-    queryFn: () => getServiceSteps(serviceId),
-    enabled: open && Boolean(serviceId) && !embeddedSteps,
+    queryKey: ["service-steps", serviceId, branchCode],
+    queryFn: () => getServiceSteps(serviceId, branchCode!),
+    enabled: open && Boolean(serviceId) && Boolean(branchCode) && !embeddedSteps,
     staleTime: 5 * 60_000,
   });
 

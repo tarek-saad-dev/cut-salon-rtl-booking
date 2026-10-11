@@ -243,18 +243,23 @@ function PackageCard({ item, language, branchCode }: { item: ApiPackage; languag
 }
 
 export default function PricesClient() {
-  const { selectedBranch } = useBranch();
+  const { selectedBranch, branches } = useBranch();
   const branchCode = selectedBranch?.branchCode;
+  // Prices are tenant-owned, not branch-owned. Before the user explicitly picks a branch,
+  // use one of the already tenant-scoped public branches only as the anonymous tenant identity.
+  const catalogBranchCode = branchCode ?? branches[0]?.branchCode;
   const { lang: language } = useLanguage();
   const [stepsTarget, setStepsTarget] = useState<ServiceStepsTarget | null>(null);
   const { data: categories = [], isPending, isError } = useQuery({
-    queryKey: ["service-catalog"],
-    queryFn: getServiceCatalog,
+    queryKey: ["service-catalog", catalogBranchCode],
+    queryFn: () => getServiceCatalog(catalogBranchCode),
+    enabled: Boolean(catalogBranchCode),
     staleTime: 60_000,
   });
   const { data: regularPackages = [], isPending: isPackagesPending, isError: isPackagesError } = useQuery({
-    queryKey: ["packages", "regular", branchCode],
-    queryFn: () => getPackages("regular", branchCode),
+    queryKey: ["packages", "regular", catalogBranchCode],
+    queryFn: () => getPackages("regular", catalogBranchCode),
+    enabled: Boolean(catalogBranchCode),
     staleTime: 60_000,
   });
   const catalogSections: PriceSectionData[] = categories.map((category, index) => ({
@@ -309,6 +314,7 @@ export default function PricesClient() {
       onClose={() => setStepsTarget(null)}
       service={stepsTarget}
       language={language}
+      branchCode={catalogBranchCode}
     />
     <section id="packages" className="relative isolate scroll-mt-32 overflow-hidden bg-[radial-gradient(circle_at_18%_10%,rgba(74,0,15,0.48),transparent_34%),#170406] py-20 text-cut-ivory md:py-28"><div className="absolute inset-x-0 top-0 h-px bg-cut-bronze/35" /><p aria-hidden className="pointer-events-none absolute -top-6 left-1/2 -translate-x-1/2 whitespace-nowrap font-heading text-[clamp(5rem,18vw,14rem)] font-black text-cut-ivory/[0.03]">{ar ? "الباقات" : "PACKAGES"}</p><div className="container relative z-10 px-5 md:px-8"><div className={`flex flex-col gap-6 border-cut-bronze/35 md:flex-row md:items-end md:justify-between ${sideBorder}`}><div className="max-w-2xl"><p className="cut-editorial-label">CURATED EXPERIENCES</p><h2 className={`mt-3 text-4xl font-black md:text-5xl ${ar ? "" : "font-editorial font-semibold"}`}>{ar ? "الباقات" : "Packages"}</h2><p className="mt-4 text-base leading-8 text-cut-ivory/70">{ar ? "اختيارات مختصرة تجمع أكثر الخدمات طلبًا في تجربة واحدة متوازنة." : "Considered combinations that bring our most-requested services into one balanced experience."}</p></div><p className="font-display text-sm tracking-[0.28em] text-cut-bronze">THREE WAYS TO RESET</p></div>{isPackagesPending && <p className="mt-10 text-sm text-cut-ivory/60">{ar ? "جارٍ تحميل الباقات..." : "Loading packages..."}</p>}{isPackagesError && <p className="mt-10 text-sm text-cut-ivory/60">{ar ? "تعذّر تحميل الباقات حاليًا." : "Unable to load packages right now."}</p>}{!isPackagesPending && !isPackagesError && regularPackages.length === 0 && <SoonNotice language={language} />}{!isPackagesPending && !isPackagesError && regularPackages.length > 0 && <div className="mt-10 grid gap-px border border-cut-bronze/25 bg-cut-bronze/25 md:grid-cols-3">{regularPackages.map((item) => <PackageCard key={item.packageId} item={item} language={language} branchCode={branchCode} />)}</div>}</div></section>
     <GroomExperienceBuilder language={language} />
