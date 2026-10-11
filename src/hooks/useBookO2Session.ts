@@ -102,6 +102,7 @@ export function useBookO2Session() {
   const addonsParam = parseIdListParam(searchParams.get("addons"));
 
   const initialStep = ((): BookO2Step => {
+    if (packageIdParam && !branchParam) return "branch";
     if (modeParam === "nearest") return branchParam ? "services" : "branch";
     if (modeParam === "barber" && empIdParam) return "services";
     if (modeParam === "branch" && branchParam) return "services";
@@ -387,10 +388,17 @@ export function useBookO2Session() {
       setGroomHydrationError(null);
       return;
     }
+    // Package IDs are tenant-scoped: wait for an explicit public branch.
+    setGroomPack(null);
+    setGroomCart(null);
+    setGroomHydrationError(null);
+    if (!branchCode) {
+      setGroomHydrationStatus("idle");
+      return;
+    }
     let cancelled = false;
     setGroomHydrationStatus("loading");
-    setGroomHydrationError(null);
-    getPackageById(packageId)
+    getPackageById(packageId, branchCode)
       .then((pack) => {
         if (cancelled) return;
         const cart = buildGroomCartModel(pack, addonProIds);
@@ -432,7 +440,7 @@ export function useBookO2Session() {
     };
     // notes intentionally excluded — do not re-hydrate on every keystroke
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [packageId, addonProIds]);
+  }, [packageId, addonProIds, branchCode]);
   const intervalMinutes =
     catalog?.config?.settings.slotIntervalMinutes ??
     bootstrap?.settings.slotIntervalMinutes ??

@@ -8,6 +8,7 @@ import {
   OCTOBER_PACKAGE_VIDEO,
   octoberOffer,
 } from "@/config/octoberOffer";
+import { useBranch } from "@/context/BranchContext";
 import { getPackageById, type ApiPackage } from "@/lib/packagesApi";
 import { OfferMobileHeader } from "@/components/offers/OfferMobileHeader";
 import { trackMetaEvent } from "@/lib/metaPixel";
@@ -79,14 +80,17 @@ function Chevron() {
 }
 
 export function OctoberPackageClient() {
+  const { selectedBranch } = useBranch();
+  const branchCode = selectedBranch?.branchCode;
   const [view, setView] = useState<PackageView>(FALLBACK);
   const [showStickyBar, setShowStickyBar] = useState(false);
   const heroCtaRef = useRef<HTMLDivElement>(null);
   const endCtaRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    if (!branchCode) return;
     let cancelled = false;
-    getPackageById(OCTOBER_PACKAGE_ID)
+    getPackageById(OCTOBER_PACKAGE_ID, branchCode)
       .then((pack) => {
         if (!cancelled) setView(toView(pack));
       })
@@ -96,7 +100,7 @@ export function OctoberPackageClient() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [branchCode]);
 
   useEffect(() => {
     const targets = [heroCtaRef.current, endCtaRef.current].filter((el): el is HTMLDivElement => el !== null);
