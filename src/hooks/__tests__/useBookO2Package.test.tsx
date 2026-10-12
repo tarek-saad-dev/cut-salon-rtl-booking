@@ -1,3 +1,4 @@
+import { _resetBaseUrlCache } from "@/lib/booking-api/env";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { useBookO2Session } from "../useBookO2Session";
@@ -8,11 +9,12 @@ vi.mock("@/hooks/bookingFlowV2Support", async (importOriginal) => ({
   ...await importOriginal<object>(),
   ensureBookingV2Bootstrap: () => new Promise(() => {}),
 }));
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => { _resetBaseUrlCache(); vi.unstubAllGlobals(); vi.unstubAllEnvs(); });
 const pack = { packageId: 2, kind: "groom", price: 1500, durationMinutes: 110,
   includes: [{ serviceId: 10, optional: false }, { serviceId: 1086, optional: true, listPrice: 500 }], groom: {} };
 let fetchMock: ReturnType<typeof vi.fn>;
 beforeEach(() => {
+  vi.stubEnv("NEXT_PUBLIC_BOOKING_API_BASE_URL", "https://ops.example.com");
   sessionStorage.clear();
   route.params = new URLSearchParams("mode=nearest&packageId=2&addons=1086");
   fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ ok: true, package: pack }) });

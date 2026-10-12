@@ -98,7 +98,7 @@ function ProfileDrawer({
         </div>
 
         {/* Bookings section toggle */}
-        {bookingsCount > 0 && (
+        {(phone) && (
           <div className="px-5 pb-2">
             <button
               onClick={() => setShowBookings(v => !v)}
@@ -143,6 +143,7 @@ export default function ClientProfileWidget() {
   const [client, setClient] = useState<ClientProfile | null>(null);
   const [bookingsCount, setBookingsCount] = useState(0);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [profileError, setProfileError] = useState(false);
   const [initialized, setInitialized] = useState(false);
   const fetchedPhoneRef = useRef<string | null>(null);
 
@@ -163,6 +164,7 @@ export default function ClientProfileWidget() {
     if (process.env.NODE_ENV === "development") {
       console.log("[profile] response:", res);
     }
+    setProfileError(!res.ok);
     if (res.ok) {
       setClient(res.client);
       setBookingsCount(res.upcomingBookingsCount);
@@ -233,6 +235,7 @@ export default function ClientProfileWidget() {
         )}
       </button>
 
+      {profileError && <p role="alert" className="text-xs text-cut-ivory">تعذر تحميل حسابك، حاول مرة أخرى لاحقًا</p>}
       {/* Drawer */}
       {drawerOpen && (
         <ProfileDrawer

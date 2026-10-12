@@ -1,3 +1,4 @@
+import { _resetBaseUrlCache } from "@/lib/booking-api/env";
 import { render, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, expect, it, vi } from "vitest";
@@ -8,9 +9,10 @@ vi.mock("@/context/BranchContext", () => ({ useBranch: () => branch }));
 vi.mock("@/context/LanguageContext", () => ({ useLanguage: () => ({ lang: "en" }) }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
 vi.mock("@/lib/serviceCatalogApi", () => ({ getServiceCatalog: async () => [] }));
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => { _resetBaseUrlCache(); vi.unstubAllGlobals(); vi.unstubAllEnvs(); });
 
 it("scopes regular and groom catalog requests and refetches both after branch selection changes", async () => {
+  vi.stubEnv("NEXT_PUBLIC_BOOKING_API_BASE_URL", "https://ops.example.com");
   branch.selectedBranch = { branchCode: "PUBLIC_A" };
   const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ ok: true, regular: [], groom: [] }) });
   vi.stubGlobal("fetch", fetchMock);

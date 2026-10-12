@@ -11,7 +11,7 @@ import type {
   BookingApiResponse,
   BookingCustomer,
 } from "./types";
-import { BookingApiError } from "./errors";
+import { BookingApiError, createMalformedResponseError } from "./errors";
 import {
   getOrCreateMutationId,
   completeMutationId,
@@ -629,16 +629,20 @@ export async function lookupBooking(
 
 export async function getUpcomingBookings(
   phone: string,
-  opts?: { limit?: number; signal?: AbortSignal },
+  opts?: { limit?: number; signal?: AbortSignal; branchCode?: string | null },
 ): Promise<BookingApiResponse<PublicBooking[]>> {
   const limit = clampUpcomingLimit(opts?.limit);
   const res = await bookingApiRequest<{ ok: boolean; bookings: unknown[] }>({
     path: "/api/public/booking/upcoming",
     method: "POST",
-    body: { phone, limit },
+    // Branch resolves tenant only; backend deliberately lists across its branches.
+    body: { phone, limit, ...(opts?.branchCode?.trim() ? { branchCode: opts.branchCode.trim() } : {}) },
     signal: opts?.signal,
     timeoutMs: 15_000,
   });
-  const bookings = (res.data.bookings ?? []).map((b) => normalizePublicBooking(b));
+  if (!res.data?.ok || !Array.isArray(res.data.bookings)) {
+    throw createMalformedResponseError(res.httpStatus, res.metadata.requestId);
+  }
+  const bookings = res.data.bookings.map((b) => normalizePublicBooking(b));
   return { ...res, data: bookings };
 }

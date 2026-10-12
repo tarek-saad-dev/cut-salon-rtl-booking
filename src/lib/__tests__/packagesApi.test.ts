@@ -1,7 +1,9 @@
+import { _resetBaseUrlCache } from "../booking-api/env";
 import { afterEach, expect, it, vi } from "vitest";
 import { getPackageById, getPackages, getGroomExperience } from "../packagesApi";
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => { _resetBaseUrlCache(); vi.unstubAllGlobals(); vi.unstubAllEnvs(); });
 it("scopes detail and both package catalogs to the public branch", async () => {
+  vi.stubEnv("NEXT_PUBLIC_BOOKING_API_BASE_URL", "https://ops.example.com");
   const pack = { packageId: 2, kind: "groom", price: 1500, includes: [] };
   const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ ok: true, package: pack, groom: [pack], regular: [] }) });
   vi.stubGlobal("fetch", fetchMock);

@@ -1,3 +1,4 @@
+import { _resetBaseUrlCache } from "../booking-api/env";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   buildCasherPublicApiUrl,
@@ -6,15 +7,16 @@ import {
 
 describe("casherPublicApiUrl", () => {
   afterEach(() => {
+    _resetBaseUrlCache();
     vi.unstubAllEnvs();
   });
 
-  it("uses relative paths in production", () => {
+  it("uses configured Casher origin in production", () => {
     vi.stubEnv("NODE_ENV", "production");
     vi.stubEnv("NEXT_PUBLIC_BOOKING_API_BASE_URL", "https://casher-five.vercel.app");
-    expect(getCasherPublicApiBaseUrl()).toBe("");
+    expect(getCasherPublicApiBaseUrl()).toBe("https://casher-five.vercel.app");
     expect(buildCasherPublicApiUrl("/api/client/lookup")).toBe(
-      "/api/client/lookup",
+      "https://casher-five.vercel.app/api/client/lookup",
     );
   });
 
@@ -29,13 +31,11 @@ describe("casherPublicApiUrl", () => {
     );
   });
 
-  it("falls back to relative paths when dev base is unset", () => {
+  it("fails closed when API base is unset", () => {
     vi.stubEnv("NODE_ENV", "development");
     vi.stubEnv("NEXT_PUBLIC_BOOKING_API_BASE_URL", "");
     vi.stubEnv("NEXT_PUBLIC_API_BASE_URL", "");
     vi.stubEnv("NEXT_PUBLIC_CASHER_API_BASE_URL", "");
-    expect(buildCasherPublicApiUrl("api/client/lookup")).toBe(
-      "/api/client/lookup",
-    );
+    expect(() => buildCasherPublicApiUrl("api/client/lookup")).toThrow(/not configured/);
   });
 });

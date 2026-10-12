@@ -1,5 +1,6 @@
 "use client";
 
+import { useBranch } from "@/context/BranchContext";
 import { useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { getServiceCatalog, type ServiceCatalogCategory } from "@/lib/serviceCatalogApi";
@@ -10,6 +11,9 @@ import { tx } from "@/lib/i18n/tx";
 export default function ArabicServicesSection() {
   const { lang, dir } = useLanguage();
   const t = landingCopy.services;
+  const { selectedBranch, branches, branchesError, isLoadingBranches } = useBranch();
+  const branchCode = selectedBranch?.branchCode ?? branches[0]?.branchCode;
+  const [loadError, setLoadError] = useState(false);
   const [catalog, setCatalog] = useState<ServiceCatalogCategory[]>([]);
   const ExploreIcon = lang === "ar" ? ChevronLeft : ChevronRight;
 
@@ -17,10 +21,15 @@ export default function ArabicServicesSection() {
     `${new Intl.NumberFormat(lang === "ar" ? "ar-EG" : "en-EG", { maximumFractionDigits: 0 }).format(value)} ${tx(t.currency, lang)}`;
 
   useEffect(() => {
-    getServiceCatalog()
-      .then(setCatalog)
-      .catch(() => setCatalog([]));
-  }, []);
+    if (!branchCode) return;
+    let cancelled = false;
+    setLoadError(false);
+    setCatalog([]);
+    getServiceCatalog(branchCode)
+      .then(data => { if (!cancelled) setCatalog(data); })
+      .catch(() => { if (!cancelled) setLoadError(true); });
+    return () => { cancelled = true; };
+  }, [branchCode]);
 
   const featured = catalog
     .filter((category) => category.services.some((service) => service.isActive && (service.nameAr || service.nameEn)))
@@ -50,6 +59,9 @@ export default function ArabicServicesSection() {
         <h2 className={sectionHeading}>{tx(t.title, lang)}</h2>
         <p className="mt-5 max-w-xl text-base leading-8 text-cut-black/65 md:text-lg">{tx(t.body, lang)}</p>
 
+        {(loadError || branchesError || (!isLoadingBranches && !branchCode)) && (
+          <p role="alert">{lang === "ar" ? "تعذر تحميل الخدمات، حاول مرة أخرى لاحقًا" : "Unable to load services. Please try again later."}</p>
+        )}
         <div className="mt-12 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {featured.map((category, index) => {
             const active = category.services.filter(
