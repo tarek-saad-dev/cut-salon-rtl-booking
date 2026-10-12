@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useBranch } from "@/context/BranchContext";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Calendar, Clock, User, X } from "lucide-react";
 import {
@@ -80,6 +81,8 @@ function isActiveUpcoming(booking: PublicBooking): boolean {
 }
 
 export default function HomeUpcomingBookingsPopup() {
+  const { selectedBranch, branches, isLoadingBranches } = useBranch();
+  const branchCode = selectedBranch?.branchCode ?? branches[0]?.branchCode;
   const { lang, isArabic } = useLanguage();
   const copy = COPY[lang] ?? COPY.ar;
   const reduced = useReducedMotion();
@@ -88,9 +91,11 @@ export default function HomeUpcomingBookingsPopup() {
   const [bookings, setBookings] = useState<PublicBooking[]>([]);
   const [dismissed, setDismissed] = useState<Set<string>>(() => new Set());
   const [selectedCode, setSelectedCode] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState(false);
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
+    if (isLoadingBranches) return;
     setDismissed(readDismissedCodes());
     const client = getSavedClient();
     const p = client?.phone?.trim() || null;
@@ -101,15 +106,19 @@ export default function HomeUpcomingBookingsPopup() {
     }
 
     let cancelled = false;
+    setReady(false);
+    setLoadError(false);
+    setBookings([]);
     void (async () => {
       try {
         const res = await getUpcomingBookings(p, {
           limit: UPCOMING_BOOKINGS_DEFAULT_LIMIT,
+          branchCode,
         });
         if (cancelled) return;
         setBookings((res.data ?? []).filter(isActiveUpcoming));
       } catch {
-        if (!cancelled) setBookings([]);
+        if (!cancelled) { setBookings([]); setLoadError(true); }
       } finally {
         if (!cancelled) setReady(true);
       }
@@ -118,7 +127,7 @@ export default function HomeUpcomingBookingsPopup() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [branchCode, isLoadingBranches]);
 
   const visibleBookings = useMemo(
     () => bookings.filter((b) => !dismissed.has(b.bookingCode)),
@@ -141,7 +150,7 @@ export default function HomeUpcomingBookingsPopup() {
       return next;
     });
     setSelectedCode((cur) => (cur === code ? null : cur));
-  }, []);
+  }, [branchCode, isLoadingBranches]);
 
   const handleBookingUpdated = useCallback((updated: PublicBooking) => {
     const badge = mapBookingStatus(updated.status);
@@ -156,8 +165,13 @@ export default function HomeUpcomingBookingsPopup() {
     if (badge.cancelled || badge.completed) {
       setSelectedCode(null);
     }
-  }, []);
+  }, [branchCode, isLoadingBranches]);
 
+  if (ready && phone && loadError) return (
+    <Link href="/booking" role="status" className="fixed bottom-4 end-4 z-[57] rounded-xl bg-cut-black p-3 text-sm text-cut-ivory">
+      {isArabic ? "تعذر تحميل الحجوزات — افتح إدارة الحجوزات للمحاولة" : "Unable to load bookings. Open booking management to retry."}
+    </Link>
+  );
   if (!ready || !phone || shown.length === 0) return null;
 
   return (

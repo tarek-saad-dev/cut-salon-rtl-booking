@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor, fireEvent } from "@testing-library/react";
+import { render, screen, waitFor, fireEvent, act } from "@testing-library/react";
 import {
   normalizeBookingCode,
   formatOvernightHint,
@@ -47,6 +47,10 @@ vi.mock("@/lib/booking-api", async () => {
     getBookingAccess: (...a: unknown[]) => mocks.getBookingAccess(...a),
   };
 });
+
+vi.mock("@/context/BranchContext", () => ({
+  useBranch: () => ({ selectedBranch: null, branches: [{ branchCode: "PUBLIC A" }], isLoadingBranches: false }),
+}));
 
 import CustomerUpcomingBookings from "@/components/CustomerUpcomingBookings";
 import BookingLookupPanel from "@/components/booking-management/BookingLookupPanel";
@@ -134,6 +138,25 @@ describe("BookingLookupSecurity", () => {
 });
 
 describe("BookingUpcomingEmptyState", () => {
+  it("propagates tenant branch and does not retry when rate limit expires", async () => {
+    const { BookingApiError } = await import("@/lib/booking-api");
+    mocks.getUpcomingBookings.mockRejectedValue(new BookingApiError({
+      code: "RATE_LIMIT_EXCEEDED", message: "انتظر", httpStatus: 429, retryAfterSeconds: 1,
+    }));
+    vi.useFakeTimers();
+    try {
+      await act(async () => { render(<CustomerUpcomingBookings phone="01012345678" variant="embedded" />); });
+      expect(screen.getByText("انتظر")).toBeInTheDocument();
+      expect(mocks.getUpcomingBookings).toHaveBeenCalledWith("01012345678", expect.objectContaining({ branchCode: "PUBLIC A" }));
+      await act(async () => { vi.advanceTimersByTime(2000); });
+      expect(mocks.getUpcomingBookings).toHaveBeenCalledTimes(1);
+      mocks.getUpcomingBookings.mockResolvedValue(apiOk([]));
+      await act(async () => { fireEvent.click(screen.getByRole("button", { name: "حاول مرة أخرى" })); });
+      expect(mocks.getUpcomingBookings).toHaveBeenCalledTimes(2);
+      expect(screen.getByText(/لا توجد حجوزات قادمة/)).toBeInTheDocument();
+    } finally { vi.useRealTimers(); }
+  });
+
   it("empty bookings array is success", async () => {
     mocks.getUpcomingBookings.mockResolvedValue(apiOk([]));
     render(<CustomerUpcomingBookings phone="01012345678" variant="embedded" />);

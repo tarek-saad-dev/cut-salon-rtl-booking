@@ -15,12 +15,10 @@
 
 // ─── Base URL ─────────────────────────────────────────────────────────────────
 
-import { getBookingApiBaseUrl } from "@/lib/booking-api/env";
+import { buildCasherPublicApiUrl } from "@/lib/casherPublicApiUrl";
 
 function buildBookingApiUrl(path: string): string {
-  const base = getBookingApiBaseUrl();
-  const cleanPath = path.startsWith("/") ? path : `/${path}`;
-  return `${base}${cleanPath}`;
+  return buildCasherPublicApiUrl(path);
 }
 
 // ─── Errors ───────────────────────────────────────────────────────────────────
@@ -481,15 +479,15 @@ export interface ClientProfileResponse {
 export async function getClientProfile(
   phone: string,
 ): Promise<ClientProfileResponse> {
-  const url = buildBookingApiUrl("/api/public/client/profile");
   try {
+    const url = buildBookingApiUrl("/api/public/client/profile");
     const res = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ phone }),
     });
     const data = await res.json().catch(() => null);
-    if (!res.ok || !data?.ok) {
+    if (!res.ok || !data?.ok || !data.client || typeof data.client.name !== "string" || typeof data.client.phone !== "string") {
       if (process.env.NODE_ENV === "development") {
         console.warn(
           "[publicBookingApi] getClientProfile non-ok:",
@@ -513,8 +511,8 @@ export async function getClientProfile(
 }
 
 // ─── Upcoming bookings ────────────────────────────────────────────────────────
-// Lookup is by phone (cross-branch) — branchCode is NOT required here. When the
-// backend includes branch metadata on a booking, surface it for display only.
+// Lookup is cross-branch within the tenant resolved by branchCode. Omission uses
+// only the backend-controlled CUT compatibility seam; never invent a branch.
 
 export interface UpcomingBookingService {
   id?: number | string;
@@ -552,16 +550,17 @@ export interface CancelBookingResponse {
 
 export async function getUpcomingBookings(
   phone: string,
+  branchCode?: string | null,
 ): Promise<UpcomingBookingsResponse> {
-  const url = buildBookingApiUrl("/api/public/booking/upcoming");
   try {
+    const url = buildBookingApiUrl("/api/public/booking/upcoming");
     const res = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ phone }),
+      body: JSON.stringify({ phone, ...(branchCode?.trim() ? { branchCode: branchCode.trim() } : {}) }),
     });
     const data = await res.json().catch(() => null);
-    if (!res.ok || !data?.ok) {
+    if (!res.ok || !data?.ok || !Array.isArray(data.bookings)) {
       if (process.env.NODE_ENV === "development") {
         console.warn(
           "[publicBookingApi] getUpcomingBookings non-ok:",

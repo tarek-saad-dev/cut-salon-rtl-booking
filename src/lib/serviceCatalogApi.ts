@@ -1,4 +1,4 @@
-import { getBookingApiBaseUrl } from "@/lib/booking-api/env";
+import { buildCasherPublicApiUrl } from "@/lib/casherPublicApiUrl";
 
 export type ServiceCatalogService = {
   id: number;
@@ -34,16 +34,16 @@ type ServiceCatalogResponse = {
 export async function getServiceCatalog(
   branchCode?: string | null,
 ): Promise<ServiceCatalogCategory[]> {
-  const apiBase = getBookingApiBaseUrl();
+  if (!branchCode?.trim()) throw new Error("BRANCH_REQUIRED");
   const params = new URLSearchParams({ type: "serv" });
   if (branchCode?.trim()) params.set("branchCode", branchCode.trim());
 
-  const response = await fetch(`${apiBase}/api/services/catalog?${params.toString()}`, {
+  const response = await fetch(`${buildCasherPublicApiUrl("/api/services/catalog")}?${params.toString()}`, {
     cache: "no-store",
   });
   const data: ServiceCatalogResponse | null = await response.json().catch(() => null);
 
-  if (!response.ok || !data?.ok) {
+  if (!response.ok || !data?.ok || !Array.isArray(data.categories)) {
     throw new Error("Unable to load service catalog");
   }
 

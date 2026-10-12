@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useRef } from "react";
 import { ChevronDown, ChevronUp, Loader2, Search } from "lucide-react";
 import Link from "next/link";
+import { useBranch } from "@/context/BranchContext";
 import {
   getUpcomingBookings,
   BookingApiError,
@@ -45,6 +46,8 @@ export default function CustomerUpcomingBookings({
   variant = "compact",
   surface = "dark",
 }: CustomerUpcomingBookingsProps) {
+  const { selectedBranch, branches, isLoadingBranches } = useBranch();
+  const branchCode = selectedBranch?.branchCode ?? branches[0]?.branchCode;
   const s = bookingMgmtSurface[surface];
   const [phoneInput, setPhoneInput] = useState("");
   const [activePhone, setActivePhone] = useState<string | null>(
@@ -58,6 +61,7 @@ export default function CustomerUpcomingBookings({
   const [rateRemaining, setRateRemaining] = useState(0);
   const [expanded, setExpanded] = useState(true);
   const [searched, setSearched] = useState(false);
+  const requestSequence = useRef(0);
 
   useEffect(() => {
     if (phoneProp?.trim()) setActivePhone(phoneProp.trim());
@@ -74,14 +78,19 @@ export default function CustomerUpcomingBookings({
   }, [rateLimitUntil]);
 
   const fetchBookings = useCallback(async (p: string) => {
+    const sequence = ++requestSequence.current;
+    setBookings([]);
+    setSearched(false);
     setLoading(true);
     setError(null);
     setRequestId(null);
     try {
-      const res = await getUpcomingBookings(p, { limit: UPCOMING_BOOKINGS_DEFAULT_LIMIT });
+      const res = await getUpcomingBookings(p, { limit: UPCOMING_BOOKINGS_DEFAULT_LIMIT, branchCode });
+      if (sequence !== requestSequence.current) return;
       setBookings(res.data ?? []);
       setSearched(true);
     } catch (err) {
+      if (sequence !== requestSequence.current) return;
       setBookings([]);
       setSearched(true);
       if (err instanceof BookingApiError) {
@@ -97,15 +106,17 @@ export default function CustomerUpcomingBookings({
         setError("تعذر تحميل الحجوزات، حاول مرة أخرى");
       }
     } finally {
-      setLoading(false);
+      if (sequence === requestSequence.current) setLoading(false);
     }
-  }, []);
+  }, [branchCode]);
 
   useEffect(() => {
+    if (isLoadingBranches) return;
     if (!activePhone) return;
     if (rateLimitUntil && Date.now() < rateLimitUntil) return;
     void fetchBookings(activePhone);
-  }, [activePhone, fetchBookings, rateLimitUntil]);
+    return () => { requestSequence.current++; };
+  }, [activePhone, fetchBookings, isLoadingBranches]);
 
   const handleSubmitPhone = (e: React.FormEvent) => {
     e.preventDefault();
@@ -115,7 +126,8 @@ export default function CustomerUpcomingBookings({
       setError("يرجى إدخال رقم هاتف صحيح");
       return;
     }
-    setActivePhone(normalized);
+    if (normalized === activePhone) void fetchBookings(normalized);
+    else setActivePhone(normalized);
   };
 
   const handleUpdated = (updated: PublicBooking) => {
@@ -180,6 +192,9 @@ export default function CustomerUpcomingBookings({
       {error ? (
         <div className={`mb-3 ${s.errorBox}`} aria-live="assertive" role="alert">
           {error}
+          <button type="button" disabled={loading || rateRemaining > 0}
+            onClick={() => { if (activePhone) void fetchBookings(activePhone); }}
+            className="block mt-2 underline">حاول مرة أخرى</button>
           {rateRemaining > 0 ? (
             <p className="mt-1 font-bold tabular-nums">
               حاول مرة أخرى بعد {rateRemaining} ثانية

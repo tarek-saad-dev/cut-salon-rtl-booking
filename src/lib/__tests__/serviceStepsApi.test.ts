@@ -1,3 +1,4 @@
+import { _resetBaseUrlCache } from "@/lib/booking-api/env";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   normalizeServiceStep,
@@ -64,9 +65,10 @@ describe("serviceStepsApi", () => {
   });
 });
 
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => { _resetBaseUrlCache(); vi.unstubAllGlobals(); vi.unstubAllEnvs(); });
 
 it("sends branch identity for public execution stages", async () => {
+  vi.stubEnv("NEXT_PUBLIC_BOOKING_API_BASE_URL", "https://ops.example.com");
   const fetchMock = vi.fn().mockResolvedValue({
     ok: true,
     status: 200,
