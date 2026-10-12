@@ -1,5 +1,6 @@
+import { requireVerifiedLoyaltyIdentity } from "./loyaltyIdentity";
 // ─── CUT CLUB — Client Loyalty API Layer ─────────────────────────────────────
-// TODO: Replace hardcoded clientId with authenticated client session / OTP token later.
+// Access is blocked pending the Casher verified identity/tenant contract.
 
 import { buildCasherPublicApiUrl } from "@/lib/casherPublicApiUrl";
 
@@ -173,6 +174,7 @@ export interface ActivityFilterOptions {
 export async function fetchClientLoyaltyDashboard(
   clientId: string | number,
 ): Promise<ClientLoyaltyDashboardResponse> {
+  requireVerifiedLoyaltyIdentity(clientId);
   return apiGet<ClientLoyaltyDashboardResponse>(
     buildCasherPublicApiUrl(
       `/api/public/client/loyalty/me?clientId=${encodeURIComponent(clientId)}`,
@@ -184,6 +186,7 @@ export async function fetchClientLoyaltyActivity(
   clientId: string | number,
   options: ActivityFilterOptions = {},
 ): Promise<ActivityPageResponse> {
+  requireVerifiedLoyaltyIdentity(clientId);
   const { page = 1, limit = 10, movementType, dateFrom, dateTo } = options;
 
   const params = new URLSearchParams({
@@ -210,6 +213,7 @@ export async function fetchClientLoyaltyActivity(
 export async function fetchClientLoyaltyRewards(
   clientId: string | number,
 ): Promise<{ ok: true; rewards: ApiLoyaltyReward[] }> {
+  requireVerifiedLoyaltyIdentity(clientId);
   return apiGet<{ ok: true; rewards: ApiLoyaltyReward[] }>(
     buildCasherPublicApiUrl(
       `/api/public/client/loyalty/rewards?clientId=${encodeURIComponent(clientId)}`,
@@ -221,6 +225,7 @@ export async function redeemClientReward(
   clientId: string | number,
   rewardId: string | number,
 ): Promise<RedeemRewardResponse> {
+  requireVerifiedLoyaltyIdentity(clientId);
   const res = await fetch(
     buildCasherPublicApiUrl(
       `/api/public/client/loyalty/rewards/${encodeURIComponent(rewardId)}/redeem?clientId=${encodeURIComponent(clientId)}`,
@@ -262,6 +267,7 @@ export async function redeemClientReward(
 export async function fetchClientReferral(
   clientId: string | number,
 ): Promise<{ ok: true; referral: ApiReferralInfo }> {
+  requireVerifiedLoyaltyIdentity(clientId);
   return apiGet<{ ok: true; referral: ApiReferralInfo }>(
     buildCasherPublicApiUrl(
       `/api/public/client/referral?clientId=${encodeURIComponent(clientId)}`,
