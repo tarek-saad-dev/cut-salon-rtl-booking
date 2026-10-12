@@ -22,6 +22,12 @@ Independent workspace review is separate from the control plane's required exact
 
 ## Workspace verification result
 
+PR #14's verification-only follow-up is recorded in
+[exact-head and main test evidence](verification/issue-13/README.md), including
+captured failure output for both revisions. The results below describe the
+original implementation run; the follow-up also records the supplied workflow's
+successful build and the remaining verification limits.
+
 - Targeted origin/tenant/component fixtures: 7 files, 40 tests passed; the subsequent missing-profile-origin regression also passes (issue #13 API file: 10 tests).
 - The six original regression cases fail against the untouched main implementation, confirming they detect the reported behavior.
 - Final full suite: 454 passed, 1 failed (73 files). It has one unrelated failure in `OctoberPackageClient.test.tsx`: `sends a Meta InitiateCheckout event from every booking button without changing the link`. The same failure was reproduced against main (expected three booking anchors, found zero).
