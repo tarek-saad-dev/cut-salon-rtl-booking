@@ -20,8 +20,8 @@ const COPY = {
   ar: {
     region: "عرض نوفمبر",
     brand: "CUT SALON",
-    eyebrow: "عرض نوفمبر الخاص",
-    title: "بروتين نوفمبر",
+    eyebrow: "سبيشال البروتين",
+    title: "عرض نوفمبر",
     subtitle: "قص شعر · بروتين · فوط · ماسك عناية",
     priceValue: String(novemberProteinOffer.price),
     priceUnit: "جنيه",
@@ -31,8 +31,8 @@ const COPY = {
   en: {
     region: "November offer",
     brand: "CUT SALON",
-    eyebrow: "November Special",
-    title: "Protein Reset",
+    eyebrow: "Protein Special",
+    title: "November Offer",
     subtitle: "Haircut · Protein · Towels · Care Mask",
     priceValue: String(novemberProteinOffer.price),
     priceUnit: "EGP",
