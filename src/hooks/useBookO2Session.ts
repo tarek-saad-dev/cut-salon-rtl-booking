@@ -119,7 +119,7 @@ export function useBookO2Session() {
   const [mode, setMode] = useState<BookO2Mode>(
     modeParam === "nearest" || (modeParam === "branch" && !empIdParam)
       ? "nearest"
-      : empIdParam
+      : modeParam === "barber" || empIdParam
         ? "specific"
         : "nearest",
   );
@@ -208,7 +208,12 @@ export function useBookO2Session() {
         return;
       }
       if (target === "branch") {
-        router.replace(buildBookHref({ mode: "branch", ...packageOpts }));
+        router.replace(
+          buildBookHref({
+            mode: mode === "specific" ? "barber" : "branch",
+            ...packageOpts,
+          }),
+        );
         return;
       }
       if (target === "barber") {
@@ -216,6 +221,7 @@ export function useBookO2Session() {
           buildBookHref({
             mode: "barber",
             empId: nextEmp && nextEmp > 0 ? nextEmp : null,
+            branch: nextBranch,
             ...packageOpts,
           }),
         );
@@ -243,7 +249,7 @@ export function useBookO2Session() {
       }
       // schedule / details / review keep current query intent
     },
-    [router, empId, branchCode, packageId, addonProIds, serviceIds],
+    [router, empId, branchCode, packageId, addonProIds, serviceIds, mode],
   );
 
   const goBack = useCallback(() => {
@@ -266,13 +272,16 @@ export function useBookO2Session() {
         setBarberImage(null);
         setMode("specific");
         setStep("barber");
-        router.replace(buildBookHref({ mode: "barber" }));
+        syncUrlForStep("barber", { empId: null });
         return;
       }
       if (prev === "branch") {
         setStep("branch");
-        setMode("nearest");
-        router.replace(buildBookHref({ mode: "branch", branch: branchCode }));
+        setEmpId(null);
+        setBarberName("");
+        setBarberImage(null);
+        // Keep specific when the entry asked for a barber (e.g. November package).
+        syncUrlForStep("branch");
         return;
       }
       setStep(prev);
@@ -648,6 +657,11 @@ export function useBookO2Session() {
         goToStep("services");
         return;
       }
+      if (mode === "specific") {
+        router.replace(buildBookHref({ mode: "barber", branch: code, ...packageOpts }));
+        goToStep("barber");
+        return;
+      }
       router.replace(buildBookHref({ mode: "nearest", branch: code, ...packageOpts }));
       goToStep("services");
     },
@@ -669,16 +683,22 @@ export function useBookO2Session() {
             : null;
       if (nextBranch) setBranchCode(nextBranch);
       else if (codes.length > 1) setBranchCode(null);
+      const packageOpts = {
+        packageId,
+        addonProIds: addonProIds.length ? addonProIds : undefined,
+        serviceIds: serviceIds.length ? serviceIds : undefined,
+      };
       router.replace(
         buildBookHref({
           mode: "barber",
           empId: barber.id,
           branch: nextBranch,
+          ...packageOpts,
         }),
       );
       goToStep("services");
     },
-    [router, branchCode, goToStep],
+    [router, branchCode, goToStep, packageId, addonProIds, serviceIds],
   );
 
   const selectServices = useCallback((ids: number[]) => {

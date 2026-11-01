@@ -44,6 +44,49 @@ it("keeps a bare package deep-link in branch selection without losing its packag
   expect(result.current.packageId).toBe(2);
 });
 
+it("routes package + barber intent through branch then barber picker", () => {
+  route.params = new URLSearchParams("mode=barber&packageId=2&addons=1086");
+  const { result } = renderHook(() => useBookO2Session());
+  expect(result.current.step).toBe("branch");
+  expect(result.current.mode).toBe("specific");
+  expect(result.current.packageId).toBe(2);
+
+  act(() => result.current.selectBranch("PUBLIC_A"));
+  expect(result.current.step).toBe("barber");
+  expect(result.current.branchCode).toBe("PUBLIC_A");
+  expect(route.replace).toHaveBeenCalledWith(
+    "/book?mode=barber&branch=PUBLIC_A&packageId=2&addons=1086",
+  );
+});
+
+it("opens the barber picker when package + branch + barber mode are preselected", () => {
+  route.params = new URLSearchParams("mode=barber&branch=PUBLIC_A&packageId=2");
+  const { result } = renderHook(() => useBookO2Session());
+  expect(result.current.step).toBe("barber");
+  expect(result.current.mode).toBe("specific");
+  expect(result.current.packageId).toBe(2);
+});
+
+it("keeps packageId when a barber is selected", () => {
+  route.params = new URLSearchParams("mode=barber&branch=PUBLIC_A&packageId=2&addons=1086");
+  const { result } = renderHook(() => useBookO2Session());
+  act(() =>
+    result.current.selectBarber({
+      id: 44,
+      name: "Ali",
+      nameAr: "علي",
+      nameEn: "Ali",
+      branches: [{ branchCode: "PUBLIC_A", branchName: "A" }],
+    } as never),
+  );
+  expect(result.current.step).toBe("services");
+  expect(result.current.empId).toBe(44);
+  expect(result.current.packageId).toBe(2);
+  expect(route.replace).toHaveBeenCalledWith(
+    "/book?mode=barber&empId=44&branch=PUBLIC_A&packageId=2&addons=1086",
+  );
+});
+
 it("hydrates an existing branch deep-link immediately", async () => {
   route.params.set("branch", "PUBLIC_A");
   const { result } = renderHook(() => useBookO2Session());

@@ -344,7 +344,7 @@ export function NovemberProteinClient() {
           <h2 id="november-book-title" className="font-laxr text-2xl text-cut-ivory lg:text-3xl">
             BOOK YOUR EXPERIENCE
           </h2>
-          <p className="mt-2 text-[15px] leading-7 text-cut-ivory/65">اختار الفرع، والباكدج يتحدد تلقائيًا في الحجز.</p>
+          <p className="mt-2 text-[15px] leading-7 text-cut-ivory/65">اختار الفرع والحلاق، والباكدج يتحدد تلقائيًا في الحجز.</p>
 
           <ul className="mt-6 grid grid-cols-1 gap-3 lg:grid-cols-2 lg:gap-4">
             {NOVEMBER_BRANCHES.map((branch) => {

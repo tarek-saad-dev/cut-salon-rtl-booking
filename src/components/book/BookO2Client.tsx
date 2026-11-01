@@ -83,6 +83,9 @@ export default function BookO2Client() {
       }
       return ["services", "schedule", "details", "review"] as BookO2Step[];
     }
+    if (!s.branchCode && (s.step === "branch" || s.step === "intent")) {
+      return ["branch", "barber", "services", "schedule", "details", "review"] as BookO2Step[];
+    }
     return ["barber", "services", "schedule", "details", "review"] as BookO2Step[];
   }, [s.step, s.empId, s.mode, s.branchCode]);
 
@@ -218,6 +221,14 @@ export default function BookO2Client() {
                   ) : (
                     s.barbers
                       .filter((b) => b.isBookableOnline !== false && b.id > 0)
+                      .filter((b) => {
+                        if (!s.branchCode) return true;
+                        const codes = (b.branches ?? []).map((x) =>
+                          String(x.branchCode || "").toUpperCase(),
+                        );
+                        if (codes.length === 0) return true;
+                        return codes.includes(String(s.branchCode).toUpperCase());
+                      })
                       .map((b) => (
                         <CompactBarberRow
                           key={b.id}

@@ -64,7 +64,7 @@ describe("November Protein landing", () => {
     await waitFor(() => {
       const ctas = screen.getAllByRole("link", { name: "احجز العرض الآن" });
       expect(ctas.length).toBeGreaterThanOrEqual(1);
-      expect(ctas[0]).toHaveAttribute("href", "/book?mode=nearest&packageId=21");
+      expect(ctas[0]).toHaveAttribute("href", "/book?mode=barber&packageId=21");
     });
   });
 
