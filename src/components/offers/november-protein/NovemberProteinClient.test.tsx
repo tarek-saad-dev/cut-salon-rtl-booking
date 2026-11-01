@@ -49,7 +49,7 @@ describe("November Protein landing", () => {
     sessionStorage.clear();
   });
 
-  it("shows the campaign hero, 600 EGP, and books with the resolved package id", async () => {
+  it("shows the campaign hero, 600 EGP, and both nearest + specific barber paths", async () => {
     resolveNovemberPackage.mockResolvedValue({
       status: "ready",
       packageId: 21,
@@ -62,10 +62,22 @@ describe("November Protein landing", () => {
     expect(screen.getByTestId("november-protein-price")).toHaveTextContent("600");
 
     await waitFor(() => {
-      const ctas = screen.getAllByRole("link", { name: "احجز العرض الآن" });
-      expect(ctas.length).toBeGreaterThanOrEqual(1);
-      expect(ctas[0]).toHaveAttribute("href", "/book?mode=barber&packageId=21");
+      const nearest = screen.getAllByRole("link", { name: "أقرب حلاق متاح" });
+      const specific = screen.getAllByRole("link", { name: "اختيار حلاق معين" });
+      expect(nearest.length).toBeGreaterThanOrEqual(1);
+      expect(specific.length).toBeGreaterThanOrEqual(1);
+      expect(nearest[0]).toHaveAttribute("href", "/book?mode=nearest&packageId=21");
+      expect(specific[0]).toHaveAttribute("href", "/book?mode=barber&packageId=21");
     });
+
+    const gleemNearest = screen
+      .getAllByRole("link", { name: "أقرب حلاق متاح" })
+      .find((el) => el.getAttribute("href")?.includes("branch=GLEEM") && el.getAttribute("href")?.includes("mode=nearest"));
+    const gleemBarber = screen
+      .getAllByRole("link", { name: "اختيار حلاق معين" })
+      .find((el) => el.getAttribute("href")?.includes("branch=GLEEM") && el.getAttribute("href")?.includes("mode=barber"));
+    expect(gleemNearest).toHaveAttribute("href", "/book?mode=nearest&branch=GLEEM&packageId=21");
+    expect(gleemBarber).toHaveAttribute("href", "/book?mode=barber&branch=GLEEM&packageId=21");
   });
 
   it("disables booking and keeps WhatsApp when the POS package is missing", async () => {
@@ -78,8 +90,10 @@ describe("November Protein landing", () => {
     renderPage();
 
     await waitFor(() => expect(screen.getByTestId("november-book-status")).toHaveTextContent(/قيد التفعيل/));
-    expect(screen.queryByRole("link", { name: "احجز العرض الآن" })).toBeNull();
-    expect(screen.getAllByRole("button", { name: "احجز العرض الآن" }).length).toBeGreaterThanOrEqual(1);
+    expect(screen.queryByRole("link", { name: "أقرب حلاق متاح" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "اختيار حلاق معين" })).toBeNull();
+    expect(screen.getAllByRole("button", { name: "أقرب حلاق متاح" }).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByRole("button", { name: "اختيار حلاق معين" }).length).toBeGreaterThanOrEqual(1);
     const wa = screen.getByRole("link", { name: "واتساب للمساعدة" });
     expect(wa).toHaveAttribute("href", novemberProteinOffer.whatsappHref);
   });
@@ -95,7 +109,7 @@ describe("November Protein landing", () => {
     window.fbq = fbq as unknown as Window["fbq"];
     try {
       renderPage();
-      const ctas = await screen.findAllByRole("link", { name: "احجز العرض الآن" });
+      const ctas = await screen.findAllByRole("link", { name: "اختيار حلاق معين" });
       const cta = ctas[0];
       cta.addEventListener("click", (event) => event.preventDefault(), { once: true });
       fireEvent.click(cta);
@@ -118,7 +132,7 @@ describe("November Protein landing", () => {
       matchedBy: "code",
     });
     renderPage();
-    await screen.findAllByRole("link", { name: "احجز العرض الآن" });
+    await screen.findAllByRole("link", { name: "أقرب حلاق متاح" });
     expect(screen.getByRole("heading", { name: "HAIRCUT" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "PROTEIN TREATMENT" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "HOT & COLD TOWELS" })).toBeInTheDocument();

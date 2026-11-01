@@ -57,9 +57,15 @@ export function isNovemberCampaignActive(now = Date.now()): boolean {
   return now >= novemberCampaignStartsAtMs() && now <= novemberCampaignEndsAtMs();
 }
 
-export function buildNovemberBookHref(packageId: number, branch?: "GLEEM" | "CAMP_CAESAR"): string {
+export type NovemberBookMode = "nearest" | "barber";
+
+export function buildNovemberBookHref(
+  packageId: number,
+  branch?: "GLEEM" | "CAMP_CAESAR",
+  mode: NovemberBookMode = "nearest",
+): string {
   return buildBookHref({
-    mode: "barber",
+    mode,
     packageId,
     branch: branch ?? null,
   });
