@@ -1,4 +1,5 @@
 import {
+  NOVEMBER_BRANCHES,
   NOVEMBER_PACKAGE_CODE,
   readNovemberPackageIdFromEnv,
 } from "@/config/novemberProteinOffer";
@@ -12,6 +13,9 @@ export type NovemberPackageResolution = {
   package: ApiPackage | null;
   matchedBy: "env" | "code" | "name" | null;
 };
+
+/** Public packages API requires branchCode; catalog price is shared across branches. */
+export const NOVEMBER_CATALOG_BRANCH = NOVEMBER_BRANCHES[0]?.code ?? "GLEEM";
 
 function normalizeBlob(value: string | null | undefined): string {
   return (value ?? "").trim().toLowerCase();
@@ -44,17 +48,19 @@ export async function resolveNovemberPackage(
     getById?: typeof getPackageById;
     listPackages?: typeof getPackages;
     envPackageId?: number | null;
+    branchCode?: string | null;
   } = {},
 ): Promise<NovemberPackageResolution> {
   const getById = deps.getById ?? getPackageById;
   const listPackages = deps.listPackages ?? getPackages;
   const envPackageId =
     deps.envPackageId !== undefined ? deps.envPackageId : readNovemberPackageIdFromEnv();
+  const branchCode = (deps.branchCode ?? NOVEMBER_CATALOG_BRANCH).trim() || NOVEMBER_CATALOG_BRANCH;
 
   try {
     if (envPackageId != null) {
       try {
-        const pack = await getById(envPackageId);
+        const pack = await getById(envPackageId, branchCode);
         return {
           status: "ready",
           packageId: pack.packageId,
@@ -66,7 +72,7 @@ export async function resolveNovemberPackage(
       }
     }
 
-    const list = await listPackages("regular");
+    const list = await listPackages("regular", branchCode);
     const matched = matchNovemberPackage(list);
     if (!matched) {
       return { status: "missing", packageId: null, package: null, matchedBy: null };
