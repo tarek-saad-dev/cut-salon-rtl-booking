@@ -48,23 +48,39 @@ describe("resolveNovemberPackage", () => {
     const listPackages = vi.fn();
     const result = await resolveNovemberPackage({
       envPackageId: 15,
+      branchCode: "GLEEM",
       getById,
       listPackages,
     });
     expect(result).toEqual({ status: "ready", packageId: 15, package: live, matchedBy: "env" });
+    expect(getById).toHaveBeenCalledWith(15, "GLEEM");
     expect(listPackages).not.toHaveBeenCalled();
   });
 
   it("lists packages when env id is missing", async () => {
     const live = pack({ packageId: 18, price: 600, code: "NOV-PRO600" });
+    const listPackages = vi.fn().mockResolvedValue([live]);
     const result = await resolveNovemberPackage({
       envPackageId: null,
+      branchCode: "CAMP_CAESAR",
       getById: vi.fn(),
-      listPackages: vi.fn().mockResolvedValue([live]),
+      listPackages,
     });
     expect(result.status).toBe("ready");
     expect(result.packageId).toBe(18);
     expect(result.matchedBy).toBe("code");
+    expect(listPackages).toHaveBeenCalledWith("regular", "CAMP_CAESAR");
+  });
+
+  it("defaults catalog branch to GLEEM when branchCode is omitted", async () => {
+    const live = pack({ packageId: 8, price: 600, code: "NOV-PRO600" });
+    const listPackages = vi.fn().mockResolvedValue([live]);
+    await resolveNovemberPackage({
+      envPackageId: null,
+      getById: vi.fn(),
+      listPackages,
+    });
+    expect(listPackages).toHaveBeenCalledWith("regular", "GLEEM");
   });
 
   it("reports missing when the POS package is not published yet", async () => {
