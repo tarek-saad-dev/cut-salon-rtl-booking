@@ -12,6 +12,7 @@ import {
   isNovemberCampaignActive,
   novemberProteinOffer,
   rememberNovemberPackageId,
+  type NovemberBookMode,
 } from "@/config/novemberProteinOffer";
 import { trackCampaignEvent } from "@/lib/campaignAnalytics";
 import { captureCampaignAttribution, readCampaignAttribution } from "@/lib/offers/campaignAttribution";
@@ -27,17 +28,22 @@ function BookCta({
   compact = false,
   onClick,
   label = "احجز العرض الآن",
+  variant = "primary",
 }: {
   href: string | null;
   disabled: boolean;
   compact?: boolean;
   onClick?: () => void;
   label?: string;
+  variant?: "primary" | "secondary";
 }) {
-  const className = `flex h-14 w-full max-w-full touch-manipulation select-none items-center justify-center whitespace-nowrap rounded-[18px] ${compact ? "px-3 text-[1.05rem]" : "px-4 sm:px-6 text-[clamp(1.05rem,4.6vw,1.3rem)]"} font-bold shadow-[0_8px_24px_rgba(212,175,55,0.22)] transition active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-cut-gold ${
-    disabled
-      ? "cursor-not-allowed border border-cut-gold/45 bg-cut-gold/18 text-cut-gold shadow-none"
-      : "bg-cut-gold text-cut-black"
+  const enabledPrimary = "bg-cut-gold text-cut-black shadow-[0_8px_24px_rgba(212,175,55,0.22)]";
+  const enabledSecondary =
+    "border border-cut-gold/55 bg-transparent text-cut-gold shadow-none hover:border-cut-gold hover:bg-cut-gold/10";
+  const disabledClass =
+    "cursor-not-allowed border border-cut-gold/45 bg-cut-gold/18 text-cut-gold shadow-none";
+  const className = `flex h-14 w-full max-w-full touch-manipulation select-none items-center justify-center whitespace-nowrap rounded-[18px] ${compact ? "px-3 text-[0.95rem]" : "px-4 sm:px-6 text-[clamp(1rem,4.2vw,1.2rem)]"} font-bold transition active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-cut-gold ${
+    disabled ? disabledClass : variant === "primary" ? enabledPrimary : enabledSecondary
   }`;
 
   if (disabled || !href) {
@@ -55,6 +61,46 @@ function BookCta({
   );
 }
 
+function BookModeChoices({
+  packageId,
+  branch,
+  disabled,
+  onClick,
+  compact = false,
+}: {
+  packageId: number | null;
+  branch?: "GLEEM" | "CAMP_CAESAR";
+  disabled: boolean;
+  onClick?: (mode: NovemberBookMode) => void;
+  compact?: boolean;
+}) {
+  const nearestHref =
+    packageId != null ? buildNovemberBookHref(packageId, branch, "nearest") : null;
+  const barberHref =
+    packageId != null ? buildNovemberBookHref(packageId, branch, "barber") : null;
+
+  return (
+    <div className={`flex w-full flex-col ${compact ? "gap-2" : "gap-3"}`} data-testid="november-book-mode-choices">
+      <BookCta
+        href={nearestHref}
+        disabled={disabled}
+        compact={compact}
+        label="أقرب حلاق متاح"
+        variant="primary"
+        onClick={onClick ? () => onClick("nearest") : undefined}
+      />
+      <BookCta
+        href={barberHref}
+        disabled={disabled}
+        compact={compact}
+        label="اختيار حلاق معين"
+        variant="secondary"
+        onClick={onClick ? () => onClick("barber") : undefined}
+      />
+    </div>
+  );
+}
+
 export function NovemberProteinClient() {
   const [active] = useState(() => isNovemberCampaignActive());
   const [loadState, setLoadState] = useState<LoadState>("loading");
@@ -66,8 +112,7 @@ export function NovemberProteinClient() {
 
   const price = resolution?.package?.price ?? novemberProteinOffer.price;
   const packageId = resolution?.packageId ?? null;
-  const bookHref = packageId != null && active ? buildNovemberBookHref(packageId) : null;
-  const bookingReady = active && loadState === "ready" && packageId != null && bookHref != null;
+  const bookingReady = active && loadState === "ready" && packageId != null;
 
   useEffect(() => {
     captureCampaignAttribution();
@@ -113,12 +158,13 @@ export function NovemberProteinClient() {
     return () => observer.disconnect();
   }, []);
 
-  const trackBookStart = () => {
+  const trackBookStart = (mode: NovemberBookMode = "nearest") => {
     const attrs = readCampaignAttribution();
     trackCampaignEvent("november_protein_book_start", {
       ...attrs,
       packageId,
       value: price,
+      bookMode: mode,
     });
     if (packageId != null) {
       trackMetaEvent("InitiateCheckout", {
@@ -225,7 +271,11 @@ export function NovemberProteinClient() {
             </div>
 
             <div ref={heroCtaRef} className={`${styles.fadeUpDelay3} mt-8 flex w-full flex-col gap-3 lg:mt-7`}>
-              <BookCta href={bookHref} disabled={!bookingReady} onClick={trackBookStart} />
+              <BookModeChoices
+                packageId={packageId}
+                disabled={!bookingReady}
+                onClick={trackBookStart}
+              />
               <button
                 type="button"
                 onClick={scrollToExperience}
@@ -344,12 +394,28 @@ export function NovemberProteinClient() {
           <h2 id="november-book-title" className="font-laxr text-2xl text-cut-ivory lg:text-3xl">
             BOOK YOUR EXPERIENCE
           </h2>
-          <p className="mt-2 text-[15px] leading-7 text-cut-ivory/65">اختار الفرع والحلاق، والباكدج يتحدد تلقائيًا في الحجز.</p>
+          <p className="mt-2 text-[15px] leading-7 text-cut-ivory/65">
+            اختار الفرع، وبعدين أقرب حلاق متاح أو حلاق معيّن — والباكدج يتحدد تلقائيًا.
+          </p>
+
+          <div className="mt-6 flex w-full max-w-md flex-col gap-3 lg:mx-auto lg:max-w-lg">
+            <BookModeChoices
+              packageId={packageId}
+              disabled={!bookingReady}
+              onClick={trackBookStart}
+            />
+          </div>
 
           <ul className="mt-6 grid grid-cols-1 gap-3 lg:grid-cols-2 lg:gap-4">
             {NOVEMBER_BRANCHES.map((branch) => {
-              const href =
-                bookingReady && packageId != null ? buildNovemberBookHref(packageId, branch.code) : null;
+              const nearestHref =
+                bookingReady && packageId != null
+                  ? buildNovemberBookHref(packageId, branch.code, "nearest")
+                  : null;
+              const barberHref =
+                bookingReady && packageId != null
+                  ? buildNovemberBookHref(packageId, branch.code, "barber")
+                  : null;
               return (
                 <li key={branch.code} className="rounded-2xl border border-cut-bronze/25 bg-cut-soft-black px-4 py-4 lg:px-5 lg:py-5">
                   <p className="text-xs font-bold text-cut-gold">{branch.tag}</p>
@@ -364,21 +430,33 @@ export function NovemberProteinClient() {
                     >
                       اللوكيشن
                     </a>
-                    {href ? (
-                      <Link href={href} onClick={trackBookStart} className="text-cut-gold underline-offset-4 hover:underline">
-                        احجز في الفرع ده
-                      </Link>
-                    ) : (
-                      <span className="text-cut-ivory/40">الحجز غير متاح حاليًا</span>
-                    )}
                   </div>
+                  {nearestHref && barberHref ? (
+                    <div className="mt-4 flex flex-col gap-2">
+                      <Link
+                        href={nearestHref}
+                        onClick={() => trackBookStart("nearest")}
+                        className="flex h-11 items-center justify-center rounded-2xl bg-cut-gold text-sm font-bold text-cut-black"
+                      >
+                        أقرب حلاق متاح
+                      </Link>
+                      <Link
+                        href={barberHref}
+                        onClick={() => trackBookStart("barber")}
+                        className="flex h-11 items-center justify-center rounded-2xl border border-cut-gold/55 text-sm font-bold text-cut-gold"
+                      >
+                        اختيار حلاق معين
+                      </Link>
+                    </div>
+                  ) : (
+                    <p className="mt-4 text-sm text-cut-ivory/40">الحجز غير متاح حاليًا</p>
+                  )}
                 </li>
               );
             })}
           </ul>
 
           <div className="mt-6 flex w-full max-w-md flex-col gap-3 lg:mx-auto lg:max-w-lg">
-            <BookCta href={bookHref} disabled={!bookingReady} onClick={trackBookStart} />
             <a
               href={novemberProteinOffer.whatsappHref}
               target="_blank"
@@ -407,22 +485,20 @@ export function NovemberProteinClient() {
           showStickyBar ? "translate-y-0" : "pointer-events-none translate-y-full"
         }`}
       >
-        <div className="mx-auto flex w-full max-w-lg items-center gap-2 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 sm:gap-3 sm:px-5">
-          <p className="flex min-w-0 shrink flex-col leading-tight">
+        <div className="mx-auto flex w-full max-w-lg flex-col gap-2 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 sm:px-5">
+          <p className="flex items-baseline justify-between gap-3 leading-tight">
             <strong className="font-ui text-[clamp(1.15rem,5vw,1.5rem)] font-black leading-none text-cut-gold">
               <span dir="ltr">{price}</span>
               <span className="ms-1 text-[0.55em] font-bold">{novemberProteinOffer.currencyAr}</span>
             </strong>
+            <span className="text-xs text-cut-ivory/55">اختار طريقة الحجز</span>
           </p>
-          <div className="min-w-0 flex-1">
-            <BookCta
-              href={bookHref}
-              disabled={!bookingReady}
-              compact
-              onClick={trackBookStart}
-              label="احجز العرض الآن"
-            />
-          </div>
+          <BookModeChoices
+            packageId={packageId}
+            disabled={!bookingReady}
+            compact
+            onClick={trackBookStart}
+          />
         </div>
       </div>
     </main>
