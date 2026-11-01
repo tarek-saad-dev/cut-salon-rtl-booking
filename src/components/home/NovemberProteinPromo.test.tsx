@@ -49,8 +49,8 @@ describe("November protein homepage promo", () => {
     const region = screen.getByRole("region", { name: "عرض نوفمبر" });
     expect(region).toHaveAttribute("lang", "ar");
     expect(region).toHaveAttribute("dir", "rtl");
-    expect(screen.getByRole("heading", { name: "بروتين نوفمبر" })).toBeInTheDocument();
-    expect(screen.getByText("عرض نوفمبر الخاص")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "عرض نوفمبر" })).toBeInTheDocument();
+    expect(screen.getByText("سبيشال البروتين")).toBeInTheDocument();
     expect(screen.getByText(/قص شعر/)).toBeInTheDocument();
     expect(screen.getByText("600")).toBeInTheDocument();
     expect(screen.getByText("جنيه")).toBeInTheDocument();
@@ -63,8 +63,8 @@ describe("November protein homepage promo", () => {
     const region = screen.getByRole("region", { name: "November offer" });
     expect(region).toHaveAttribute("lang", "en");
     expect(region).toHaveAttribute("dir", "ltr");
-    expect(screen.getByRole("heading", { name: "Protein Reset" })).toBeInTheDocument();
-    expect(screen.getByText("November Special")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "November Offer" })).toBeInTheDocument();
+    expect(screen.getByText("Protein Special")).toBeInTheDocument();
     expect(screen.getByText(/Haircut/)).toBeInTheDocument();
     expect(screen.getByText("EGP")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Book the offer" })).toHaveAttribute(
