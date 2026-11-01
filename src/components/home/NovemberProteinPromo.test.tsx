@@ -23,34 +23,58 @@ function advance(ms: number) {
   });
 }
 
+function renderPromo(lang: "ar" | "en" = "ar") {
+  window.localStorage.setItem("cut-salon-lang", lang);
+  return render(
+    <LanguageProvider>
+      <NovemberProteinPromo />
+    </LanguageProvider>,
+  );
+}
+
 describe("November protein homepage promo", () => {
   beforeEach(() => {
     vi.useFakeTimers();
     sessionStorage.clear();
+    window.localStorage.clear();
   });
 
   afterEach(() => {
     vi.useRealTimers();
   });
 
-  it("shows the 600 EGP offer and links to the November landing", () => {
-    render(
-      <LanguageProvider>
-        <NovemberProteinPromo />
-      </LanguageProvider>,
-    );
+  it("shows a clear Arabic offer name, price, and landing link", () => {
+    renderPromo("ar");
     advance(NOVEMBER_PROMO_TIMING.showAfterMs + 20);
-    expect(screen.getByRole("region", { name: "عرض نوفمبر" })).toBeInTheDocument();
-    expect(screen.getByText(/600/)).toBeInTheDocument();
+    const region = screen.getByRole("region", { name: "عرض نوفمبر" });
+    expect(region).toHaveAttribute("lang", "ar");
+    expect(region).toHaveAttribute("dir", "rtl");
+    expect(screen.getByRole("heading", { name: "بروتين نوفمبر" })).toBeInTheDocument();
+    expect(screen.getByText("عرض نوفمبر الخاص")).toBeInTheDocument();
+    expect(screen.getByText(/قص شعر/)).toBeInTheDocument();
+    expect(screen.getByText("600")).toBeInTheDocument();
+    expect(screen.getByText("جنيه")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "احجز العرض" })).toHaveAttribute("href", NOVEMBER_PROMO_HREF);
   });
 
-  it("can be dismissed for the session", () => {
-    render(
-      <LanguageProvider>
-        <NovemberProteinPromo />
-      </LanguageProvider>,
+  it("switches copy when the website language is English", () => {
+    renderPromo("en");
+    advance(NOVEMBER_PROMO_TIMING.showAfterMs + 20);
+    const region = screen.getByRole("region", { name: "November offer" });
+    expect(region).toHaveAttribute("lang", "en");
+    expect(region).toHaveAttribute("dir", "ltr");
+    expect(screen.getByRole("heading", { name: "Protein Reset" })).toBeInTheDocument();
+    expect(screen.getByText("November Special")).toBeInTheDocument();
+    expect(screen.getByText(/Haircut/)).toBeInTheDocument();
+    expect(screen.getByText("EGP")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Book the offer" })).toHaveAttribute(
+      "href",
+      NOVEMBER_PROMO_HREF,
     );
+  });
+
+  it("can be dismissed for the session", () => {
+    renderPromo("ar");
     advance(NOVEMBER_PROMO_TIMING.showAfterMs + 20);
     fireEvent.click(screen.getByRole("button", { name: "إخفاء" }));
     expect(sessionStorage.getItem(NOVEMBER_PROMO_DISMISS_KEY)).toBe("1");

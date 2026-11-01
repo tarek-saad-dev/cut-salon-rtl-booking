@@ -19,17 +19,23 @@ export const NOVEMBER_PROMO_TIMING = {
 const COPY = {
   ar: {
     region: "عرض نوفمبر",
-    eyebrow: "NOVEMBER SPECIAL",
-    title: "CUT PROTEIN RESET",
-    price: `${novemberProteinOffer.price} جنيه`,
+    brand: "CUT SALON",
+    eyebrow: "عرض نوفمبر الخاص",
+    title: "بروتين نوفمبر",
+    subtitle: "قص شعر · بروتين · فوط · ماسك عناية",
+    priceValue: String(novemberProteinOffer.price),
+    priceUnit: "جنيه",
     cta: "احجز العرض",
     dismiss: "إخفاء",
   },
   en: {
     region: "November offer",
-    eyebrow: "NOVEMBER SPECIAL",
-    title: "CUT PROTEIN RESET",
-    price: `${novemberProteinOffer.price} EGP`,
+    brand: "CUT SALON",
+    eyebrow: "November Special",
+    title: "Protein Reset",
+    subtitle: "Haircut · Protein · Towels · Care Mask",
+    priceValue: String(novemberProteinOffer.price),
+    priceUnit: "EGP",
     cta: "Book the offer",
     dismiss: "Dismiss",
   },
@@ -45,7 +51,7 @@ function wasDismissed() {
 
 /** Compact premium dock — primary monthly campaign on home (replaces October gift). */
 export default function NovemberProteinPromo() {
-  const { lang } = useLanguage();
+  const { lang, dir } = useLanguage();
   const copy = COPY[lang] ?? COPY.ar;
   const [visible, setVisible] = useState(false);
 
@@ -67,16 +73,28 @@ export default function NovemberProteinPromo() {
   if (!visible) return null;
 
   return (
-    <div className={styles.dock} role="region" aria-label={copy.region}>
-      <div className={styles.card} data-november-promo>
+    <div className={styles.dock} role="region" aria-label={copy.region} lang={lang} dir={dir}>
+      <div className={styles.card} data-november-promo data-lang={lang}>
+        <div className={styles.glow} aria-hidden />
         <button type="button" className={styles.dismiss} onClick={dismiss} aria-label={copy.dismiss}>
           <X className="size-4" strokeWidth={2} />
         </button>
-        <p className={styles.eyebrow}>{copy.eyebrow}</p>
-        <p className={styles.title}>{copy.title}</p>
-        <p className={styles.price} dir="ltr">
-          {copy.price}
-        </p>
+
+        <div className={styles.header}>
+          <p className={styles.brand}>{copy.brand}</p>
+          <p className={styles.eyebrow}>{copy.eyebrow}</p>
+        </div>
+
+        <h2 className={styles.title}>{copy.title}</h2>
+        <p className={styles.subtitle}>{copy.subtitle}</p>
+
+        <div className={styles.priceRow}>
+          <strong className={styles.priceValue} dir="ltr">
+            {copy.priceValue}
+          </strong>
+          <span className={styles.priceUnit}>{copy.priceUnit}</span>
+        </div>
+
         <Link href={NOVEMBER_PROMO_HREF} className={styles.cta}>
           {copy.cta}
         </Link>
