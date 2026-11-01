@@ -1,24 +1,24 @@
 import type { Metadata, Viewport } from "next";
-import { MetaPixelPageView } from "@/components/analytics/MetaPixelPageView";
-import { OctoberPackageClient } from "@/components/offers/october-package/OctoberPackageClient";
+import { ExpiredCampaignPanel } from "@/components/offers/ExpiredCampaignPanel";
 
 const description =
-  "باكدج أكتوبر من CUT: قص شعر، ذقن وفيد، حمام زيت وتنظيف بشرة كلاسيكي في زيارة واحدة بـ 333 جنيه بدل 720. احجز أونلاين، والدفع داخل الفرع.";
+  "عرض أكتوبر من CUT انتهى. شوف عرض نوفمبر الحالي: CUT Protein Reset بـ 600 جنيه.";
 
 export const metadata: Metadata = {
-  title: "باكدج أكتوبر | CUT Salon",
+  title: "باكدج أكتوبر انتهى | CUT Salon",
   description,
   alternates: { canonical: "/offers/october-package" },
-  openGraph: { title: "باكدج أكتوبر من CUT", description, locale: "ar_EG", type: "website" },
+  openGraph: { title: "باكدج أكتوبر انتهى", description, locale: "ar_EG", type: "website" },
+  robots: { index: false, follow: true },
 };
 
 export const viewport: Viewport = { width: "device-width", initialScale: 1, themeColor: "#050505" };
 
 export default function Page() {
   return (
-    <>
-      <MetaPixelPageView />
-      <OctoberPackageClient />
-    </>
+    <ExpiredCampaignPanel
+      formerTitle="باكدج أكتوبر"
+      formerBlurb="عرض أكتوبر انتهى. الحجوزات السابقة تظل سارية، والعرض الحالي هو Protein Reset لشهر نوفمبر."
+    />
   );
 }

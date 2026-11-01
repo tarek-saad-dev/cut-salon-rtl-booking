@@ -13,14 +13,17 @@ const BookingPricePromoContext = createContext<ActiveBookingPricePromo | null>(n
 
 export function BookingPricePromoProvider({
   branchCode,
+  packageId,
   children,
 }: {
   branchCode: string | null | undefined;
+  /** When set to the November promo package, Camp Caesar % display is suppressed. */
+  packageId?: number | null;
   children: ReactNode;
 }) {
   const promo = useMemo(
-    () => resolveBookingPricePromo(branchCode),
-    [branchCode],
+    () => resolveBookingPricePromo(branchCode, Date.now(), packageId),
+    [branchCode, packageId],
   );
   return (
     <BookingPricePromoContext.Provider value={promo}>

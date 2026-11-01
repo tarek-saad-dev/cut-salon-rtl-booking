@@ -1,10 +1,18 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import {
   applyBookingPricePromo,
   resolveBookingPricePromo,
 } from "@/lib/booking/bookingPricePromo";
+import {
+  clearRememberedNovemberPackageId,
+  rememberNovemberPackageId,
+} from "@/config/novemberProteinOffer";
 
 describe("bookingPricePromo (Camp Caesar temporary display)", () => {
+  afterEach(() => {
+    clearRememberedNovemberPackageId();
+  });
+
   it("activates for CAMP_CAESAR only", () => {
     expect(resolveBookingPricePromo("CAMP_CAESAR")?.percentOff).toBe(50);
     expect(resolveBookingPricePromo("camp_caesar")?.payFactor).toBe(0.5);
@@ -24,5 +32,11 @@ describe("bookingPricePromo (Camp Caesar temporary display)", () => {
       pay: 200,
       showStrike: false,
     });
+  });
+
+  it("does not stack Camp Caesar % with the November Protein package", () => {
+    rememberNovemberPackageId(21);
+    expect(resolveBookingPricePromo("CAMP_CAESAR", Date.now(), 21)).toBeNull();
+    expect(resolveBookingPricePromo("CAMP_CAESAR", Date.now(), 7)?.percentOff).toBe(50);
   });
 });

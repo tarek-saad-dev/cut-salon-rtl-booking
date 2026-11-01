@@ -1,0 +1,45 @@
+.heroGlow {
+  pointer-events: none;
+  position: absolute;
+  inset: -20% -10% auto;
+  height: 70%;
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(212, 175, 55, 0.18), transparent 55%),
+    radial-gradient(ellipse at 80% 40%, rgba(164, 136, 121, 0.12), transparent 45%);
+}
+
+.fadeUp {
+  animation: fadeUp 0.7s ease-out both;
+}
+
+.fadeUpDelay1 {
+  animation: fadeUp 0.7s ease-out 0.08s both;
+}
+
+.fadeUpDelay2 {
+  animation: fadeUp 0.7s ease-out 0.16s both;
+}
+
+.fadeUpDelay3 {
+  animation: fadeUp 0.7s ease-out 0.24s both;
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fadeUp,
+  .fadeUpDelay1,
+  .fadeUpDelay2,
+  .fadeUpDelay3 {
+    animation: none;
+  }
+}
