@@ -3,7 +3,10 @@ export type CampaignEvent =
   | "camp_caesar_campaign_dismiss"
   | "camp_caesar_explore_click"
   | "camp_caesar_location_click"
-  | "camp_caesar_booking_click";
+  | "camp_caesar_booking_click"
+  | "november_protein_view"
+  | "november_protein_book_start"
+  | "november_protein_whatsapp";
 
 export function trackCampaignEvent(
   event: CampaignEvent,

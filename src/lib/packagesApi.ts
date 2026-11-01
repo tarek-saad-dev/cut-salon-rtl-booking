@@ -51,6 +51,8 @@ export type PackageGroomInfo = {
 export type ApiPackage = {
   packageId: number;
   kind: "regular" | "groom";
+  /** Optional POS / Casher SKU (e.g. NOV-PRO600) when the API returns it. */
+  code: string | null;
   nameAr: string | null;
   nameEn: string | null;
   price: number;
@@ -372,6 +374,7 @@ export function normalizeApiPackage(raw: unknown): ApiPackage | null {
   return {
     packageId,
     kind,
+    code: pickString(row.code, row.Code, row.packageCode, row.PackageCode, row.sku, row.Sku, row.SKU),
     nameAr: pickString(row.nameAr, row.NameAr),
     nameEn: pickString(row.nameEn, row.NameEn),
     price,
@@ -430,7 +433,8 @@ function packageQuery(branchCode?: string | null, kind?: "regular" | "groom"): s
   const params = new URLSearchParams();
   if (kind) params.set("kind", kind);
   if (branchCode?.trim()) params.set("branchCode", branchCode.trim());
-  return params.size ? `?${params.toString()}` : "";
+  const qs = params.toString();
+  return qs ? `?${qs}` : "";
 }
 
 export async function getPackages(kind?: "regular" | "groom", branchCode?: string | null): Promise<ApiPackage[]> {

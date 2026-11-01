@@ -48,6 +48,10 @@ import { trackBookingError } from "@/lib/bookingV2/metrics";
 import { CAMP_CAESAR_BOOK_EVENT } from "@/lib/campaignEvents";
 import { getPackageById, type ApiPackage } from "@/lib/packagesApi";
 import {
+  NOVEMBER_PACKAGE_CODE,
+  rememberNovemberPackageId,
+} from "@/config/novemberProteinOffer";
+import {
   buildGroomCartModel,
   groomCartToResolvableServices,
   parseIdListParam,
@@ -401,6 +405,15 @@ export function useBookO2Session() {
     getPackageById(packageId, branchCode)
       .then((pack) => {
         if (cancelled) return;
+        const code = (pack.code ?? "").trim().toUpperCase();
+        const nameBlob = `${pack.nameEn ?? ""} ${pack.nameAr ?? ""}`.toLowerCase();
+        if (
+          code === NOVEMBER_PACKAGE_CODE ||
+          nameBlob.includes("protein reset") ||
+          (nameBlob.includes("november") && nameBlob.includes("protein"))
+        ) {
+          rememberNovemberPackageId(pack.packageId);
+        }
         const cart = buildGroomCartModel(pack, addonProIds);
         if (cart.unresolvedAddonProIds.length) {
           console.error(

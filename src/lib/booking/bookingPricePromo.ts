@@ -6,6 +6,7 @@ import {
   BOOKING_PRICE_PROMOS,
   type BookingPricePromoConfig,
 } from "@/config/bookingPricePromos";
+import { isNovemberPromoPackageId } from "@/config/novemberProteinOffer";
 
 export type ActiveBookingPricePromo = {
   id: string;
@@ -21,11 +22,16 @@ function isStillRunning(promo: BookingPricePromoConfig, now = Date.now()): boole
   return Number.isFinite(end) ? now <= end : true;
 }
 
-/** Resolve active display promo for a booking branch. O(n) tiny list. */
+/**
+ * Resolve active display promo for a booking branch. O(n) tiny list.
+ * Fixed-price promotional packages (November Protein Reset) never stack with first-visit %.
+ */
 export function resolveBookingPricePromo(
   branchCode: string | null | undefined,
   now = Date.now(),
+  packageId?: number | null,
 ): ActiveBookingPricePromo | null {
+  if (isNovemberPromoPackageId(packageId)) return null;
   if (!branchCode) return null;
   const code = String(branchCode).toUpperCase();
   for (const promo of BOOKING_PRICE_PROMOS) {
