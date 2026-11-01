@@ -34,9 +34,9 @@ describe("novemberProteinOffer config", () => {
     expect(isNovemberCampaignActive(novemberCampaignEndsAtMs() + 1)).toBe(false);
   });
 
-  it("builds book hrefs with the real numeric package id", () => {
-    expect(buildNovemberBookHref(42)).toBe("/book?mode=nearest&packageId=42");
-    expect(buildNovemberBookHref(42, "GLEEM")).toBe("/book?mode=nearest&branch=GLEEM&packageId=42");
+  it("builds book hrefs with barber choice and the real numeric package id", () => {
+    expect(buildNovemberBookHref(42)).toBe("/book?mode=barber&packageId=42");
+    expect(buildNovemberBookHref(42, "GLEEM")).toBe("/book?mode=barber&branch=GLEEM&packageId=42");
   });
 
   it("encodes the official WhatsApp assistance message", () => {

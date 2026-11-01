@@ -59,7 +59,7 @@ export function isNovemberCampaignActive(now = Date.now()): boolean {
 
 export function buildNovemberBookHref(packageId: number, branch?: "GLEEM" | "CAMP_CAESAR"): string {
   return buildBookHref({
-    mode: "nearest",
+    mode: "barber",
     packageId,
     branch: branch ?? null,
   });
