@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
+import ts from "typescript";
 import sitemap from "@/app/sitemap";
 import { CANONICAL_ORIGIN, publicPageMetadata } from "@/lib/seo";
 
@@ -38,7 +39,22 @@ describe("technical SEO policy", () => {
     expect(source("prices/page.tsx")).toContain('publicPageMetadata("/prices",');
     expect(source("book/page.tsx")).toContain('publicPageMetadata("/book",');
     expect(source("offers/november-protein/page.tsx")).toContain("novemberProteinOffer.href,");
-    expect(source("layout.tsx")).not.toContain("url:");
+    // Inspect metadata keys so favicon URLs cannot trigger the page-URL policy.
+    const layout = ts.createSourceFile("layout.tsx", source("layout.tsx"), ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+    const metadataDeclaration = layout.statements
+      .filter(ts.isVariableStatement)
+      .flatMap(statement => [...statement.declarationList.declarations])
+      .find(declaration => declaration.name.getText(layout) === "metadata");
+    const rootMetadata = metadataDeclaration?.initializer;
+    expect(rootMetadata && ts.isObjectLiteralExpression(rootMetadata)).toBe(true);
+    if (!rootMetadata || !ts.isObjectLiteralExpression(rootMetadata)) throw new Error("Missing root metadata object");
+    for (const [section, forbiddenKey] of [["alternates", "canonical"], ["openGraph", "url"]]) {
+      const property = rootMetadata.properties.find(property => property.name?.getText(layout).replace(/["']/g, "") === section);
+      if (!property) continue;
+      expect(ts.isPropertyAssignment(property) && ts.isObjectLiteralExpression(property.initializer)).toBe(true);
+      if (!ts.isPropertyAssignment(property) || !ts.isObjectLiteralExpression(property.initializer)) throw new Error(`Expected literal ${section} metadata`);
+      expect(property.initializer.properties.map(property => property.name?.getText(layout).replace(/["']/g, ""))).not.toContain(forbiddenKey);
+    }
   });
 
   it("protects private routes and every booking step with server layouts", () => {

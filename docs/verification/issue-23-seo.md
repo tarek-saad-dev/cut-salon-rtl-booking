@@ -18,6 +18,22 @@ claimed 1200×630 size was not verified.
 The workflow must run the test/build gate with a successful dependency install.
 No production requests or business-data mutations were performed.
 
+## PR 24 material-finding fix
+
+The supplied CI investigation identifies the new failure at `seo.test.ts:41`:
+the root-layout assertion rejected every `url:`, including valid favicon URLs.
+It now inspects the root metadata object using the TypeScript parser and rejects
+inherited `alternates.canonical` and `openGraph.url` specifically. Existing
+per-page canonical/social checks remain intact. No application code changed.
+
+For this fix, `npm ci --no-audit --no-fund` again failed with esbuild `EPERM`;
+the targeted `npm test -- src/lib/__tests__/seo.test.ts` could not start
+(`vitest: not found`). A standalone parser check also could not start because
+TypeScript was unavailable after the failed installation. `git diff --check`
+passed. These runner limitations do not establish a green test result. The
+workflow must verify tests/build on the updated head, followed by independent
+REVIEW. No production requests or mutations were made.
+
 ## Read-only verification plan
 
 After a successful build, use local HTTP GET requests first. Repeat public GET
