@@ -1,6 +1,6 @@
 {
-  "action": "REVIEW",
-  "number": 8,
+  "action": "EXECUTE",
+  "number": 23,
   "requested_by": "tarek-saad-dev",
-  "request_id": "pr-8-review-offer-scroll-2b4ff31"
+  "request_id": "issue-23-execute-1"
 }
