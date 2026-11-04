@@ -1,6 +1,6 @@
 {
-  "action": "REVIEW",
+  "action": "FIX_FINDINGS",
   "number": 24,
   "requested_by": "tarek-saad-dev",
-  "request_id": "pr-24-review-1"
+  "request_id": "pr-24-fix-findings-1"
 }
