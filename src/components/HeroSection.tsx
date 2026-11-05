@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
+import HeroPicture from "./HeroPicture";
 import { Calendar, Zap, Shield, Gem, Clock } from "lucide-react";
 import BarberPhoto from "./BarberPhoto";
 import { listGlobalBarbers, resolveBarberPhotoUrl, resolveBarberDisplayName } from "@/lib/booking-api";
@@ -11,9 +12,6 @@ import { getActiveCampaign } from "@/config/campaigns";
 import { useLanguage } from "@/context/LanguageContext";
 import { landingCopy } from "@/lib/i18n/landing";
 import { tx } from "@/lib/i18n/tx";
-
-const heroImg = "/hero.png";
-const heroVerticalImg = "/hero_vertical.png";
 
 type HeroBarber = { id: number; name: string; image: string | null };
 
@@ -28,6 +26,7 @@ const fadeUp = {
 
 const HeroSection = () => {
   const { lang, dir } = useLanguage();
+  const reducedMotion = useReducedMotion();
   const t = landingCopy.hero;
   const [barberStrip, setBarberStrip] = useState<HeroBarber[]>([]);
   const [showLocationTrust, setShowLocationTrust] = useState(false);
@@ -79,19 +78,7 @@ const HeroSection = () => {
       data-mobile-nav-overlay
     >
       <div className="absolute inset-0 z-0">
-        <img
-          src={heroImg}
-          alt=""
-          aria-hidden="true"
-          className="hidden md:block w-full h-full object-cover scale-105 opacity-40 mix-blend-luminosity"
-          style={{ objectPosition: "right center" }}
-        />
-        <img
-          src={heroVerticalImg}
-          alt=""
-          aria-hidden="true"
-          className="block md:hidden w-full h-full object-cover object-[center_18%] opacity-75"
-        />
+        <HeroPicture />
 
         <div
           className="absolute inset-0 hidden md:block"
@@ -123,7 +110,7 @@ const HeroSection = () => {
               <motion.div
                 custom={0}
                 variants={fadeUp}
-                initial="hidden"
+                initial={reducedMotion ? false : "hidden"}
                 animate="visible"
                 className="flex flex-col items-center lg:items-start gap-2"
               >
@@ -135,9 +122,9 @@ const HeroSection = () => {
                   </span>
                   <div className="w-8 md:w-10 h-px bg-gradient-to-r from-cut-bronze to-transparent" />
                 </div>
-                {showLocationTrust && (
+                {getActiveCampaign() && (
                   <p
-                    className="text-cut-ivory/40 text-[10px] md:text-[11px] tracking-wide font-display mt-0.5"
+                    className={`${showLocationTrust ? "visible" : "invisible"} text-cut-ivory/40 text-[10px] md:text-[11px] tracking-wide font-display mt-0.5`}
                     dir="ltr"
                   >
                     {tx(t.locationTrust, lang)}{" "}
@@ -146,7 +133,7 @@ const HeroSection = () => {
                 )}
               </motion.div>
 
-              <motion.h1 custom={1} variants={fadeUp} initial="hidden" animate="visible" className={displayHeading}>
+              <motion.h1 custom={1} variants={fadeUp} initial={reducedMotion ? false : "hidden"} animate="visible" className={displayHeading}>
                 <span
                   className={`cut-ar-hero-primary block text-[2.15rem] sm:text-[2.4rem] md:text-6xl lg:text-[4.5rem] text-cut-ivory tracking-tight ${
                     lang === "ar" ? "font-laxr" : "font-display"
@@ -159,7 +146,7 @@ const HeroSection = () => {
               <motion.p
                 custom={2}
                 variants={fadeUp}
-                initial="hidden"
+                initial={reducedMotion ? false : "hidden"}
                 animate="visible"
                 className="hidden md:block text-cut-ivory/70 text-sm md:text-base lg:text-lg max-w-md leading-[1.85]"
               >
@@ -169,7 +156,7 @@ const HeroSection = () => {
               <motion.div
                 custom={3}
                 variants={fadeUp}
-                initial="hidden"
+                initial={reducedMotion ? false : "hidden"}
                 animate="visible"
                 className={`flex flex-col sm:flex-row items-center justify-center gap-3 w-full sm:w-auto mt-1 ${
                   lang === "ar" ? "lg:justify-start" : "lg:justify-start"
@@ -196,7 +183,7 @@ const HeroSection = () => {
                 </Link>
               </motion.div>
 
-              <motion.div custom={3.5} variants={fadeUp} initial="hidden" animate="visible" className="hidden md:block w-full max-w-md">
+              <motion.div custom={3.5} variants={fadeUp} initial={reducedMotion ? false : "hidden"} animate="visible" className="hidden md:block w-full max-w-md">
                 <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-cut-espresso/60 backdrop-blur-sm border border-cut-bronze/20">
                   <div className="w-2 h-2 rounded-full bg-cut-warm-beige animate-pulse flex-shrink-0" />
                   <p className="text-cut-ivory/55 text-xs flex-1">{tx(t.hint, lang)}</p>
@@ -207,7 +194,7 @@ const HeroSection = () => {
               <motion.div
                 custom={4}
                 variants={fadeUp}
-                initial="hidden"
+                initial={reducedMotion ? false : "hidden"}
                 animate="visible"
                 className="hidden md:grid grid-cols-3 gap-2 md:gap-3 w-full max-w-md mt-1"
               >
@@ -231,10 +218,10 @@ const HeroSection = () => {
         </div>
 
         <motion.div
-          initial={{ opacity: 0, y: 18 }}
+          initial={reducedMotion ? false : { opacity: 0, y: 18 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.65, ease: "easeOut" }}
-          className="relative hidden md:block w-full pb-5 pt-3 lg:pb-8 lg:pt-5"
+          className="relative hidden md:block min-h-[102px] lg:min-h-[122px] w-full pb-5 pt-3 lg:pb-8 lg:pt-5"
         >
           <div className="absolute top-0 right-0 bottom-0 w-16 md:w-20 z-20 bg-gradient-to-l from-cut-black to-transparent pointer-events-none" />
           <div className="absolute top-0 left-0 bottom-0 w-16 md:w-20 z-20 bg-gradient-to-r from-cut-black to-transparent pointer-events-none" />
@@ -250,7 +237,7 @@ const HeroSection = () => {
                 onClick={() =>
                   window.dispatchEvent(new CustomEvent("cut:book-barber", { detail: { name: b.name, image: b.image } }))
                 }
-                initial={{ opacity: 0, x: 30 }}
+                initial={reducedMotion ? false : { opacity: 0, x: 30 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.45, delay: 0.75 + i * 0.08, ease: [0.25, 0.46, 0.45, 0.94] }}
                 whileHover={{ y: -4, transition: { duration: 0.2 } }}

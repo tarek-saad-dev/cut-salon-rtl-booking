@@ -66,6 +66,7 @@ export default function BarberPhoto({
       src={photo}
       alt={name}
       loading={loading}
+      decoding="async"
       referrerPolicy="no-referrer"
       className={imgClassName ?? className}
       onError={() => setFailed(true)}

@@ -17,7 +17,12 @@ import {
   mapBookingStatus,
 } from "@/lib/booking-management/display";
 import { useLanguage } from "@/context/LanguageContext";
-import BookingManagementCard from "@/components/booking-management/BookingManagementCard";
+import dynamic from "next/dynamic";
+
+// Cancellation/detail dependencies are needed only after opening the accessible dialog.
+const BookingManagementCard = dynamic(() => import("@/components/booking-management/BookingManagementCard"), {
+  loading: () => <div role="status" className="min-h-48 animate-pulse" aria-label="Loading booking" />,
+});
 import {
   Dialog,
   DialogContent,
