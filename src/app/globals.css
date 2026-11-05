@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Alexandria:wght@400;500;600;700&family=Oswald:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500;1,600;1,700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Alexandria:wght@400;500;600;700;900&family=Oswald:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500;1,600;1,700&display=swap");
 
 @font-face {
   font-family: "LAXR";
@@ -184,7 +184,7 @@
     max-width: 100%;
     position: relative;
     /* Re-resolve stacks here: next/font sets --*-loaded on <body> */
-    --font-alexandria: var(--font-alexandria-loaded), "Alexandria", sans-serif;
+    --font-alexandria: "Alexandria", sans-serif;
     --font-laxr: var(--font-laxr-loaded), "LAXR", sans-serif;
     --font-display: var(--font-laxr), var(--font-alexandria);
     --font-ui: var(--font-alexandria);
