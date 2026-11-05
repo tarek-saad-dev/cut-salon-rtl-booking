@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { CANONICAL_ORIGIN, SITE_TITLE, SITE_DESCRIPTION } from "@/lib/seo";
 import type { CSSProperties } from "react";
 import { Alexandria } from "next/font/google";
 import localFont from "next/font/local";
@@ -32,13 +33,12 @@ const laxr = localFont({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://cutsaloon.com"),
+  metadataBase: new URL(CANONICAL_ORIGIN),
 
   manifest: "/manifest.json",
 
-  title: "Cut Salon - Premium Barber Salon in Alexandria",
-  description:
-    "Premium barber salon in Alexandria — expert haircuts, grooming, and Cut Club loyalty rewards",
+  title: { default: SITE_TITLE, template: "%s | CUT Salon" },
+  description: SITE_DESCRIPTION,
 
   icons: {
     icon: [
@@ -62,32 +62,7 @@ export const metadata: Metadata = {
 
   authors: [{ name: "Cut Salon" }],
 
-  openGraph: {
-    title: "Cut Salon - Premium Barber Salon in Alexandria",
-    description:
-      "Premium barber salon in Alexandria — expert haircuts, grooming, and Cut Club loyalty rewards",
-    url: "https://cutsaloon.com/",
-    siteName: "Cut Salon",
-    images: [
-      {
-        // TODO: Replace with /og-image.jpg when available (1200x630px recommended)
-        url: "/logo.jpeg",
-        width: 1200,
-        height: 630,
-        alt: "Cut Salon - Premium Barber Salon in Alexandria",
-      },
-    ],
-    locale: "ar_EG",
-    type: "website",
-  },
 
-  twitter: {
-    card: "summary_large_image",
-    title: "Cut Salon - Premium Barber Salon in Alexandria",
-    description: "Premium barber salon in Alexandria — expert haircuts and grooming",
-    // TODO: Replace with /og-image.jpg when available
-    images: ["/logo.jpeg"],
-  },
 };
 
 export const viewport: Viewport = {

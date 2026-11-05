@@ -1,11 +1,8 @@
-import type { Metadata } from "next";
+import { publicPageMetadata } from "@/lib/seo";
 import { Suspense } from "react";
 import BookO2Client from "@/components/book/BookO2Client";
 
-export const metadata: Metadata = {
-  title: "Book — Cut Salon",
-  description: "Book your CUT Salon appointment",
-};
+export const metadata = publicPageMetadata("/book", "احجز حلاقك في الإسكندرية | CUT Salon", "احجز موعدك في CUT Salon بالإسكندرية: اختر الفرع والخدمات والحلاق والوقت المناسب لقص الشعر والعناية باللحية.");
 
 /**
  * Branch discovery is client-fetched, but this route must not sit behind

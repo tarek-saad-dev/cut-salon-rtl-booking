@@ -1,10 +1,7 @@
-import type { Metadata } from "next";
+import { publicPageMetadata } from "@/lib/seo";
 import PricesClient from "@/components/prices/PricesClient";
 
-export const metadata: Metadata = {
-  title: "قائمة الأسعار | Cut Salon",
-  description: "أسعار خدمات Cut Salon، الباقات، وتجهيز العريس.",
-};
+export const metadata = publicPageMetadata("/prices", "أسعار الحلاقة والعناية في الإسكندرية | CUT Salon", "تعرّف على أسعار قص الشعر والعناية باللحية وباقات تجهيز العريس في CUT Salon بالإسكندرية، واختر الخدمة المناسبة قبل حجز موعدك.");
 
 export default function PricesPage() {
   return <PricesClient />;
