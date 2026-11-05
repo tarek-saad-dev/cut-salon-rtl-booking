@@ -1,6 +1,6 @@
 {
-  "action": "REVIEW",
-  "number": 24,
+  "action": "EXECUTE",
+  "number": 25,
   "requested_by": "tarek-saad-dev",
-  "request_id": "pr-24-review-2"
+  "request_id": "issue-25-execute-1"
 }
