@@ -1,0 +1,188 @@
+Shared application diagnostics for PR b5f9a7635c7ae2f405b18ca46c8faeb9c4d3be82 and main b9f6874c28d5c7914e498ab4f2910b7098643a9c
+Command: tsc -p tsconfig.app.json --noEmit --incremental false
+Exit code: 2 on both. Temporary baseline path prefix normalized.
+
+src/components/BarbersSection.tsx(424,15): error TS2322: Type '(groom?: GroomBookingDetail | null) => void' is not assignable to type 'MouseEventHandler<HTMLButtonElement>'.
+  Types of parameters 'groom' and 'event' are incompatible.
+    Property 'note' is missing in type 'MouseEvent<HTMLButtonElement, MouseEvent>' but required in type 'GroomBookingDetail'.
+src/components/ServicesSection.tsx(57,5): error TS2554: Expected 1 arguments, but got 0.
+src/components/__tests__/BookingModalBarberFirst.test.tsx(53,79): error TS2556: A spread argument must either have a tuple type or be passed to a rest parameter.
+src/components/__tests__/BookingModalBarberFirst.test.tsx(54,83): error TS2556: A spread argument must either have a tuple type or be passed to a rest parameter.
+src/components/__tests__/BookingModalBarberFirst.test.tsx(55,63): error TS2556: A spread argument must either have a tuple type or be passed to a rest parameter.
+src/components/__tests__/BookingModalBarberFirst.test.tsx(56,75): error TS2556: A spread argument must either have a tuple type or be passed to a rest parameter.
+src/components/__tests__/BookingModalBarberFirst.test.tsx(82,32): error TS2345: Argument of type '{ getBookingConfig: Mock<Procedure>; getServices: Mock<Procedure>; listBranchBarbers: Mock<Procedure>; getPublicBarberProfile: Mock<...>; ... 13 more ...; resetSelectionVersion: () => void; }' is not assignable to parameter of type '{ getBookingConfig: Mock<Procedure>; getServices: Mock<Procedure>; listBranchBarbers: Mock<Procedure>; getAvailableDays: Mock<Procedure>; ... 10 more ...; resetSelectionVersion: () => void; }'.
+  Property 'listPublicBranches' is missing in type '{ getBookingConfig: Mock<Procedure>; getServices: Mock<Procedure>; listBranchBarbers: Mock<Procedure>; getPublicBarberProfile: Mock<...>; ... 13 more ...; resetSelectionVersion: () => void; }' but required in type '{ getBookingConfig: Mock<Procedure>; getServices: Mock<Procedure>; listBranchBarbers: Mock<Procedure>; getAvailableDays: Mock<Procedure>; ... 10 more ...; resetSelectionVersion: () => void; }'.
+src/components/__tests__/BookingModalFlow.test.tsx(49,79): error TS2556: A spread argument must either have a tuple type or be passed to a rest parameter.
+src/components/__tests__/BookingModalFlow.test.tsx(50,83): error TS2556: A spread argument must either have a tuple type or be passed to a rest parameter.
+src/components/__tests__/BookingModalFlow.test.tsx(51,63): error TS2556: A spread argument must either have a tuple type or be passed to a rest parameter.
+src/components/__tests__/BookingModalFlow.test.tsx(52,75): error TS2556: A spread argument must either have a tuple type or be passed to a rest parameter.
+src/components/__tests__/BookingModalI18n.test.tsx(78,79): error TS2556: A spread argument must either have a tuple type or be passed to a rest parameter.
+src/components/__tests__/BookingModalI18n.test.tsx(79,83): error TS2556: A spread argument must either have a tuple type or be passed to a rest parameter.
+src/components/__tests__/BookingModalI18n.test.tsx(80,63): error TS2556: A spread argument must either have a tuple type or be passed to a rest parameter.
+src/components/__tests__/BookingModalI18n.test.tsx(81,75): error TS2556: A spread argument must either have a tuple type or be passed to a rest parameter.
+src/components/__tests__/BookingModalI18n.test.tsx(83,43): error TS2556: A spread argument must either have a tuple type or be passed to a rest parameter.
+src/components/__tests__/Phase1EServiceSelection.test.tsx(267,11): error TS2322: Type '{ services: BookingService[]; categories: { id: string; name: string; nameAr: string; nameEn: string; sortOrder: number; serviceCount: number; services: BookingService[]; }[]; ... 7 more ...; onBrowseServices: () => any; }' is not assignable to type 'IntrinsicAttributes & BookingServiceStepProps'.
+  Property 'onBrowseServices' does not exist on type 'IntrinsicAttributes & BookingServiceStepProps'.
+src/components/book/BookO2Client.tsx(81,52): error TS2367: This comparison appears to be unintentional because the types '"details" | "review" | "services" | "barber" | "schedule"' and '"intent"' have no overlap.
+src/components/book/BookO2Client.tsx(86,50): error TS2367: This comparison appears to be unintentional because the types '"details" | "review" | "services" | "barber" | "schedule"' and '"intent"' have no overlap.
+src/components/booking-services/BookingServiceCart.tsx(83,45): error TS2339: Property 'name' does not exist on type 'ServicePresentation'.
+src/components/booking-services/BookingServiceCart.tsx(222,41): error TS2339: Property 'name' does not exist on type 'ServicePresentation'.
+src/components/booking-services/BookingServiceCart.tsx(229,37): error TS2339: Property 'name' does not exist on type 'ServicePresentation'.
+src/components/booking-services/BookingServiceCart.tsx(242,81): error TS2339: Property 'name' does not exist on type 'ServicePresentation'.
+src/components/booking-services/BookingServiceCart.tsx(401,43): error TS2339: Property 'name' does not exist on type 'ServicePresentation'.
+src/components/campaign/CampCaesarOpeningSheet.tsx(124,11): error TS2322: Type '{ hidden: { opacity: number; y: number; }; show: { opacity: number; y: number; transition: { duration: number; ease: number[]; }; }; }' is not assignable to type 'Variants'.
+  Property 'show' is incompatible with index signature.
+    Type '{ opacity: number; y: number; transition: { duration: number; ease: number[]; }; }' is not assignable to type 'Variant'.
+      Type '{ opacity: number; y: number; transition: { duration: number; ease: number[]; }; }' is not assignable to type 'TargetAndTransition'.
+        Type '{ opacity: number; y: number; transition: { duration: number; ease: number[]; }; }' is not assignable to type '{ transition?: Transition<any>; transitionEnd?: ResolvedValues$1; }'.
+          Types of property 'transition' are incompatible.
+            Type '{ duration: number; ease: number[]; }' is not assignable to type 'Transition<any>'.
+              Type '{ duration: number; ease: number[]; }' is not assignable to type 'TransitionWithValueOverrides<any>'.
+                Type '{ duration: number; ease: number[]; }' is not assignable to type 'ValueAnimationTransition<any>'.
+                  Types of property 'ease' are incompatible.
+                    Type 'number[]' is not assignable to type 'Easing | Easing[]'.
+                      Type 'number[]' is not assignable to type 'EasingFunction | Easing[]'.
+                        Type 'number[]' is not assignable to type 'Easing[]'.
+                          Type 'number' is not assignable to type 'Easing'.
+src/components/campaign/CampCaesarOpeningSheet.tsx(131,11): error TS2322: Type '{ hidden: { opacity: number; y: number; }; show: { opacity: number; y: number; transition: { duration: number; ease: number[]; }; }; }' is not assignable to type 'Variants'.
+  Property 'show' is incompatible with index signature.
+    Type '{ opacity: number; y: number; transition: { duration: number; ease: number[]; }; }' is not assignable to type 'Variant'.
+      Type '{ opacity: number; y: number; transition: { duration: number; ease: number[]; }; }' is not assignable to type 'TargetAndTransition'.
+        Type '{ opacity: number; y: number; transition: { duration: number; ease: number[]; }; }' is not assignable to type '{ transition?: Transition<any>; transitionEnd?: ResolvedValues$1; }'.
+          Types of property 'transition' are incompatible.
+            Type '{ duration: number; ease: number[]; }' is not assignable to type 'Transition<any>'.
+              Type '{ duration: number; ease: number[]; }' is not assignable to type 'TransitionWithValueOverrides<any>'.
+                Type '{ duration: number; ease: number[]; }' is not assignable to type 'ValueAnimationTransition<any>'.
+                  Types of property 'ease' are incompatible.
+                    Type 'number[]' is not assignable to type 'Easing | Easing[]'.
+                      Type 'number[]' is not assignable to type 'EasingFunction | Easing[]'.
+                        Type 'number[]' is not assignable to type 'Easing[]'.
+                          Type 'number' is not assignable to type 'Easing'.
+src/components/campaign/CampCaesarOpeningSheet.tsx(137,21): error TS2322: Type '{ hidden: { opacity: number; y: number; }; show: { opacity: number; y: number; transition: { duration: number; ease: number[]; }; }; }' is not assignable to type 'Variants'.
+  Property 'show' is incompatible with index signature.
+    Type '{ opacity: number; y: number; transition: { duration: number; ease: number[]; }; }' is not assignable to type 'Variant'.
+      Type '{ opacity: number; y: number; transition: { duration: number; ease: number[]; }; }' is not assignable to type 'TargetAndTransition'.
+        Type '{ opacity: number; y: number; transition: { duration: number; ease: number[]; }; }' is not assignable to type '{ transition?: Transition<any>; transitionEnd?: ResolvedValues$1; }'.
+          Types of property 'transition' are incompatible.
+            Type '{ duration: number; ease: number[]; }' is not assignable to type 'Transition<any>'.
+              Type '{ duration: number; ease: number[]; }' is not assignable to type 'TransitionWithValueOverrides<any>'.
+                Type '{ duration: number; ease: number[]; }' is not assignable to type 'ValueAnimationTransition<any>'.
+                  Types of property 'ease' are incompatible.
+                    Type 'number[]' is not assignable to type 'Easing | Easing[]'.
+                      Type 'number[]' is not assignable to type 'EasingFunction | Easing[]'.
+                        Type 'number[]' is not assignable to type 'Easing[]'.
+                          Type 'number' is not assignable to type 'Easing'.
+src/components/campaign/CampCaesarOpeningSheet.tsx(160,13): error TS2322: Type '{ hidden: { opacity: number; y: number; }; show: { opacity: number; y: number; transition: { duration: number; ease: number[]; }; }; }' is not assignable to type 'Variants'.
+  Property 'show' is incompatible with index signature.
+    Type '{ opacity: number; y: number; transition: { duration: number; ease: number[]; }; }' is not assignable to type 'Variant'.
+      Type '{ opacity: number; y: number; transition: { duration: number; ease: number[]; }; }' is not assignable to type 'TargetAndTransition'.
+        Type '{ opacity: number; y: number; transition: { duration: number; ease: number[]; }; }' is not assignable to type '{ transition?: Transition<any>; transitionEnd?: ResolvedValues$1; }'.
+          Types of property 'transition' are incompatible.
+            Type '{ duration: number; ease: number[]; }' is not assignable to type 'Transition<any>'.
+              Type '{ duration: number; ease: number[]; }' is not assignable to type 'TransitionWithValueOverrides<any>'.
+                Type '{ duration: number; ease: number[]; }' is not assignable to type 'ValueAnimationTransition<any>'.
+                  Types of property 'ease' are incompatible.
+                    Type 'number[]' is not assignable to type 'Easing | Easing[]'.
+                      Type 'number[]' is not assignable to type 'EasingFunction | Easing[]'.
+                        Type 'number[]' is not assignable to type 'Easing[]'.
+                          Type 'number' is not assignable to type 'Easing'.
+src/components/campaign/CampCaesarOpeningSheet.tsx(168,11): error TS2322: Type '{ hidden: { opacity: number; y: number; }; show: { opacity: number; y: number; transition: { duration: number; ease: number[]; }; }; }' is not assignable to type 'Variants'.
+  Property 'show' is incompatible with index signature.
+    Type '{ opacity: number; y: number; transition: { duration: number; ease: number[]; }; }' is not assignable to type 'Variant'.
+      Type '{ opacity: number; y: number; transition: { duration: number; ease: number[]; }; }' is not assignable to type 'TargetAndTransition'.
+        Type '{ opacity: number; y: number; transition: { duration: number; ease: number[]; }; }' is not assignable to type '{ transition?: Transition<any>; transitionEnd?: ResolvedValues$1; }'.
+          Types of property 'transition' are incompatible.
+            Type '{ duration: number; ease: number[]; }' is not assignable to type 'Transition<any>'.
+              Type '{ duration: number; ease: number[]; }' is not assignable to type 'TransitionWithValueOverrides<any>'.
+                Type '{ duration: number; ease: number[]; }' is not assignable to type 'ValueAnimationTransition<any>'.
+                  Types of property 'ease' are incompatible.
+                    Type 'number[]' is not assignable to type 'Easing | Easing[]'.
+                      Type 'number[]' is not assignable to type 'EasingFunction | Easing[]'.
+                        Type 'number[]' is not assignable to type 'Easing[]'.
+                          Type 'number' is not assignable to type 'Easing'.
+src/components/campaign/CampCaesarOpeningSheet.tsx(177,11): error TS2322: Type '{ hidden: { opacity: number; y: number; }; show: { opacity: number; y: number; transition: { duration: number; ease: number[]; }; }; }' is not assignable to type 'Variants'.
+  Property 'show' is incompatible with index signature.
+    Type '{ opacity: number; y: number; transition: { duration: number; ease: number[]; }; }' is not assignable to type 'Variant'.
+      Type '{ opacity: number; y: number; transition: { duration: number; ease: number[]; }; }' is not assignable to type 'TargetAndTransition'.
+        Type '{ opacity: number; y: number; transition: { duration: number; ease: number[]; }; }' is not assignable to type '{ transition?: Transition<any>; transitionEnd?: ResolvedValues$1; }'.
+          Types of property 'transition' are incompatible.
+            Type '{ duration: number; ease: number[]; }' is not assignable to type 'Transition<any>'.
+              Type '{ duration: number; ease: number[]; }' is not assignable to type 'TransitionWithValueOverrides<any>'.
+                Type '{ duration: number; ease: number[]; }' is not assignable to type 'ValueAnimationTransition<any>'.
+                  Types of property 'ease' are incompatible.
+                    Type 'number[]' is not assignable to type 'Easing | Easing[]'.
+                      Type 'number[]' is not assignable to type 'EasingFunction | Easing[]'.
+                        Type 'number[]' is not assignable to type 'Easing[]'.
+                          Type 'number' is not assignable to type 'Easing'.
+src/components/campaign/CampCaesarOpeningSheet.tsx(183,21): error TS2322: Type '{ hidden: { opacity: number; y: number; }; show: { opacity: number; y: number; transition: { duration: number; ease: number[]; }; }; }' is not assignable to type 'Variants'.
+  Property 'show' is incompatible with index signature.
+    Type '{ opacity: number; y: number; transition: { duration: number; ease: number[]; }; }' is not assignable to type 'Variant'.
+      Type '{ opacity: number; y: number; transition: { duration: number; ease: number[]; }; }' is not assignable to type 'TargetAndTransition'.
+        Type '{ opacity: number; y: number; transition: { duration: number; ease: number[]; }; }' is not assignable to type '{ transition?: Transition<any>; transitionEnd?: ResolvedValues$1; }'.
+          Types of property 'transition' are incompatible.
+            Type '{ duration: number; ease: number[]; }' is not assignable to type 'Transition<any>'.
+              Type '{ duration: number; ease: number[]; }' is not assignable to type 'TransitionWithValueOverrides<any>'.
+                Type '{ duration: number; ease: number[]; }' is not assignable to type 'ValueAnimationTransition<any>'.
+                  Types of property 'ease' are incompatible.
+                    Type 'number[]' is not assignable to type 'Easing | Easing[]'.
+                      Type 'number[]' is not assignable to type 'EasingFunction | Easing[]'.
+                        Type 'number[]' is not assignable to type 'Easing[]'.
+                          Type 'number' is not assignable to type 'Easing'.
+src/components/loyalty/personalOfferConfig.ts(83,53): error TS2345: Argument of type 'string[] | readonly ["Haircut & Beard", "Deep skincare"]' is not assignable to parameter of type 'string[]'.
+  The type 'readonly ["Haircut & Beard", "Deep skincare"]' is 'readonly' and cannot be assigned to the mutable type 'string[]'.
+src/components/loyalty/personalOfferConfig.ts(102,5): error TS2322: Type 'string[] | readonly ["Haircut & Beard", "Deep SkinCare"]' is not assignable to type 'string[]'.
+  The type 'readonly ["Haircut & Beard", "Deep SkinCare"]' is 'readonly' and cannot be assigned to the mutable type 'string[]'.
+src/hooks/bookingFlowV2Support.ts(33,3): error TS2724: '"@/lib/booking-api/types"' has no exported member named 'BarberAvailableDay'. Did you mean 'AvailableDay'?
+src/hooks/bookingFlowV2Support.ts(34,3): error TS2724: '"@/lib/booking-api/types"' has no exported member named 'BarberAvailableSlot'. Did you mean 'AvailableSlot'?
+src/hooks/bookingFlowV2Support.ts(233,19): error TS2339: Property 'branchName' does not exist on type '{ date: string; businessDate: string; startMin: number; time: string; label: string; available: boolean; dayOffset: 0 | 1; empId: number; barberName: string; durationMinutes: number; branchCode: BranchCode; }'.
+src/hooks/useBookO2Session.ts(487,47): error TS2339: Property 'imageUrl' does not exist on type 'BookingV2Barber'.
+src/hooks/useBookO2Session.ts(939,11): error TS2367: This comparison appears to be unintentional because the types '"" | "BRANCH_REQUIRED" | "INVALID_BRANCH" | "BOOKING_DISABLED" | "SERVICE_NOT_FOUND" | "SERVICE_NOT_BOOKABLE" | "BARBER_NOT_FOUND" | "BARBER_NOT_AVAILABLE" | "SLOT_NOT_AVAILABLE" | ... 32 more ... | "UNKNOWN_ERROR"' and '"CONFLICT"' have no overlap.
+src/hooks/useBookingFlow.ts(988,11): error TS2353: Object literal may only specify known properties, and 'categories' does not exist in type '{ config: unknown; services: unknown; barbers: unknown; }'.
+src/lib/book-o2/__tests__/o2OccupyAndGuard.test.ts(6,3): error TS2739: Type '{ scope: { mode: "specific"; empId: number; branchCodes: "GLEEM"[]; }; fromBusinessDate: string; toBusinessDate: string; fetchedAt: number; stale: false; matrix: { businessDate: string; branches: { branchCode: "GLEEM"; employees: { ...; }[]; }[]; }[]; }' is missing the following properties from type 'AvailabilityMatrix': ok, days, slotIntervalMinutes
+src/lib/booking-api/__tests__/barberAvailabilityAggregate.test.ts(62,9): error TS2739: Type '{ branchCode: string; branchName: string; }' is missing the following properties from type 'PublicBranch': shortName, address, phone, timeZone
+src/lib/booking-api/__tests__/barberAvailabilityAggregate.test.ts(63,9): error TS2739: Type '{ branchCode: string; branchName: string; }' is missing the following properties from type 'PublicBranch': shortName, address, phone, timeZone
+src/lib/booking-api/__tests__/barberAvailabilityAggregate.test.ts(90,25): error TS2739: Type '{ branchCode: string; branchName: string; }' is missing the following properties from type 'PublicBranch': shortName, address, phone, timeZone
+src/lib/booking-api/__tests__/barberAvailabilityAggregate.test.ts(104,9): error TS2322: Type '"NOT_FOUND"' is not assignable to type 'PublicBookingErrorCode'.
+src/lib/booking-api/__tests__/barberAvailabilityAggregate.test.ts(121,25): error TS2739: Type '{ branchCode: string; branchName: string; }' is missing the following properties from type 'PublicBranch': shortName, address, phone, timeZone
+src/lib/booking-api/__tests__/barberAvailabilityAggregate.test.ts(149,25): error TS2739: Type '{ branchCode: string; branchName: string; }' is missing the following properties from type 'PublicBranch': shortName, address, phone, timeZone
+src/lib/booking-api/__tests__/barberAvailabilityAggregate.test.ts(175,25): error TS2739: Type '{ branchCode: string; branchName: string; }' is missing the following properties from type 'PublicBranch': shortName, address, phone, timeZone
+src/lib/booking-api/__tests__/servicesCatalog.test.ts(72,13): error TS2322: Type '{ id: number; name: string; price: number; durationMinutes: number; categoryName: null; isBookableOnline: true; }' is not assignable to type 'RawService'.
+  Type '{ id: number; name: string; price: number; durationMinutes: number; categoryName: null; isBookableOnline: true; }' is missing the following properties from type 'BookingService': nameAr, nameEn
+src/lib/booking-api/__tests__/servicesCatalog.test.ts(99,11): error TS2322: Type '{ serviceId: number; name: string; popularityRank: number; price: number; durationMinutes: number; imageUrl: string; categoryName: null; isBookableOnline: true; }' is not assignable to type 'RawService'.
+  Type '{ serviceId: number; name: string; popularityRank: number; price: number; durationMinutes: number; imageUrl: string; categoryName: null; isBookableOnline: true; }' is missing the following properties from type 'BookingService': id, nameAr, nameEn
+src/lib/booking-api/__tests__/servicesCatalog.test.ts(109,11): error TS2322: Type '{ serviceId: number; name: string; popularityRank: number; price: number; durationMinutes: number; categoryName: null; isBookableOnline: true; }' is not assignable to type 'RawService'.
+  Type '{ serviceId: number; name: string; popularityRank: number; price: number; durationMinutes: number; categoryName: null; isBookableOnline: true; }' is missing the following properties from type 'BookingService': id, nameAr, nameEn
+src/lib/booking-api/__tests__/servicesCatalog.test.ts(138,13): error TS2322: Type '{ id: number; name: string; price: number; durationMinutes: number; categoryName: null; isBookableOnline: true; }' is not assignable to type 'RawService'.
+  Type '{ id: number; name: string; price: number; durationMinutes: number; categoryName: null; isBookableOnline: true; }' is missing the following properties from type 'BookingService': nameAr, nameEn
+src/lib/booking-api/__tests__/servicesCatalog.test.ts(146,13): error TS2322: Type '{ id: number; name: string; price: number; durationMinutes: number; categoryName: null; isBookableOnline: true; }' is not assignable to type 'RawService'.
+  Type '{ id: number; name: string; price: number; durationMinutes: number; categoryName: null; isBookableOnline: true; }' is missing the following properties from type 'BookingService': nameAr, nameEn
+src/lib/booking-api/barber-availability.ts(277,9): error TS2367: This comparison appears to be unintentional because the types 'PublicBookingErrorCode' and '"INVALID_AVAILABILITY_SCOPE"' have no overlap.
+src/lib/booking-api/barber-availability.ts(345,9): error TS2367: This comparison appears to be unintentional because the types 'PublicBookingErrorCode' and '"INVALID_AVAILABILITY_SCOPE"' have no overlap.
+src/lib/booking-api/booking.ts(206,21): error TS2352: Conversion of type 'BookingCreateResponse & { code?: string; calendarDate?: string; workDate?: string; total?: number; barber?: { empId?: number; nameAr?: string; name?: string; }; branch?: { branchCode?: string; branchName?: string; }; services?: (string | { ...; })[]; }' to type 'Record<string, unknown>' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Index signature for type 'string' is missing in type 'BookingCreateResponse & { code?: string; calendarDate?: string; workDate?: string; total?: number; barber?: { empId?: number; nameAr?: string; name?: string; }; branch?: { branchCode?: string; branchName?: string; }; services?: (string | { ...; })[]; }'.
+src/lib/booking-api/booking.ts(207,18): error TS2352: Conversion of type 'CreateApiResponse | (BookingCreateResponse & { code?: string; calendarDate?: string; workDate?: string; total?: number; barber?: { empId?: number; nameAr?: string; name?: string; }; branch?: { ...; }; services?: (string | { ...; })[]; })' to type 'Record<string, unknown>' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type 'BookingCreateResponse & { code?: string; calendarDate?: string; workDate?: string; total?: number; barber?: { empId?: number; nameAr?: string; name?: string; }; branch?: { branchCode?: string; branchName?: string; }; services?: (string | { ...; })[]; }' is not comparable to type 'Record<string, unknown>'.
+    Index signature for type 'string' is missing in type 'BookingCreateResponse & { code?: string; calendarDate?: string; workDate?: string; total?: number; barber?: { empId?: number; nameAr?: string; name?: string; }; branch?: { branchCode?: string; branchName?: string; }; services?: (string | { ...; })[]; }'.
+src/lib/bookingV2/cache.ts(92,7): error TS2322: Type 'Promise<void | T>' is not assignable to type 'Promise<T>'.
+  Type 'void | T' is not assignable to type 'T'.
+    'T' could be instantiated with an arbitrary type which could be unrelated to 'void | T'.
+src/lib/bookingV2/minNoticeParity.test.ts(324,32): error TS2339: Property 'stale' does not exist on type 'unknown'.
+src/lib/bookingV2/minNoticeParity.test.ts(327,32): error TS2339: Property 'stale' does not exist on type 'unknown'.
+src/lib/bookingV2/serverTime.ts(77,5): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(locales?: LocalesArgument, options?: DateTimeFormatOptions): DateTimeFormat', gave the following error.
+    Object literal may only specify known properties, and 'fractionalSecondDigits' does not exist in type 'DateTimeFormatOptions'.
+  Overload 2 of 2, '(locales?: string | string[], options?: DateTimeFormatOptions): DateTimeFormat', gave the following error.
+    Object literal may only specify known properties, and 'fractionalSecondDigits' does not exist in type 'DateTimeFormatOptions'.
+src/lib/i18n/booking.ts(493,19): error TS2550: Property 'replaceAll' does not exist on type 'string'. Do you need to change your target library? Try changing the 'lib' compiler option to 'es2021' or later.
+src/lib/packagesApi.ts(272,29): error TS2677: A type predicate's type must be assignable to its parameter's type.
+  Type 'GroomOptionalExtra' is not assignable to type '{ proId: number; nameAr: string; nameEn: string; price: number; descriptionAr: any; descriptionEn: any; durationMinutes: number; alreadyIncluded: false; availableAsOptional: true; mutuallyExclusiveGroup: string; groupKey: string; sortOrder: number; }'.
+    Types of property 'alreadyIncluded' are incompatible.
+      Type 'boolean' is not assignable to type 'false'.
+src/lib/publicBookingApi.ts(97,3): error TS2300: Duplicate identifier 'nameAr'.
+src/lib/publicBookingApi.ts(97,3): error TS2687: All declarations of 'nameAr' must have identical modifiers.
+src/lib/publicBookingApi.ts(98,3): error TS2300: Duplicate identifier 'nameEn'.
+src/lib/publicBookingApi.ts(98,3): error TS2687: All declarations of 'nameEn' must have identical modifiers.
+src/lib/publicBookingApi.ts(106,3): error TS2300: Duplicate identifier 'nameEn'.
+src/lib/publicBookingApi.ts(106,3): error TS2687: All declarations of 'nameEn' must have identical modifiers.
+src/lib/publicBookingApi.ts(107,3): error TS2300: Duplicate identifier 'nameAr'.
+src/lib/publicBookingApi.ts(107,3): error TS2687: All declarations of 'nameAr' must have identical modifiers.

@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { CANONICAL_ORIGIN, SITE_TITLE, SITE_DESCRIPTION } from "@/lib/seo";
 import type { CSSProperties } from "react";
-import { Alexandria } from "next/font/google";
+import { Alexandria, Oswald, Playfair_Display } from "next/font/google";
 import localFont from "next/font/local";
 import "./globals.css";
 import { Providers } from "@/components/providers";
@@ -17,6 +17,9 @@ const alexandria = Alexandria({
   weight: ["400", "500", "600", "700", "900"],
   display: "swap",
 });
+
+const oswald = Oswald({ variable: "--font-brand-loaded", subsets: ["latin"], weight: ["400", "500", "600", "700"], display: "swap", preload: false });
+const editorial = Playfair_Display({ variable: "--font-editorial-loaded", subsets: ["latin"], weight: ["500", "600", "700"], style: ["normal", "italic"], display: "swap", preload: false });
 
 /** Local Arabic display face — used only for hero / section display headings. */
 const laxr = localFont({
@@ -92,7 +95,7 @@ export default function RootLayout({
         } as CSSProperties
       }
     >
-      <body className={`${alexandria.variable} ${laxr.variable} antialiased`}>
+      <body className={`${alexandria.variable} ${laxr.variable} ${oswald.variable} ${editorial.variable} antialiased`}>
         <Providers>
           <SiteChrome />
           {children}
