@@ -70,7 +70,7 @@ Run on the final PR head in the normal verification environment:
 ```sh
 npm ci
 npm test
-npx tsc --noEmit
+npx tsc -p tsconfig.app.json --noEmit --incremental false
 npm run build
 npm start
 # In another terminal, with Chromium installed:
@@ -78,11 +78,15 @@ node scripts/smoke-home-performance.mjs
 ```
 
 The smoke script blocks external origins, non-GET requests and local `/api/`
-requests. It opens `/` at 390×844 and 1440×900 (DPR 1), requires one successful
+requests. It opens `/` in Arabic and English at 390×844, 768×1024 and 1440×900
+(DPR 1, reduced motion), requires one successful
 hero request, validates the decoded image, booking CTA and services section,
 then loads the read-only `/book` shell without submitting anything. Expected
-hero URLs: `/hero_vertical-480.webp` and `/hero-1672.webp`. High-DPR mobile may
+hero URLs: `/hero_vertical-480.webp`, `/hero-1280.webp` and `/hero-1672.webp`. High-DPR mobile may
 choose `/hero_vertical-941.webp`. It logs hero height and computed body font.
+It saves paired hero screenshots with WebP and then the original PNG in the
+same DOM/crop to `SMOKE_EVIDENCE_DIR` (default `/tmp/issue25-browser-evidence`).
+These are evidence for human visual comparison, not an automated quality verdict.
 It is standalone because the existing Playwright config imports a harness-only
 package. It tests the offline shell, not live booking availability.
 
@@ -107,42 +111,74 @@ Do not submit real bookings, cancellation, account or loyalty changes.
 CrUX field numbers require a later production measurement/window; lab results
 must remain labeled lab and cannot establish real-user improvements.
 
-## Runner results
+## FIX_FINDINGS verification — request pr-27-fix-findings-1
 
-Initial `npm ci` failed executing esbuild with EPERM. An ignore-scripts recovery
-using a new cache failed with npm "Exit handler never called". Offline recovery
-using the existing cache succeeded (`npm ci --ignore-scripts --offline`).
-`node node_modules/typescript/bin/tsc --noEmit` passed after recovery.
-Browser smoke could not launch: Playwright Chromium is not installed.
-No production requests or mutations were made. Full test/build results are
-recorded below after their attempts; runtime/Lighthouse verification and exact
-PR-head CI remain requirements before READY_FOR_TAREK. Static independent review
-reported no material findings; a small strip-height reservation gap was corrected.
-The GitHub-hosted finalizer owns branch publication and draft PR creation; this
-runner does not push, merge or deploy.
+Status: **not ready for merge/deployment**. Only the typecheck evidence finding
+is resolved. Incident #26 and successful browser verification remain open.
+No production requests, business-data mutations, push, merge or deployment occurred.
 
-After offline recovery, `npm test` passed: **81 files, 488 tests**. The targeted
-performance suite separately passed **2 tests**. `npx tsc --noEmit` passed and
-`git diff --check` passed. React 18's static-render test emits its known casing
-warning for `fetchPriority`; the attribute is present in server markup and HTML
-attribute names are case-insensitive. The application's Next renderer supports
-this prop.
+### Application typecheck: fails, entirely pre-existing against this baseline
 
-Local `npm run dev` also failed with `listen EPERM 0.0.0.0:3000`, preventing even
-HTTP-only local route smoke. Build was attempted with the standard command;
-see final result below. These runner limits are not evidence of green CI.
+The earlier claims that `npx tsc --noEmit` established TypeScript correctness
+are withdrawn. Root `tsconfig.json` has `files: []`; plain `tsc` does not check
+the referenced application project. The workflow's `TYPECHECK=SKIP` likewise
+provides no application typecheck evidence.
 
-`npm run build` remained at "Creating an optimized production build" without
-further output and was interrupted (exit 130); it did not establish a passing
-build. A bounded webpack diagnostic attempt then reported another build process
-still running. Do not interpret the test/type successes as production-build
-verification. The finalizer's normal verification gate and independent review of
-its exact PR head remain outstanding.
+On 2026-11-05, using the same offline-installed lockfile dependencies and compiler:
 
-After confirming no active build process, the generated stale `.next/lock` was
-removed and the webpack diagnostic was retried. It exited 1 with only
-"Build failed because of webpack errors" and no actionable error detail. Its
-cause cannot be attributed to either a code regression or the runner from that
-output. The standard production build is therefore still unverified.
-TypeScript passed again after the final code changes. The smoke additionally
-checks `/book` returns HTTP 200 with a no-store cache policy.
+- PR source head: `b5f9a7635c7ae2f405b18ca46c8faeb9c4d3be82`.
+- Baseline `origin/main`: `b9f6874c28d5c7914e498ab4f2910b7098643a9c`.
+- Explicit `tsc -p tsconfig.app.json --noEmit --incremental false`: **exit 2 on
+  both**, 70 diagnostics each across 24 files.
+- Complete diagnostic output is identical after removing only the temporary
+  baseline checkout path prefix. No diagnostic was excluded from the comparison.
+- Both named findings, `BarbersSection.tsx:424` (button event handler type) and
+  `ServicesSection.tsx:57` (missing argument), occur identically on main.
+- All 70 diagnostics are therefore classified as **pre-existing**, not regressions
+  introduced by this PR. This does not make the application typecheck green.
+  Fixing those unrelated source/test types is outside this finding-fix scope.
+
+Full shared output is retained in [issue-25-typecheck-baseline.txt](issue-25-typecheck-baseline.txt).
+The comparison used an archive of main without generated `.next` types and the
+PR checkout before running the build. Reproduce without changing the checkout:
+
+```sh
+baseline_dir=$(mktemp -d /tmp/issue25-main.XXXXXX)
+git archive b9f6874c28d5c7914e498ab4f2910b7098643a9c | tar -x -C "$baseline_dir"
+ln -s "$PWD/node_modules" "$baseline_dir/node_modules"
+node node_modules/typescript/bin/tsc -p tsconfig.app.json --noEmit --incremental false > /tmp/issue25-pr-types.txt 2>&1
+# Both checks are expected to exit 2; run independently, without shell errexit.
+(cd "$baseline_dir" && node node_modules/typescript/bin/tsc -p tsconfig.app.json --noEmit --incremental false) > /tmp/issue25-main-types.txt 2>&1
+diff -u /tmp/issue25-main-types.txt /tmp/issue25-pr-types.txt
+```
+
+### Local checks and remaining material blockers
+
+- Dependency recovery: `npm ci --offline --ignore-scripts` succeeded, 555 packages.
+  This skips lifecycle scripts; it is not equivalent to the normal CI install.
+- Targeted `homePerformance.test.tsx`: **2/2 passed**, with the existing React 18
+  static-render `fetchPriority` casing warning. `node --check` on the smoke script
+  and `git diff --check` passed.
+- `npm run build` remained at "Creating an optimized production build" and was
+  interrupted (exit 130). It supplies no passing build evidence or VPS diagnosis.
+- Browser launch still fails: Chromium executable absent. Installing into the
+  writable `/tmp/pr27-browsers` failed with `ENOTFOUND cdn.playwright.dev`.
+  No screenshots or successful responsive/font/dialog runtime evidence exist.
+  The expanded smoke captures Arabic/English at the breakpoint as well as mobile
+  and desktop, and pairs original PNG/current WebP crops, but remains **unexecuted**.
+  Deferred booking-dialog open/close/focus behavior still needs a browser run with
+  locally fulfilled booking fixtures; the current shell script does not test it.
+- Incident #26 remains a **P1 release blocker**. This patch does not change the
+  font implementation or assert a diagnosis of the VPS Turbopack failure.
+  `fonts.googleapis.com` could not resolve here. Authentic replacement font assets
+  could not be obtained, and no VPS-safe build path was established. Do not replace
+  those faces with arbitrary fonts or count hosted CI success as VPS evidence.
+  Before another readiness review, establish a reproducible build using the VPS
+  Node/npm/build configuration on this revision without production secrets, or
+  deliver licensed local copies of all required font faces and verify that build.
+  Production access or deployment is not authorized by this request.
+
+Historical supplied workflow evidence for the reviewed head was install/tests/build
+exit 0, typecheck skipped; the prior builder reported 488 tests passing. Those are
+historical results, not reruns of this patch. Exact finalized-head verification and
+independent review remain required. No Lighthouse/CrUX improvement is certified.
