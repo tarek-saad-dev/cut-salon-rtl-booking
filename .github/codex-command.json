@@ -1,6 +1,6 @@
 {
-  "action": "EXECUTE",
-  "number": 26,
+  "action": "FIX_FINDINGS",
+  "number": 27,
   "requested_by": "tarek-saad-dev",
-  "request_id": "issue-26-execute-1"
+  "request_id": "pr-27-fix-findings-1"
 }
