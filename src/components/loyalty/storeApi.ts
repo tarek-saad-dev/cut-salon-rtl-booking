@@ -1,3 +1,4 @@
+import { requireVerifiedLoyaltyIdentity } from "./loyaltyIdentity";
 // ─── CUT CLUB — Store API Layer ────────────────────────────────────────────
 // Fetches store items and handles purchases via the Economy Store endpoints.
 
@@ -126,6 +127,7 @@ function getErrorMessage(data: unknown, fallback: string): string {
 export async function fetchStore(
   clientId: string | number,
 ): Promise<StoreResponse> {
+  requireVerifiedLoyaltyIdentity(clientId);
   const res = await fetch(
     buildUrl(
       `/api/public/client/store?clientId=${encodeURIComponent(clientId)}`,
@@ -162,6 +164,7 @@ export async function purchaseStoreItem(
   clientId: string | number,
   itemId: number,
 ): Promise<PurchaseResponse> {
+  requireVerifiedLoyaltyIdentity(clientId);
   // Validate itemId before sending
   if (itemId === undefined || itemId === null || Number.isNaN(itemId)) {
     throw new Error("itemId غير صالح");
@@ -199,6 +202,7 @@ export async function fetchClientInventory(
   clientId: string | number,
   status: "ACTIVE" | "USED" | "EXPIRED" | "CANCELLED" | "ALL" = "ACTIVE",
 ): Promise<InventoryResponse> {
+  requireVerifiedLoyaltyIdentity(clientId);
   const res = await fetch(
     buildUrl(
       `/api/public/client/inventory?clientId=${encodeURIComponent(clientId)}&status=${status}`,

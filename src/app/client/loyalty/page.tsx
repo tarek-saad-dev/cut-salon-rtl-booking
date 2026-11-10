@@ -2,9 +2,8 @@
 
 import { useState, useEffect, useCallback, Suspense } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
 import { Calendar, Scissors, AlertTriangle, RefreshCw } from "lucide-react";
-import { getSavedClient } from "@/lib/clientStorage";
+import { LOYALTY_IDENTITY_UNAVAILABLE } from "@/components/loyalty/loyaltyIdentity";
 
 import { CompactMembershipCard } from "@/components/loyalty/CompactMembershipCard";
 import { WalletCard } from "@/components/loyalty/WalletCard";
@@ -28,9 +27,9 @@ import {
 } from "@/components/loyalty/loyaltyData";
 
 import type { ClientLoyaltyDashboardResponse } from "@/components/loyalty/clientLoyaltyApi";
-import { fetchStore, fetchClientInventory, type StoreItem, type InventoryItem as ApiInventoryItem } from "@/components/loyalty/storeApi";
+import { type StoreItem, type InventoryItem as ApiInventoryItem } from "@/components/loyalty/storeApi";
 
-// ─── TODO: Replace hardcoded clientId fallback with authenticated session / OTP token ───
+// Loyalty access remains closed until Casher provides verified tenant-scoped identity.
 
 // ─── Map API response → component types ────────────────────────────────────
 
@@ -197,9 +196,8 @@ function PageHeader({ accentColor, border, bg }: { accentColor: string; border: 
   );
 }
 
-// ─── Page Inner (uses useSearchParams — must be inside Suspense) ─────────────
+// ─── Page Inner ────────────────────────────────────────────────────────────
 function LoyaltyPageInner() {
-  const searchParams = useSearchParams();
 
   const [data, setData] = useState<(ClientLoyalty & { clientId: string | number }) | null>(null);
   const [apiResponse, setApiResponse] = useState<ClientLoyaltyDashboardResponse | null>(null);
@@ -209,91 +207,15 @@ function LoyaltyPageInner() {
   const [error, setError] = useState<string | null>(null);
 
   const fetchDashboard = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-
-    const savedClient = getSavedClient();
-    const clientIdFromUrl = searchParams.get("clientId");
-
-    let clientId: string | number;
-
-    if (clientIdFromUrl) {
-      clientId = clientIdFromUrl;
-    } else if (savedClient?.id) {
-      clientId = savedClient.id;
-    } else if (savedClient?.phone) {
-      clientId = savedClient.phone;
-    } else {
-      setError("يرجى تسجيل الدخول أولاً");
-      setLoading(false);
-      return;
-    }
-
-    const apiBase = (process.env.NEXT_PUBLIC_BOOKING_API_BASE_URL ?? "").replace(/\/$/, "");
-    try {
-      const res = await fetch(
-        `${apiBase}/api/public/client/loyalty/me?clientId=${encodeURIComponent(clientId)}`,
-        { cache: "no-store" }
-      );
-      const json: unknown = await res.json().catch(() => null);
-
-      if (!res.ok) {
-        if (res.status === 401 || res.status === 403) {
-          throw new Error("يرجى تسجيل الدخول أولاً");
-        }
-        if (res.status === 404) {
-          throw new Error("لم يتم العثور على حسابك في CUT CLUB. يرجى تسجيل الدخول أولاً");
-        }
-        const msg =
-          json !== null && typeof json === "object"
-            ? ((json as Record<string, unknown>).error as string | undefined) ??
-            ((json as Record<string, unknown>).message as string | undefined) ??
-            "فشل تحميل البيانات"
-            : "فشل تحميل البيانات";
-        throw new Error(msg);
-      }
-
-      if (
-        json === null ||
-        typeof json !== "object" ||
-        (json as Record<string, unknown>).ok === false
-      ) {
-        const msg =
-          json !== null && typeof json === "object"
-            ? ((json as Record<string, unknown>).error as string | undefined) ??
-            ((json as Record<string, unknown>).message as string | undefined) ??
-            "لم يتم العثور على بيانات حسابك. يرجى تسجيل الدخول أولاً"
-            : "لم يتم العثور على بيانات حسابك. يرجى تسجيل الدخول أولاً";
-        throw new Error(msg);
-      }
-
-      const typed = json as ClientLoyaltyDashboardResponse;
-      setApiResponse(typed);
-      setData(mapApiToComponentData(typed, clientId));
-
-      // Fetch store items and inventory in parallel with dashboard
-      try {
-        const [storeData, inventoryData] = await Promise.all([
-          fetchStore(clientId),
-          fetchClientInventory(clientId),
-        ]);
-        setStoreItems(storeData.items ?? []);
-        setInventoryItems(inventoryData.items ?? []);
-      } catch (storeErr) {
-        console.warn("[loyalty page] Store/Inventory fetch failed:", storeErr);
-        setStoreItems([]);
-        setInventoryItems([]);
-      }
-    } catch (e) {
-      if (e instanceof Error) {
-        setError(e.message);
-      } else {
-        setError("حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى");
-      }
-    } finally {
-      setLoading(false);
-    }
-  }, [searchParams]);
+    // Browser storage and URL IDs are not proof of identity or tenant membership.
+    // Do not resolve phones through the legacy unscoped profile lookup.
+    setData(null);
+    setApiResponse(null);
+    setStoreItems([]);
+    setInventoryItems([]);
+    setError(LOYALTY_IDENTITY_UNAVAILABLE);
+    setLoading(false);
+  }, []);
 
   useEffect(() => {
     fetchDashboard();
@@ -494,7 +416,7 @@ function LoyaltyPageInner() {
   );
 }
 
-// ─── Default export — Suspense boundary required for useSearchParams ──────────
+// ─── Default export ────────────────────────────────────────────────────────
 export default function LoyaltyPage() {
   return (
     <Suspense
