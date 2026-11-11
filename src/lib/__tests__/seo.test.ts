@@ -8,7 +8,7 @@ const source = (path: string) => readFileSync(`src/app/${path}`, "utf8");
 
 describe("technical SEO policy", () => {
   it("lists exactly the existing public canonical landing URLs without fake dates", () => {
-    expect(sitemap()).toEqual(["/", "/prices", "/book", "/offers/november-protein"].map(path => ({
+    expect(sitemap()).toEqual(["/", "/prices", "/book", "/offers/november-protein", "/branches/gleem", "/branches/camp-caesar"].map(path => ({
       url: new URL(path, CANONICAL_ORIGIN).href,
     })));
   });
@@ -28,7 +28,7 @@ describe("technical SEO policy", () => {
       expect(page).not.toContain("searchParams");
       expect(page).not.toContain("index: false");
     }
-    for (const path of ["/", "/prices", "/book", "/offers/november-protein"]) {
+    for (const path of ["/", "/prices", "/book", "/offers/november-protein", "/branches/gleem", "/branches/camp-caesar"]) {
       const metadata = publicPageMetadata(path, `Title ${path}`, `Description ${path}`);
       expect(metadata.alternates).toEqual({ canonical: path });
       expect(metadata.openGraph).toMatchObject({ url: path, title: `Title ${path}`, description: `Description ${path}` });
