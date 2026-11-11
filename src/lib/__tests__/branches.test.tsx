@@ -27,6 +27,17 @@ describe("public branch landing pages", () => {
     });
   });
 
+  it("keeps new Gleem content at locality-only precision without disputed streets", () => {
+    const html = renderToStaticMarkup(<GleemPage />);
+    expect(branches.gleem.address).toBe("جليم – سابا باشا، الإسكندرية، مصر");
+    expect(html).toContain("جليم – سابا باشا، الإسكندرية، مصر");
+    const content = JSON.stringify({ branch: branches.gleem, metadata: gleemMetadata, html });
+    for (const street of ["يسرى قمحة", "ممدوح عبد الرازق"]) {
+      expect(content).not.toContain(street);
+    }
+    expect(branches.gleem.map).toBe("https://share.google/F4o7oOQVs3EJSgxaw");
+  });
+
   it("exports route-specific indexable metadata with matching social copy", () => {
     [gleemMetadata, campMetadata].forEach((metadata, i) => {
       const branch = Object.values(branches)[i];

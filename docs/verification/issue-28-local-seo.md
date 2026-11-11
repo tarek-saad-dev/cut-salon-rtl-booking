@@ -11,7 +11,7 @@ localized AR/EN links; existing map and campaign booking behavior is retained.
 No hub, booking-flow, layout, global CSS, fonts, hero assets, API or workflow changes.
 
 Location sources are the existing first-party footer and issue #28 owner context:
-- Gleem – Saba Pasha: يسرى قمحة، فلمنج، قسم أول الرمل، الإسكندرية;
+- Gleem – Saba Pasha: جليم – سابا باشا، الإسكندرية، مصر (locality only);
   https://share.google/F4o7oOQVs3EJSgxaw.
 - Camp Caesar: كامب شيزار، الإسكندرية;
   https://maps.app.goo.gl/217r3pLutcKFAW2x7.
@@ -24,15 +24,17 @@ unchanged. No production API calls or business-data mutations were used.
 
 Each page emits its own BarberShop ID and URL, locality/country, existing map and
 parent organization. No streetAddress, phone, hours, coordinates, ratings, reviews
-or promotions are asserted in schema. The disputed street remains visible only
-at existing first-party precision; structured address is locality/country only.
+or promotions are asserted in schema. The new Gleem page uses locality-only copy
+and does not repeat either disputed street; structured address is locality/country only.
 JSON serialization escapes `<`. No rich-results eligibility is claimed.
 
 ## Owner verification gaps
 
 Gleem's first-party street (يسرى قمحة) differs from the map listing street reported
 in the issue (ممدوح عبد الرازق). Owner must verify NAP before reconciling website
-and GBP. Camp Caesar's precise street address and both branches' verified hours
+and GBP. The pre-existing footer address is unchanged by this scoped fix; its
+NAP reconciliation remains a separate owner blocker. Camp Caesar's precise street
+address and both branches' verified hours
 are missing. Do not invent these or treat central contact as a branch phone.
 GBP query screenshot counts are not Search Console impressions or traffic.
 No rankings, indexing, impressions or traffic improvements are claimed.
@@ -61,9 +63,36 @@ output for over two minutes and was interrupted (exit 130). Diagnostic fallback
 `npm run build -- --webpack` exited 1 with only “Build failed because of webpack
 errors” and no actionable compiler diagnostic. A stale generated build lock was
 removed between attempts. Typecheck was repeated afterward and passed. Build
-verification remains unresolved; this is not classified as a pre-existing failure
-or a confirmed regression. The workflow must run its ordinary install/test/build
-gate on the published head and investigate any reproducible build failure.
+verification was unresolved in that isolated runner; these logs establish neither
+a confirmed regression nor a passing build.
+
+## Reconciled CI evidence and FIX_FINDINGS
+
+The supplied PR #29 evidence records successful GitHub-hosted
+[CI run #43109597538](https://github.com/tarek-saad-dev/cut-salon-rtl-booking/actions/runs/43109597538)
+for exact pre-fix head `dddd407aaee4274f2540fda2af0be1b2d4ab5063`:
+`npm ci`, `npm test`, `npm run build`, and the control-plane syntax check all
+succeeded. This resolves the prior build uncertainty for that SHA. The isolated
+runner's EPERM, EROFS (including the later review's Vitest temporary config and
+`.next/trace` failures), interrupted Turbopack, and diagnostic webpack attempts
+are separate environment evidence, not equivalent to the successful GitHub-hosted
+CI gate. This does not establish that the production VPS build or blocker #26 is
+fixed.
+
+Request `pr-29-fix-1` removes the disputed street from the new Gleem address and
+visit copy, retains the map URL, and adds a regression test covering rendered
+HTML, branch data and metadata against both conflicting street names. Existing
+footer NAP and booking/API behavior are unchanged. The finalizer must publish the
+patch and the workflow must run a fresh install/test/build gate on the new SHA;
+the pre-fix CI result does not verify these edits. A new independent exact-head
+review is also required. Keep the PR draft; no merge or deployment is authorized.
+
+Local checks for this fix: `git diff --check` passed. The focused command
+`npm test -- src/lib/__tests__/branches.test.tsx src/lib/__tests__/seo.test.ts`
+could not start (`vitest: not found`). Dependency recovery with `npm ci --offline`
+failed in esbuild's postinstall with `spawnSync ... EPERM`. No passing local test
+or build result is claimed for this patch; the new-head workflow gate remains
+required. No production requests or business-data mutations were performed.
 
 ## Read-only checks after an approved deployment
 
