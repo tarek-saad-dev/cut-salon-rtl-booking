@@ -73,7 +73,7 @@ const FooterSection = () => {
                   <MapPin className="w-4 h-4 text-cut-bronze" />
                 </div>
                 <div>
-                  <p className="text-cut-ivory text-sm font-medium mb-0.5">{tx(t.branchName, lang)}</p>
+                  <p className="text-cut-ivory text-sm font-medium mb-0.5"><Link href="/branches/gleem" className="underline underline-offset-4">{tx(t.branchName, lang)}</Link></p>
                   <p className="text-cut-ivory/65 text-xs leading-relaxed mb-1">
                     {tx(t.branchAddress, lang)}
                   </p>
@@ -109,7 +109,7 @@ const FooterSection = () => {
                       </span>
                     </div>
                     <p className="mb-0.5 text-sm font-bold text-cut-ivory">
-                      {tx(t.campBranchName, lang)}
+                      <Link href="/branches/camp-caesar" className="underline underline-offset-4">{tx(t.campBranchName, lang)}</Link>
                     </p>
                     <p className="mb-2 text-xs leading-relaxed text-cut-ivory/70">
                       {tx(t.campBranchAddress, lang)}
