@@ -25,7 +25,7 @@
 | ID | Proposed deliverable | State | Depends on |
 |---|---|---|---|
 | CLUB-02 | Public /cut-club SEO explainer + Join flow | PLANNED | CLUB-01 |
-| CLUB-03 | Secure OTP/session authorization to Casher APIs | PLANNED | CLUB-01, backend security audit |
+| CLUB-03 | Verified customer authentication + authorized Casher member APIs | **SECURITY ISSUE OPEN; NOT IMPLEMENTED** | [Casher #243](https://github.com/tarek-saad-dev/casher/issues/243); CLUB-01 |
 | CLUB-04 | Private /club Home + tier + CUT ID | PLANNED | CLUB-03 |
 | CLUB-05 | Wallet, inventory, rewards, redeemed voucher parity | PLANNED | CLUB-03, Casher ledger audit |
 | CLUB-06 | Campus, MED and Corporate affiliations | PLANNED | CLUB-04, organization model |
