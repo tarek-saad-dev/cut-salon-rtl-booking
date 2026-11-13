@@ -90,3 +90,11 @@ These files do NOT self-update. Each new task/PR must explicitly include documen
 - **Tests/CI:** NOT YET VERIFIED.
 - **Production impact:** None. No merge/deploy.
 - **Next:** Verify generated PR/exact head + tests, request independent review, update TASK_TRACKER, and seek approval before merge.
+
+
+### 2026-11-13 (Africa/Cairo) — CLUB-03 — Separate Casher security gate
+- **Issue:** https://github.com/tarek-saad-dev/casher/issues/243
+- **Scope:** Read-only source audit and phased remediation of verified-customer sessions/authorization for private loyalty, store and reward API paths.
+- **Reason:** Public CUT CLUB page can proceed independently; personalized wallet, redemption and identity are gated on real customer auth and server-side tenant-aware authorization.
+- **Status:** ISSUE OPEN / PLANNED, no code PR or deployment.
+- **Next:** Security design/negative tests; coordinate website auth BFF contract. Do not use POS employee session as customer session.
