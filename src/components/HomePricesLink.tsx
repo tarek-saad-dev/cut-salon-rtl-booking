@@ -6,8 +6,8 @@ export default function HomePricesLink() {
       <div className="container relative z-10 px-5 text-center md:px-8">
         <p className="font-display text-xs tracking-[0.3em] text-cut-bronze">CUT SALON</p>
         <h2 className="mt-4 text-4xl font-black md:text-6xl">اكتشف أسعار وخدمات Cut Salon</h2>
-        <a href="/prices" className="mt-8 inline-flex min-h-12 items-center justify-center bg-cut-ivory px-7 font-bold text-cut-black transition hover:bg-cut-warm-beige focus:outline-none focus-visible:ring-2 focus-visible:ring-cut-bronze focus-visible:ring-offset-4 focus-visible:ring-offset-cut-black">
-          عرض قائمة الأسعار
+        <a href="/services" className="mt-8 inline-flex min-h-12 items-center justify-center bg-cut-ivory px-7 font-bold text-cut-black transition hover:bg-cut-warm-beige focus:outline-none focus-visible:ring-2 focus-visible:ring-cut-bronze focus-visible:ring-offset-4 focus-visible:ring-offset-cut-black">
+          استكشف الخدمات والأسعار
         </a>
       </div>
     </section>

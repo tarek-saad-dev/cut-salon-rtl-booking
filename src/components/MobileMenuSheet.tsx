@@ -18,7 +18,7 @@ type NavLink = {
 
 const MENU_LINKS: NavLink[] = [
   { key: "home", href: "/" },
-  { key: "services", href: "/#services" },
+  { key: "services", href: "/services" },
   { key: "prices", href: "/prices" },
   { key: "barbers", href: "/#barbers" },
   { key: "branches", href: "/#branches" },

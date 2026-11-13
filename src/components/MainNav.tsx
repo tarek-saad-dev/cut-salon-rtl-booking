@@ -13,7 +13,7 @@ const DESKTOP_NAV_LINKS: {
   isClub?: boolean;
 }[] = [
   { label: "home", href: "/" },
-  { label: "services", href: "/#services" },
+  { label: "services", href: "/services" },
   { label: "prices", href: "/prices" },
   { label: "barbers", href: "/#barbers" },
   { label: "branches", href: "/#branches" },
