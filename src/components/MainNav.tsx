@@ -17,6 +17,7 @@ const DESKTOP_NAV_LINKS: {
   { label: "prices", href: "/prices" },
   { label: "barbers", href: "/#barbers" },
   { label: "branches", href: "/#branches" },
+  { label: "clubAbout", href: "/cut-club" },
   { label: "account", href: "/client" },
   { label: "loyalty", href: "/client/loyalty", isClub: true },
 ];

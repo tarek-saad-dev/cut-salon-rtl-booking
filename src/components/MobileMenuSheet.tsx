@@ -22,6 +22,7 @@ const MENU_LINKS: NavLink[] = [
   { key: "prices", href: "/prices" },
   { key: "barbers", href: "/#barbers" },
   { key: "branches", href: "/#branches" },
+  { key: "clubAbout", href: "/cut-club" },
   { key: "booking", href: "/book" },
   {
     key: "appointments",
