@@ -65,3 +65,16 @@ Once a week (or after any milestone) summarize:
 - next 3 highest-priority actions
 
 These files do NOT self-update. Each new task/PR must explicitly include documentation maintenance; otherwise the snapshot will become stale.
+
+
+### 2026-11-13 23:xx (Africa/Cairo) — DOC-01 — Documentation PR created
+- **Owner / actor:** ChatGPT via GitHub connector (documentation-only change)
+- **Issue:** https://github.com/tarek-saad-dev/cut-salon-rtl-booking/issues/35
+- **Branch:** codex/issue-35
+- **PR:** https://github.com/tarek-saad-dev/cut-salon-rtl-booking/pull/36 (draft)
+- **Status:** IN_PROGRESS → PR_OPEN
+- **Changed:** README, PROJECT_CONTRACT, MASTER_ROADMAP, TASK_TRACKER, DECISION_LOG, WORK_LOG, TASK_TEMPLATE under docs/website-program/
+- **Tests:** NOT RUN (documentation-only; no app source changed)
+- **Code review:** NOT YET VERIFIED
+- **Production impact:** NONE; no merge, deploy or customer data change
+- **Next action:** Review doc content and links against current GitHub, then explicit approval to merge. Keep tracker current whenever any future task changes state.
