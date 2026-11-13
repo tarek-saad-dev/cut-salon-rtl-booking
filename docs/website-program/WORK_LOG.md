@@ -78,3 +78,15 @@ These files do NOT self-update. Each new task/PR must explicitly include documen
 - **Code review:** NOT YET VERIFIED
 - **Production impact:** NONE; no merge, deploy or customer data change
 - **Next action:** Review doc content and links against current GitHub, then explicit approval to merge. Keep tracker current whenever any future task changes state.
+
+
+### 2026-11-13 (Africa/Cairo) — CLUB-00 — CUT CLUB Sprint 01 kickoff
+- **Owner / actor:** ChatGPT as GitHub control-plane operator
+- **Issue:** https://github.com/tarek-saad-dev/cut-salon-rtl-booking/issues/37
+- **Contract:** The public site stays `/`, public Club introduction is `/cut-club`, private `/club` is deferred until authenticated.
+- **Scope:** Real server-readable public Club landing; entry navigation; mobile/desktop design; sitemap, metadata and test assertions; no customer data or wallet.
+- **Control command:** EXECUTE #37 pushed to codex-control, commit `e8376a6a5dd80503e18f4296a0ad3fa1ca369c77`.
+- **Status:** Implementation requested; workflow completion and generated PR **NOT VERIFIED** at this entry.
+- **Tests/CI:** NOT YET VERIFIED.
+- **Production impact:** None. No merge/deploy.
+- **Next:** Verify generated PR/exact head + tests, request independent review, update TASK_TRACKER, and seek approval before merge.
