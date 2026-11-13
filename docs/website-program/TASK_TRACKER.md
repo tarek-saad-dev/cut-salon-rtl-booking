@@ -17,7 +17,7 @@
 | REL-02 | Combined local SEO + VPS mitigation release | **PR_OPEN / WAITING REVIEW & APPROVAL** | [#31](https://github.com/tarek-saad-dev/cut-salon-rtl-booking/issues/31) open | [#32](https://github.com/tarek-saad-dev/cut-salon-rtl-booking/pull/32) draft, unmerged | Review exact head / CI / safe deploy checklist |
 | SEO-04 | Indexable services & prices, GEO content structure | **ISSUE OPEN; EXECUTE requested, run result not verified** | [#33](https://github.com/tarek-saad-dev/cut-salon-rtl-booking/issues/33) open | No verified PR at snapshot | Check automation run / new PR, then tests & review |
 | CLUB-01 | Website public/private routing and auth contract | **PLANNED; ISSUE OPEN** | [#34](https://github.com/tarek-saad-dev/cut-salon-rtl-booking/issues/34) open | No verified PR at snapshot | Scope secure auth & /club layout before implementation |
-| DOC-01 | Contract, roadmap, tracker and work log | **IN_PROGRESS — docs branch; PR pending snapshot** | [#35](https://github.com/tarek-saad-dev/cut-salon-rtl-booking/issues/35) open | codex/issue-35 | Verify docs, open draft PR, await approval |
+| DOC-01 | Contract, roadmap, tracker and work log | **PR_OPEN — docs-only draft; not reviewed/merged** | [#35](https://github.com/tarek-saad-dev/cut-salon-rtl-booking/issues/35) open | [#36](https://github.com/tarek-saad-dev/cut-salon-rtl-booking/pull/36) draft, codex/issue-35 | Review docs content/status; get approval before merge |
 
 ## Future backlog (not started / not on production)
 
