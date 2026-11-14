@@ -31,6 +31,36 @@ SEO uses `publicPageMetadata('/cut-club', ...)` with unique canonical/social cop
 The sitemap adds only `/cut-club` to the four baseline URLs. Existing private
 and booking-inner-step noindex tests continue to run.
 
+## 2026-11-14 — GitHub-hosted browser validation after fixes
+
+This entry supersedes the older **unresolved browser smoke** conclusion below,
+which describes the previous locked-down Codex workspace, not the later CI run.
+
+- Responsive navigation adjustment: the full desktop nav now starts at `xl`
+  (1280px); mobile navigation remains available below that width. The mobile
+  bottom sheet uses a constrained flex layout with an internally scrollable
+  link region, avoiding clipping on short viewports.
+- Added `e2e/cut-club-responsive.spec.ts`, dedicated Playwright config and
+  `.github/workflows/cut-club-responsive.yml` for actual browser checks.
+- First GitHub browser run [43534892161](https://github.com/tarek-saad-dev/cut-salon-rtl-booking/actions/runs/43534892161)
+  failed before tests during Chromium installation; no code failure was shown.
+- Switched to the GitHub runner's installed Google Chrome. The next
+  [browser run 43535177890](https://github.com/tarek-saad-dev/cut-salon-rtl-booking/actions/runs/43535177890)
+  **PASSED** at code HEAD `b3d4a93b4be9873616f06d1a9f0a6909b4de67ad`.
+  Its Chromium-channel browser step, production build, dependency install and
+  real desktop/mobile automated smoke all succeeded.
+- The Playwright check covers 360×640, 390×844, 768×1024, 1024×768 and
+  1440×900; mobile and desktop navigation visibility, AR/EN public Club links,
+  short-screen scrolling to the final account link, open/close with Escape,
+  horizontal overflow and visible booking/pricing destinations.
+- The standard site CI at the same code head was separately initiated; consult
+  the [PR checks](https://github.com/tarek-saad-dev/cut-salon-rtl-booking/pull/38/checks)
+  for its current result instead of assuming it passed.
+- This is **automated real-browser verification**, not a human screenshot/design
+  approval or an assertion of SEO indexing/production rollout.
+- Independent exact-head re-review was requested; outcome not yet verified at
+  this documentation update. No merge or production deploy.
+
 ## FIX_FINDINGS attempt — `pr-38-fix-findings-1`
 
 Checked out and confirmed reviewed HEAD
