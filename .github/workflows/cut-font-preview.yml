@@ -1,0 +1,48 @@
+name: CUT Salon Isolated Font + Browser Rehearsal
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - src/app/layout.tsx
+      - src/app/globals.css
+      - src/lib/__tests__/vpsFontBuildGate.test.ts
+      - e2e/cut-font-isolated-smoke.spec.ts
+      - playwright.font-preview.config.ts
+      - .github/workflows/cut-font-preview.yml
+
+permissions:
+  contents: read
+
+jobs:
+  isolated-release-font-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      # No VPS, Casher, booking, OTP or staging credentials are supplied.
+      CI: "true"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - name: Install exact lockfile dependencies
+        run: npm ci
+      - name: Check Linux Chrome is installed
+        run: google-chrome --version
+      - name: Run font-regression test without external services
+        run: npx vitest run src/lib/__tests__/vpsFontBuildGate.test.ts
+      - name: Build production application in isolated runner
+        run: npm run build
+      - name: Smoke local read-only pages under blocked external browser network
+        run: npx playwright test --config playwright.font-preview.config.ts
+      - name: Preserve read-only browser screenshot and traces
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cut-font-preview-readonly-evidence
+          path: |
+            test-results/**
+            playwright-report/**
+          if-no-files-found: ignore
