@@ -76,7 +76,7 @@ export default function MainNav() {
     <>
       {/* Desktop navigation only — mobile uses GlobalMobileNav */}
       <div
-        className="hidden w-full shrink-0 lg:block"
+        className="hidden w-full shrink-0 xl:block"
         style={{ height: "var(--cut-campaign-bar-height, 0px)" }}
         aria-hidden
       />
@@ -84,7 +84,7 @@ export default function MainNav() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.45, ease: "easeOut" }}
-        className="cut-nav-glass sticky top-[var(--cut-campaign-bar-height,0px)] z-50 hidden w-full transition-[top] duration-200 lg:block"
+        className="cut-nav-glass sticky top-[var(--cut-campaign-bar-height,0px)] z-50 hidden w-full transition-[top] duration-200 xl:block"
         dir={dir}
       >
         <div className="mx-auto grid h-[76px] max-w-[1760px] grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-4 px-[clamp(20px,4vw,72px)]">
