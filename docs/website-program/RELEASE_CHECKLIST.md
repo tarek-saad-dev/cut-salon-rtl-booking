@@ -29,6 +29,14 @@ In this system, a human merge to `main` may automatically trigger VPS production
 - [Casher staging schema preflight #259](https://github.com/tarek-saad-dev/casher/pull/259) is documentation only. Its read-only SQL metadata checklist does not approve migrations or OTP issuance. Actual B2 remains dependent on tenant identity, provider policy, transaction-safe persistence and formal DRVO migration approval.
 - Never assume a previous independent review remains sufficient after a PR head or main base changes. Revalidate CI, review and the **actual resulting deployment** separately. Owner sign-off applies to each specific PR/head.
 
+## Preview deployment check
+
+- Check both the required GitHub Actions test/build run **and** the current PR head's external preview deployment status, separately. A green `npm run build` CI result does not imply Vercel Preview deployment succeeded.
+- When Vercel Preview fails, inspect its own failure evidence and compare the same commit with earlier previews; a failed status must not be silently called green. Fix or retry the preview and verify its new status before declaring all release checks clear.
+- Vercel Preview and the production VPS `deploy-vps.yml` are distinct deploy mechanisms. Confirm which one serves `cutsaloon.com` and never assume a Preview failure or success proves the production VPS outcome.
+- A documentation-only PR must be reviewed against its **exact head** even when runtime files are untouched. Revalidate CI, metadata and deployment result after any commit added to retry a flaky preview.
+- A user-approved merge applies to the specified PR and scope only. Subsequent PRs need their own approval, since each merge can trigger a new VPS deploy.
+
 ## Before *every* approved website PR merge
 
 - [ ] Confirm current main SHA and head SHA match review and latest successful checks
