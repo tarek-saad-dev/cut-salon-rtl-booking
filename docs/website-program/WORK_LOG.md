@@ -107,3 +107,11 @@ These files do NOT self-update. Each new task/PR must explicitly include documen
 - **Documentation:** Work-tracker update is on draft [PR #36](https://github.com/tarek-saad-dev/cut-salon-rtl-booking/pull/36) only. Do not claim it is in main.
 - **Production:** No merge, no deploy, no customer data mutation. Website / remains public landing, /club access remains unimplemented for verified members.
 - **Next:** Check review results + CI; verify external Casher automation; reconcile doc PR #36 and later PRs, obtain explicit owner approval before any merge.
+
+
+### 2026-11-14 (Africa/Cairo) — CUT CLUB parallel build checkpoint
+- **PR #38** https://github.com/tarek-saad-dev/cut-salon-rtl-booking/pull/38 — public Club page. CI passed original head; independent review flagged missing read-only responsive smoke. FIX_FINDINGS command completed and updated verification documentation; browser/server blocked (EPERM). PR remains draft, NOT READY_FOR_TAREK. Re-review on new head required.
+- **PR #39** https://github.com/tarek-saad-dev/cut-salon-rtl-booking/pull/39 — docs-only architecture, route/cache/session plan and six follow-up issue templates. Published from #34; independent review requested, no implementation routes or customer data.
+- **Casher PR #251** https://github.com/tarek-saad-dev/casher/pull/251 — security Sprint A on branch feat/cut-club-customer-auth-249: isolated signed subject verification module, negative-test file and source-based audit. General CI succeeded on an intermediate head; targeted new Vitest file is not currently part of required CI selection. Newest doc adjustments require updated verification. Sensitive legacy routes remain unchanged; no assertion of full security remediation.
+- **Explicit blocker:** The private /club Wallet and redemption features cannot proceed to production until Casher #243 auth/session/endpoint authorization and OTP provider/cookie/revocation contracts have passed independent security review.
+- **Production:** No merge or deploy occurred as part of these CUT CLUB tasks. Owner approval remains required.
