@@ -37,20 +37,34 @@ In this system, a human merge to `main` may automatically trigger VPS production
 - A documentation-only PR must be reviewed against its **exact head** even when runtime files are untouched. Revalidate CI, metadata and deployment result after any commit added to retry a flaky preview.
 - A user-approved merge applies to the specified PR and scope only. Subsequent PRs need their own approval, since each merge can trigger a new VPS deploy.
 
-## CUT CLUB secure purchase maintenance bundle — NOT YET AUTHORIZED
+## CUT CLUB secure purchase maintenance bundle — BUSINESS PAUSE APPROVED, DEPLOY BLOCKED
 
 A staged customer-safety rollout now spans TWO independent repositories:
 
 - **[Website PR #49](https://github.com/tarek-saad-dev/cut-salon-rtl-booking/pull/49)**: catalog-only Store, disabled `شراء الآن` and no browser purchase POST. CI passed.
 - **[Casher PR #266](https://github.com/tarek-saad-dev/casher/pull/266)**: denies anonymous legacy `store/buy` and `store/open-box` POST/OPTIONS unconditionally; no Coins/voucher mutation. CI passed.
-- **Impact:** If shipped before secure replacement, customers lose the legacy reward purchase/open-box capability. **Must** obtain explicit owner/business and security acceptance and update customer support guidance. Never silently treat this as a normal bugfix.
+- **Owner decision (2026-11-14):** Temporary suspension of legacy reward purchases and Mystery Box opening is approved *in principle*. **NO PR merge, deployment, live Coins mutation or security bypass was authorized.** A separate exact-PR/head owner go/no-go is required after the VPS and customer-impact review. Ensure support guidance before rollout.
 - **Sequence:** no website merge until real VPS deploy/rollback is verified under #26. Then schedule a **coordinated** owner-approved UI-then-backend rollout (or separately approve a secure replacement first) to avoid a working-looking button against a denied mutation. Read-only smoke must prove both layers while avoiding real customer transactions.
-- **Critical limitation:** None of these PRs secures existing legacy personal GETs. Customer auth parent [Casher #243](https://github.com/tarek-saad-dev/casher/issues/243) remains OPEN; do not enable /club Wallet or claim full CUT CLUB privacy.
+- **Critical limitation:** None of these PRs secures existing legacy personal GETs. Customer auth parent [Casher #243](https://github.com/tarek-saad-dev/casher/issues/243) and [sensitive GET audit #269](https://github.com/tarek-saad-dev/casher/issues/269) remain OPEN; do not enable /club Wallet or claim full CUT CLUB privacy.
 - **Rollback:** Reverting the Casher guard can re-expose unauthenticated financial writes. Require explicit security-owner approval and safe replacement before restoring it.
+
+### Secure pause staging-only acceptance matrix (all unchecked)
+
+- [ ] Read-only and privacy-safe estimate of affected legacy buy/open-box usage, outstanding vouchers and support volume; no customer identifiers exported
+- [ ] Source map of **all** purchase/open-box entrypoints, including website mobile, external/deep-link clients and any distinct inventory open-box UI
+- [ ] Website #49: 360/768/1440px, AR/EN, keyboard and screen reader — clear unavailable state, no active purchase/open-box controls, no fake success or Coins changes, booking/catalog unaffected
+- [ ] Website #49: browser network assertions that user clicks and helper calls never issue a financial POST; no PII logging
+- [ ] Casher #266: synthetic staging only — POST and OPTIONS 403 with no CORS grant under arbitrary clientId, body, credentials and staff session; no ledger/inventory/voucher service called or data changes
+- [ ] Private GET routes separately audited/guarded under #269; no launch of account-private Wallet from legacy clientId-only reads
+- [ ] Website VPS #26: true toolchain parity, clean isolated build, atomic switch/rollback contract, operator inspection of protected deploy script, read-only server diagnostics, supported font parity
+- [ ] Exact combined candidate head CI + independent security review + approved production deploy rehearsal and customer-support wording
+- [ ] Explicit new owner go/no-go on both exact PR heads; stop on any failure; preserve balances and redemption history
+
+**Suggested customer support language (not published):** «شراء المكافآت وفتح صناديق الجوائز متوقفين مؤقتًا لحد ما نكمّل تأمين حسابات CUT CLUB. تقدر تتصفح المكافآت، وهنعلن عن رجوع الميزة بعد التحقق.» Do not promise a restoration date. Never roll back to unverified clientId-based financial writes.
 
 ## Font mitigation isolated visual evidence (not VPS sign-off)
 
-[Website PR #30](https://github.com/tarek-saad-dev/cut-salon-rtl-booking/pull/30) passed [Linux/Chrome isolated smoke #43551173607](https://github.com/tarek-saad-dev/cut-salon-rtl-booking/actions/runs/43551173607) and [standard CI #43551173705](https://github.com/tarek-saad-dev/cut-salon-rtl-booking/actions/runs/43551173705) on the same commit, with screenshot artifact and blocked external browser network. This narrows the font/build risk but **cannot prove** external VPS script, effective server toolchain, atomic switch or rollback. #26 remains BLOCKED.
+[Website PR #30](https://github.com/tarek-saad-dev/cut-salon-rtl-booking/pull/30) passed [Linux/Chrome isolated smoke #43562885704](https://github.com/tarek-saad-dev/cut-salon-rtl-booking/actions/runs/43562885704) and [standard CI #43562885664](https://github.com/tarek-saad-dev/cut-salon-rtl-booking/actions/runs/43562885664) on updated commit `c3f3a4e2` with blocked external browser network; current Vercel commit status also succeeded. The release checker now supports **exactly** the approved four-page Phase 1 sitemap or six-page branch-SEO sitemap, rejecting partial/duplicate/extra URLs via fixture tests. This narrows the source/build risk but **cannot prove** external VPS script, effective server toolchain, atomic switch or rollback. #26 remains BLOCKED.
 
 ## Before *every* approved website PR merge
 
