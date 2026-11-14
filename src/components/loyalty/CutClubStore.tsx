@@ -1,151 +1,84 @@
 "use client";
 
 import { useState } from "react";
+import { Store } from "lucide-react";
 import { StoreCategories, type StoreCategory } from "./StoreCategories";
 import { StoreItemCard } from "./StoreItemCard";
-import { PurchaseDrawer, PurchaseSuccessToast } from "./PurchaseDrawer";
-import { AnimatePresence } from "framer-motion";
 import type { StoreItem } from "./storeApi";
-import { purchaseStoreItem } from "./storeApi";
-import { Store } from "lucide-react";
 
+/**
+ * Legacy CUT CLUB store is CATALOG-ONLY while verified customer purchase APIs
+ * are unavailable. This component deliberately never opens a purchase drawer,
+ * calls a purchase endpoint, changes Coins or shows a success notification.
+ *
+ * NOTE: this is UI safety, NOT authentication. Existing personal GET APIs
+ * remain blocked on Casher security #243.
+ */
 export function CutClubStore({
   items,
   currentBalance,
-  clientId,
-  onPurchased,
 }: {
   items: StoreItem[];
   currentBalance: number;
+  /** Kept for callers during migration; never used as a purchase authority. */
   clientId: string | number;
+  /** No mutation callback is invoked while purchasing is unavailable. */
   onPurchased: (itemId: number, voucherCode?: string, newBalance?: number) => void;
 }) {
   const [activeCategory, setActiveCategory] = useState<StoreCategory>("all");
-  const [selectedItem, setSelectedItem] = useState<StoreItem | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [showSuccess, setShowSuccess] = useState(false);
-  const [purchasedItemName, setPurchasedItemName] = useState("");
-
   const filteredItems = items.filter((item) => {
     if (activeCategory === "all") return true;
     if (activeCategory === "popular") return item.isFeatured;
     if (activeCategory === "services") return item.itemType === "FREE_SERVICE";
     if (activeCategory === "discounts") return item.itemType === "DISCOUNT_AMOUNT" || item.itemType === "DISCOUNT_PERCENT";
     if (activeCategory === "vip") return item.itemType === "VIP_UPGRADE";
-    if (activeCategory === "exclusive") return item.itemType === "MYSTERY_BOX" || item.itemType === "DOUBLE_POINTS" || item.itemType === "BONUS_POINTS";
+    if (activeCategory === "exclusive") return ["MYSTERY_BOX", "DOUBLE_POINTS", "BONUS_POINTS"].includes(item.itemType);
     return true;
   });
 
-  const handlePurchase = async () => {
-    if (!selectedItem) {
-      console.error("[handlePurchase] selectedItem is null");
-      return;
-    }
-
-    console.log("[handlePurchase] selectedItem:", selectedItem);
-    console.log("[handlePurchase] selectedItem.itemId:", selectedItem.itemId, "type:", typeof selectedItem.itemId);
-
-    const itemId = Number(selectedItem.itemId);
-    if (!Number.isFinite(itemId) || itemId <= 0) {
-      setError("معرف العنصر غير صالح");
-      console.error("[handlePurchase] Invalid itemId:", selectedItem.itemId);
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      const result = await purchaseStoreItem(clientId, itemId);
-      setPurchasedItemName(selectedItem.nameAr);
-      setSelectedItem(null);
-      setShowSuccess(true);
-      setTimeout(() => setShowSuccess(false), 4000);
-      onPurchased(selectedItem.itemId, result.purchase?.voucherCode, result.newBalance);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "حدث خطأ غير متوقع");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
-    <div dir="rtl">
-      <div className="mb-8">
-        <div className="flex items-center gap-3 mb-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-cut-gold/10 border border-cut-gold/20">
-            <Store className="h-5 w-5 text-cut-gold" />
-          </div>
-          <div>
-            <h2 className="text-2xl font-black text-cut-ivory flex items-center gap-2">
-              🏪 CUT CLUB STORE
-            </h2>
-            <p className="text-cut-ivory/50 text-sm mt-0.5">
-              استخدم CUT Coins الخاصة بك لشراء مزايا وخدمات حصرية
-            </p>
-          </div>
+    <section dir="rtl" aria-label="CUT CLUB Store">
+      <div className="mb-6 flex items-center gap-3">
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-cut-gold/20 bg-cut-gold/10">
+          <Store className="h-5 w-5 text-cut-gold" aria-hidden />
+        </div>
+        <div>
+          <h2 className="text-2xl font-black text-cut-ivory">CUT CLUB STORE</h2>
+          <p className="mt-1 text-sm text-cut-ivory/60">تصفح مكافآت CUT CLUB وأسعارها بالنقاط</p>
         </div>
       </div>
 
-      <StoreCategories
-        activeCategory={activeCategory}
-        onCategoryChange={setActiveCategory}
-      />
+      <div
+        role="status"
+        className="mb-6 rounded-xl border border-cut-bronze/35 bg-cut-bronze/10 px-5 py-4 text-sm text-cut-ivory"
+      >
+        <p className="font-black">الشراء واستبدال النقاط غير متاحين مؤقتًا</p>
+        <p className="mt-1 text-cut-ivory/70">
+          بنجهز تسجيل دخول آمن لحماية رصيد CUT Coins والمكافآت.
+          تقدر تتصفح العروض دلوقتي، لكن مش هيتخصم أي رصيد من حسابك هنا.
+        </p>
+      </div>
+
+      <StoreCategories activeCategory={activeCategory} onCategoryChange={setActiveCategory} />
 
       {filteredItems.length === 0 ? (
-        <div
-          className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-12 text-center"
-          dir="rtl"
-        >
-          <div className="flex justify-center mb-4">
-            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white/[0.05] border border-white/[0.08]">
-              <Store className="h-8 w-8 text-cut-ivory/20" />
-            </div>
-          </div>
-          <p className="text-cut-ivory/40 text-sm mb-2">لا توجد عناصر متاحة حالياً</p>
-          <p className="text-cut-gold/60 text-xs font-bold">
-            قريباً سيتم إضافة مكافآت ومزايا حصرية
-          </p>
+        <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-10 text-center">
+          <p className="text-sm text-cut-ivory/60">لا توجد مكافآت للعرض حاليًا.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {filteredItems.map((item) => (
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          {filteredItems.map(item => (
             <StoreItemCard
               key={item.itemId}
               item={item}
               currentBalance={currentBalance}
-              onPurchase={() => setSelectedItem(item)}
+              onPurchase={() => undefined}
+              purchaseDisabled
               featured={item.isFeatured}
             />
           ))}
         </div>
       )}
-
-      <AnimatePresence>
-        {selectedItem && (
-          <PurchaseDrawer
-            item={selectedItem}
-            currentBalance={currentBalance}
-            onConfirm={handlePurchase}
-            onCancel={() => {
-              setSelectedItem(null);
-              setError(null);
-            }}
-            loading={loading}
-            error={error}
-          />
-        )}
-      </AnimatePresence>
-
-      <AnimatePresence>
-        {showSuccess && (
-          <PurchaseSuccessToast
-            itemName={purchasedItemName}
-            onClose={() => setShowSuccess(false)}
-          />
-        )}
-      </AnimatePresence>
-    </div>
+    </section>
   );
 }
