@@ -178,3 +178,8 @@ endpoints pass read-only verification. No READY_FOR_TAREK claim is made here.
   checker now rejects every nonempty Disallow directive; re-review reported no
   remaining material findings. This does not replace exact finalized-head
   control-plane REVIEW or establish release readiness.
+
+
+## 2026-11-14 — Source-level font regression CI gate
+
+Added `src/lib/__tests__/vpsFontBuildGate.test.ts` to CI so the candidate must not reintroduce `next/font/google` Alexandria at build time, while preserving the local display font and UI font fallback. This test exercises **repository source only**, not the actual VPS Node toolchain, protected deploy script, SSH credentials, atomic cutover, recovery or browser font parity. The real production deploy remains **BLOCKED** until independent authorized VPS evidence establishes safe build/rollback and confirms issue #26 is resolved. Do not merge based solely on this source test.
