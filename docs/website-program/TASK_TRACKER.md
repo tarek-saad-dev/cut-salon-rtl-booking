@@ -1,6 +1,6 @@
 # CUT Salon Website Program — Task Tracker
 
-> Status snapshot: 2026-11-13 23:40 Africa/Cairo (approximate planning snapshot).
+> Status snapshot: 2026-11-14 (Africa/Cairo); GitHub PR/workflow snapshot, not an automatic live feed.
 > IMPORTANT: This file is a **human-maintained snapshot**, not a live GitHub status widget.
 > Refresh the linked Issues/PRs before acting. State transition needs evidence, not assumptions.
 > Source repo: https://github.com/tarek-saad-dev/cut-salon-rtl-booking
@@ -16,16 +16,16 @@
 | SEO-03 | Local Gleem & Camp Caesar pages | **PR_OPEN / NOT RELEASED** | [#28](https://github.com/tarek-saad-dev/cut-salon-rtl-booking/issues/28) open | [#29](https://github.com/tarek-saad-dev/cut-salon-rtl-booking/pull/29) draft; included in #32 | Resolve branch NAP, avoid duplicate merge |
 | REL-02 | Combined local SEO + VPS mitigation release | **PR_OPEN / WAITING REVIEW & APPROVAL** | [#31](https://github.com/tarek-saad-dev/cut-salon-rtl-booking/issues/31) open | [#32](https://github.com/tarek-saad-dev/cut-salon-rtl-booking/pull/32) draft, unmerged | Review exact head / CI / safe deploy checklist |
 | SEO-04 | Indexable services & prices, GEO content structure | **ISSUE OPEN; EXECUTE requested, run result not verified** | [#33](https://github.com/tarek-saad-dev/cut-salon-rtl-booking/issues/33) open | No verified PR at snapshot | Check automation run / new PR, then tests & review |
-| CLUB-00 | CUT CLUB Sprint 01 public `/cut-club` + nav + SEO tests | **ISSUE OPEN; EXECUTE requested, PR not verified** | [#37](https://github.com/tarek-saad-dev/cut-salon-rtl-booking/issues/37) open | codex-control command e8376a6 (no verified PR) | Check runner finalization, review scoped PR; keep wallet gated |
-| CLUB-01 | Website public/private routing and auth contract | **PLANNED; ISSUE OPEN** | [#34](https://github.com/tarek-saad-dev/cut-salon-rtl-booking/issues/34) open | No verified PR at snapshot | Scope secure auth & /club layout before implementation |
+| CLUB-00 | CUT CLUB Sprint 01 public `/cut-club` + nav + SEO tests | **IN_REVIEW; DRAFT PR; CI PASSED, browser smoke pending** | [#37](https://github.com/tarek-saad-dev/cut-salon-rtl-booking/issues/37) open | [PR #38](https://github.com/tarek-saad-dev/cut-salon-rtl-booking/pull/38), [CI 43532288264](https://github.com/tarek-saad-dev/cut-salon-rtl-booking/actions/runs/43532288264), [Review request](https://github.com/tarek-saad-dev/cut-salon-rtl-booking/actions/runs/43532355283) | Verify exact-head independent review and viewport smoke; no merge/deploy |
+| CLUB-01 | Website public/private routing and auth contract | **IN_PROGRESS REQUESTED; RUN/PR NOT VERIFIED** | [#34](https://github.com/tarek-saad-dev/cut-salon-rtl-booking/issues/34) open | codex-control EXECUTE request commit 514706b; no verified PR at snapshot | Check workflow and draft PR; do not expose real /club user data until backend auth ready |
 | DOC-01 | Contract, roadmap, tracker and work log | **PR_OPEN — docs-only draft; not reviewed/merged** | [#35](https://github.com/tarek-saad-dev/cut-salon-rtl-booking/issues/35) open | [#36](https://github.com/tarek-saad-dev/cut-salon-rtl-booking/pull/36) draft, codex/issue-35 | Review docs content/status; get approval before merge |
 
 ## Future backlog (not started / not on production)
 
 | ID | Proposed deliverable | State | Depends on |
 |---|---|---|---|
-| CLUB-02 | Public /cut-club SEO explainer + Join flow | PLANNED | CLUB-01 |
-| CLUB-03 | Verified customer authentication + authorized Casher member APIs | **SECURITY ISSUE OPEN; NOT IMPLEMENTED** | [Casher #243](https://github.com/tarek-saad-dev/casher/issues/243); CLUB-01 |
+| CLUB-02 | Public /cut-club SEO explainer and booking CTA (no signup until verified) | IN_REVIEW; [PR #38](https://github.com/tarek-saad-dev/cut-salon-rtl-booking/pull/38) | CLUB-00; sign-in separately gated |
+| CLUB-03 | Verified customer authentication + authorized Casher member APIs | **SECURITY ISSUE OPEN; Sprint A EXECUTE requested, no PR verified** | [Casher #243](https://github.com/tarek-saad-dev/casher/issues/243), [Sprint A #249](https://github.com/tarek-saad-dev/casher/issues/249); CLUB-01 |
 | CLUB-04 | Private /club Home + tier + CUT ID | PLANNED | CLUB-03 |
 | CLUB-05 | Wallet, inventory, rewards, redeemed voucher parity | PLANNED | CLUB-03, Casher ledger audit |
 | CLUB-06 | Campus, MED and Corporate affiliations | PLANNED | CLUB-04, organization model |
