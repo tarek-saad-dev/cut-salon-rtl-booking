@@ -26,7 +26,7 @@
 |---|---|---|---|
 | CLUB-02 | Public /cut-club SEO explainer and booking CTA (no signup until verified) | IN_REVIEW; [PR #38](https://github.com/tarek-saad-dev/cut-salon-rtl-booking/pull/38) | CLUB-00; sign-in separately gated |
 | CLUB-03 | Verified customer authentication + authorized Casher member APIs | **SECURITY PR_OPEN; isolated verifier + API audit; sensitive routes UNFIXED** | [Casher #243](https://github.com/tarek-saad-dev/casher/issues/243), [Sprint A #249](https://github.com/tarek-saad-dev/casher/issues/249), [PR #251](https://github.com/tarek-saad-dev/casher/pull/251); CLUB-01 |
-| CLUB-04 | Private /club Home + tier + CUT ID | PLANNED | CLUB-03 |
+| CLUB-04 | Safe /club shell, layout and noindex gates (NO member data yet) | **EXECUTE REQUESTED; run/PR not verified** | [Website #40](https://github.com/tarek-saad-dev/cut-salon-rtl-booking/issues/40), [Casher #249](https://github.com/tarek-saad-dev/casher/issues/249) |
 | CLUB-05 | Wallet, inventory, rewards, redeemed voucher parity | PLANNED | CLUB-03, Casher ledger audit |
 | CLUB-06 | Campus, MED and Corporate affiliations | PLANNED | CLUB-04, organization model |
 | CLUB-07 | Referrals, challenges, campaign rules, budget controls | PLANNED | CLUB-05/06 |
