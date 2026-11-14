@@ -18,7 +18,3 @@ export const clubModules = [
   { id: 'challenge-progress', title: 'التحديات' },
   { id: 'memberships', title: 'العضويات' },
 ] as const satisfies readonly ClubModuleDefinition[];
-
-export function isClubPath(pathname: string | null): boolean {
-  return pathname === '/club' || Boolean(pathname?.startsWith('/club/'));
-}
