@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { isClubPath } from "@/lib/club/registry";
+import { isClubPath } from "@/lib/club/path";
 import MainNav from "./MainNav";
 import GlobalMobileNav from "./GlobalMobileNav";
 import CampCaesarCampaign from "./campaign/CampCaesarCampaign";
