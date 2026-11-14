@@ -98,3 +98,12 @@ These files do NOT self-update. Each new task/PR must explicitly include documen
 - **Reason:** Public CUT CLUB page can proceed independently; personalized wallet, redemption and identity are gated on real customer auth and server-side tenant-aware authorization.
 - **Status:** ISSUE OPEN / PLANNED, no code PR or deployment.
 - **Next:** Security design/negative tests; coordinate website auth BFF contract. Do not use POS employee session as customer session.
+
+
+### 2026-11-14 (Africa/Cairo) — CUT CLUB parallel sprints #38 / #34 / Casher #249
+- **Website Sprint 01:** [PR #38](https://github.com/tarek-saad-dev/cut-salon-rtl-booking/pull/38) created from `codex/issue-37` head `2840b04ea1c44c03b3cae541af4301e17b6fe5f7`. [CI run](https://github.com/tarek-saad-dev/cut-salon-rtl-booking/actions/runs/43532288264) reported success; project local workspace test report says 493 tests/typecheck passed, but sandbox browser smoke + local build unresolved. Request for **exact-head independent review** sent through [control workflow](https://github.com/tarek-saad-dev/cut-salon-rtl-booking/actions/runs/43532355283). **NOT READY TO MERGE** at this entry.
+- **Website Sprint 02 architecture:** [Issue #34](https://github.com/tarek-saad-dev/cut-salon-rtl-booking/issues/34) scope clarified to no real wallet and separate secure customer identity, EXECUTE control request submitted (commit `514706b44c546f28dca5aa1fede54ea7e37e0970`). Run/PR completion NOT VERIFIED at this entry.
+- **Casher Security Sprint A:** Created [Issue #249](https://github.com/tarek-saad-dev/casher/issues/249) under parent [#243](https://github.com/tarek-saad-dev/casher/issues/243), requesting API inventory, separate verified subject primitives and negative tests without changing production endpoints. Posted `DRVO_ACTION: EXECUTE` comment. External router execution/PR not verified at this entry.
+- **Documentation:** Work-tracker update is on draft [PR #36](https://github.com/tarek-saad-dev/cut-salon-rtl-booking/pull/36) only. Do not claim it is in main.
+- **Production:** No merge, no deploy, no customer data mutation. Website / remains public landing, /club access remains unimplemented for verified members.
+- **Next:** Check review results + CI; verify external Casher automation; reconcile doc PR #36 and later PRs, obtain explicit owner approval before any merge.
