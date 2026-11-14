@@ -44,6 +44,29 @@ and finalizer verification remain required. This execution is not READY_FOR_TARE
 GitHub-hosted finalizer owns branch `codex/issue-40` and draft PR against `main`;
 the runner does not push, merge or deploy.
 
+## 2026-11-14 GitHub-hosted production and browser validation
+
+The earlier EPERM / missing-dependencies report below describes the initial
+sandboxed agent attempt. Subsequent **GitHub Actions** verified the committed
+implementation (through head `d9123d4da4aa1a39eb33e23eb8928e0619bebe4d`):
+
+- [Standard site CI 43535826965](https://github.com/tarek-saad-dev/cut-salon-rtl-booking/actions/runs/43535826965):
+  **SUCCESS** (install, site tests and build).
+- [Private shell Playwright 43535827101](https://github.com/tarek-saad-dev/cut-salon-rtl-booking/actions/runs/43535827101):
+  **SUCCESS** (Google Chrome, production build and real browser assertions).
+- Browser checks ran at 375×812, 768×1024 and 1440×900, validating the
+  restricted notice and disabled sensitive navigation. They verified private
+  `Cache-Control: ...no-store`, `X-Robots-Tag: noindex`, robots metadata,
+  absence from sitemap, no client/member API requests, no localStorage/query
+  bypass, and responsive horizontal fit.
+- Workflow uploads screenshots/traces via a CI artifact to enable further human
+  review. Browser pass is not proof that a login or customer API is secure.
+- Also separated the pure client-safe `isClubPath` helper into
+  `src/lib/club/path.ts`, distinct from the server-side shell feature gate.
+- The [exact-head independent review](https://github.com/tarek-saad-dev/cut-salon-rtl-booking/pull/41)
+  and explicit owner approval still govern release readiness. **No merge or
+  production deployment performed.**
+
 ## Verification evidence
 
 - `git diff --check`: passed.
