@@ -31,7 +31,36 @@ SEO uses `publicPageMetadata('/cut-club', ...)` with unique canonical/social cop
 The sitemap adds only `/cut-club` to the four baseline URLs. Existing private
 and booking-inner-step noindex tests continue to run.
 
-## Local evidence
+## FIX_FINDINGS attempt — `pr-38-fix-findings-1`
+
+Checked out and confirmed reviewed HEAD
+`2840b04ea1c44c03b3cae541af4301e17b6fe5f7` with a clean initial workspace.
+The supplied exact-head workflow reports standard `npm ci`, tests and build
+all exit 0; typecheck is skipped because no script exists. These results
+supersede the historical build failures below, but do not prove responsive
+navigation behavior.
+
+This fix attempt installed dependencies with `npm ci --offline --ignore-scripts`
+(exit 0) and reran `src/components/CutClubNavigation.test.tsx`: **4 tests passed**.
+These component tests cover AR/EN destinations and menu closing, not layout.
+
+Responsive browser verification remains **blocked and incomplete**:
+
+- `npm run dev -- --hostname 127.0.0.1 --port 3038` exited 1 with
+  `listen EPERM: operation not permitted 127.0.0.1:3038`.
+- Headless Google Chrome with `--no-sandbox`, `--disable-dev-shm-usage`,
+  an explicit `/tmp` user-data directory and XDG config/cache directories
+  exited 133: `setsockopt: Operation not permitted` in Crashpad socket setup.
+
+No browser assertions or screenshots were obtained. The 1024px AR/EN desktop
+fit and short-screen mobile reachability finding remains unresolved. No layout
+regression or successful smoke is claimed, and no speculative layout change was
+made. Run the pending smoke below in an environment that permits a local HTTP
+listener and browser, record results against the candidate head, and request
+independent REVIEW again. **Not READY_FOR_TAREK.** No production requests or
+business-data mutations were performed during this attempt.
+
+## Historical implementation evidence
 
 - Dependency setup: offline install using `/tmp/cut-npm-cache` failed ENOTCACHED;
   `npm ci --ignore-scripts --offline` succeeded (555 packages). This recovery
