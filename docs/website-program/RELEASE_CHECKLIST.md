@@ -37,6 +37,21 @@ In this system, a human merge to `main` may automatically trigger VPS production
 - A documentation-only PR must be reviewed against its **exact head** even when runtime files are untouched. Revalidate CI, metadata and deployment result after any commit added to retry a flaky preview.
 - A user-approved merge applies to the specified PR and scope only. Subsequent PRs need their own approval, since each merge can trigger a new VPS deploy.
 
+## CUT CLUB secure purchase maintenance bundle — NOT YET AUTHORIZED
+
+A staged customer-safety rollout now spans TWO independent repositories:
+
+- **[Website PR #49](https://github.com/tarek-saad-dev/cut-salon-rtl-booking/pull/49)**: catalog-only Store, disabled `شراء الآن` and no browser purchase POST. CI passed.
+- **[Casher PR #266](https://github.com/tarek-saad-dev/casher/pull/266)**: denies anonymous legacy `store/buy` and `store/open-box` POST/OPTIONS unconditionally; no Coins/voucher mutation. CI passed.
+- **Impact:** If shipped before secure replacement, customers lose the legacy reward purchase/open-box capability. **Must** obtain explicit owner/business and security acceptance and update customer support guidance. Never silently treat this as a normal bugfix.
+- **Sequence:** no website merge until real VPS deploy/rollback is verified under #26. Then schedule a **coordinated** owner-approved UI-then-backend rollout (or separately approve a secure replacement first) to avoid a working-looking button against a denied mutation. Read-only smoke must prove both layers while avoiding real customer transactions.
+- **Critical limitation:** None of these PRs secures existing legacy personal GETs. Customer auth parent [Casher #243](https://github.com/tarek-saad-dev/casher/issues/243) remains OPEN; do not enable /club Wallet or claim full CUT CLUB privacy.
+- **Rollback:** Reverting the Casher guard can re-expose unauthenticated financial writes. Require explicit security-owner approval and safe replacement before restoring it.
+
+## Font mitigation isolated visual evidence (not VPS sign-off)
+
+[Website PR #30](https://github.com/tarek-saad-dev/cut-salon-rtl-booking/pull/30) passed [Linux/Chrome isolated smoke #43551173607](https://github.com/tarek-saad-dev/cut-salon-rtl-booking/actions/runs/43551173607) and [standard CI #43551173705](https://github.com/tarek-saad-dev/cut-salon-rtl-booking/actions/runs/43551173705) on the same commit, with screenshot artifact and blocked external browser network. This narrows the font/build risk but **cannot prove** external VPS script, effective server toolchain, atomic switch or rollback. #26 remains BLOCKED.
+
 ## Before *every* approved website PR merge
 
 - [ ] Confirm current main SHA and head SHA match review and latest successful checks
