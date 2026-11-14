@@ -115,3 +115,12 @@ These files do NOT self-update. Each new task/PR must explicitly include documen
 - **Casher PR #251** https://github.com/tarek-saad-dev/casher/pull/251 — security Sprint A on branch feat/cut-club-customer-auth-249: isolated signed subject verification module, negative-test file and source-based audit. General CI succeeded on an intermediate head; targeted new Vitest file is not currently part of required CI selection. Newest doc adjustments require updated verification. Sensitive legacy routes remain unchanged; no assertion of full security remediation.
 - **Explicit blocker:** The private /club Wallet and redemption features cannot proceed to production until Casher #243 auth/session/endpoint authorization and OTP provider/cookie/revocation contracts have passed independent security review.
 - **Production:** No merge or deploy occurred as part of these CUT CLUB tasks. Owner approval remains required.
+
+
+### 2026-11-14 (Africa/Cairo) — CLUB-04 — Private member shell Sprint 02 requested
+- **Issue:** https://github.com/tarek-saad-dev/cut-salon-rtl-booking/issues/40
+- **Control command:** EXECUTE #40 via `codex-control`, commit `878b5d5fe0b61373793bdc65696ab981821446fe`.
+- **Scope:** /club responsive shell, default-OFF release gate, noindex/private cache policy, navigation and mock-free loading/unavailable presentation components.
+- **Security restriction:** No verified customer auth exists yet in production. No real wallet, customer data, redemption or member action permitted. Casher #243/#249 remains a hard dependency.
+- **Status:** Execution requested; workflow completion and PR are NOT VERIFIED here.
+- **Next:** Verify generated branch/PR, tests and independent review. Keep disabled until security/rollout gates met and owner approves merge/deploy.
