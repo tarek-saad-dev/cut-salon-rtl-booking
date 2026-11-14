@@ -114,6 +114,13 @@ export function projectAuthorizedMember(
   const src = result.data;
   const viewer = authenticated.data;
 
+  // Two explicitly available representations must agree; never display
+  // conflicting point balances as if either were authoritative.
+  if (src.member.coins !== null && src.wallet.coins !== null &&
+      src.member.coins !== src.wallet.coins) {
+    return { ok: false, reason: "INVALID_PAYLOAD" };
+  }
+
   if (!matches(src.owner, viewer)) return { ok: false, reason: "WRONG_OWNER" };
   if (src.wallet.vouchers?.some(v => !matches(v.owner, viewer))) {
     return { ok: false, reason: "WRONG_OWNER" };
