@@ -22,6 +22,13 @@ In this system, a human merge to `main` may automatically trigger VPS production
 
 **Do not** batch merge PRs without checking downstream base and refreshed tests. Separate unrelated PR #32 (font + branch pages), #33 (services/prices) must be handled by their own owner-approved release process; rebase and reconcile sitemap/routes if those merge first.
 
+## Integration risks and new isolated PRs (2026-11-14)
+
+- **Verified common-file overlap:** [Release candidate #32](https://github.com/tarek-saad-dev/cut-salon-rtl-booking/pull/32) and public CUT CLUB [#38](https://github.com/tarek-saad-dev/cut-salon-rtl-booking/pull/38) BOTH edit `src/app/sitemap.ts`, `src/app/globals.css` and `src/lib/__tests__/seo.test.ts`. Review branches, fonts and sitemap inclusion together. They are individually mergeable against old main; that does **not** prove either will be conflict-free once the other merges. Rebase/reconcile and re-run all relevant exact-head tests BEFORE the second merge. Preserve branch URLs and the public CUT CLUB URL without duplicate entries.
+- [Member view widgets #43](https://github.com/tarek-saad-dev/cut-salon-rtl-booking/pull/43) are an independent **isolated UI component library**, not the member Dashboard activation. They have no API calls, no route imports and no real member data; their release can be considered separately, but consuming them is BLOCKED by Casher security #243.
+- [Casher staging schema preflight #259](https://github.com/tarek-saad-dev/casher/pull/259) is documentation only. Its read-only SQL metadata checklist does not approve migrations or OTP issuance. Actual B2 remains dependent on tenant identity, provider policy, transaction-safe persistence and formal DRVO migration approval.
+- Never assume a previous independent review remains sufficient after a PR head or main base changes. Revalidate CI, review and the **actual resulting deployment** separately. Owner sign-off applies to each specific PR/head.
+
 ## Before *every* approved website PR merge
 
 - [ ] Confirm current main SHA and head SHA match review and latest successful checks
