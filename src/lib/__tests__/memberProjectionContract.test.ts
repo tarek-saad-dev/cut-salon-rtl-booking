@@ -8,7 +8,8 @@ const tenant = "c9413a3e-dc87-4a70-bc6e-d00d76f9066b";
 const otherTenant = "e1413a3e-dc87-4a70-bc6e-d00d76f9066b";
 const viewer = { tenantId: tenant, customerId: 101 };
 const owner = { ...viewer };
-const source = () => ({
+// Test-only mutable payload: deliberately permits malformed records for negative tests.
+const source = (): any => ({
   owner: { ...owner },
   member: {
     displayName: "عضو اختبار",
