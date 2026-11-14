@@ -104,6 +104,13 @@ describe("CUT CLUB future verified member BFF projection", () => {
     }
   });
 
+  it("rejects two contradictory known Coins values rather than picking a balance", () => {
+    const s = source();
+    s.member.coins = 30;
+    s.wallet.coins = 25;
+    expect(projectAuthorizedMember(s, viewer)).toEqual({ ok: false, reason: "INVALID_PAYLOAD" });
+  });
+
   it("never mixes CUT Coins and EGP credit or accepts non-EGP currency", () => {
     const s = source();
     s.wallet.promoCredit.currency = "USD";
