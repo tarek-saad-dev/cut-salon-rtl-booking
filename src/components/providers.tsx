@@ -6,7 +6,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { usePathname } from "next/navigation";
-import { isClubPath } from "@/lib/club/registry";
+import { isClubPath } from "@/lib/club/path";
 import { useState } from "react";
 import { BranchProvider } from "@/context/BranchContext";
 import { LanguageProvider } from "@/context/LanguageContext";
