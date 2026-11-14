@@ -5,6 +5,8 @@ import { ThemeProvider } from "next-themes";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { usePathname } from "next/navigation";
+import { isClubPath } from "@/lib/club/registry";
 import { useState } from "react";
 import { BranchProvider } from "@/context/BranchContext";
 import { LanguageProvider } from "@/context/LanguageContext";
@@ -13,6 +15,12 @@ import { BookingControllerProvider } from "@/context/BookingController";
 import BookingPrefetchBoot from "@/components/BookingPrefetchBoot";
 
 export function Providers({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  if (isClubPath(pathname)) return <>{children}</>;
+  return <PublicProviders>{children}</PublicProviders>;
+}
+
+function PublicProviders({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(() => new QueryClient());
 
   return (
