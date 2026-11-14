@@ -57,6 +57,15 @@ Additional acceptance:
 - [ ] VPS #26 atomic build/rollback and exact-head CI/review verified
 - [ ] Separate explicit owner approval for each coordinated production merge
 
+## CUT CLUB 2.0 Sprint — server privacy & new public catalog (DRAFT ONLY)
+
+- [Casher Draft #275](https://github.com/tarek-saad-dev/casher/pull/275) quarantines **eight legacy private GET/OPTIONS routes** (loyalty, inventory, referrals, personalized store). CI [#43565454518](https://github.com/tarek-saad-dev/casher/actions/runs/43565454518) passed on exact head. All old customer ID-based member APIs remain unusable after such a deployment; website Draft #51/#53 and customer support must be coordinated. **Do not merge alone**.
+- [Casher Draft #279](https://github.com/tarek-saad-dev/casher/pull/279) separately quarantines unverified phone-only `/api/client/lookup` and `/api/public/client/profile` reads. **Potential guest booking dependencies require source/runtime evidence** before a production pause. Tests/review must be checked at latest head; no deployment approved.
+- [Casher Draft #277](https://github.com/tarek-saad-dev/casher/pull/277) introduces only a strict **browse-only public catalog DTO** with no wallet, user identity, voucher or Coins mutation. **It does not publish a new API route**. A verified tenant-to-salon catalog mapping is required before any public catalog is served.
+- [Casher Draft #259](https://github.com/tarek-saad-dev/casher/pull/259) now has a non-networked, metadata-only staging SQL generator and fixture tests; [CI #43565810207](https://github.com/tarek-saad-dev/casher/actions/runs/43565810207) passed. **No real staging schema has been inspected, no SQL or migration executed, and OTP is not live.** Session issuer/OTP provider/cost, durable storage and customer↔tenant mapping remain blocked under #257/#243.
+
+**Mandatory release order:** prove website VPS #26 atomic deploy/rollback; audit all booking and old client callers; verify Casher tenant auth + synthetic 2-account/2-tenant staging denies; preserve all Coins/vouchers; publish an owner-reviewed customer maintenance state; separately approve each exact PR head; deploy UI before or in coordination with fail-closed backend; never roll back to unsecured account or financial routes. No staging or production customer mutation used to verify the above source work.
+
 ## CUT CLUB secure purchase maintenance bundle — BUSINESS PAUSE APPROVED, DEPLOY BLOCKED
 
 A staged customer-safety rollout now spans TWO independent repositories:
