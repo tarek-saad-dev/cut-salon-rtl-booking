@@ -149,3 +149,10 @@ These files do NOT self-update. Each new task/PR must explicitly include documen
 - **Casher #251:** Signed subject verifier/audit is still a separate draft requiring security review; no legacy sensitive API is protected by it yet.
 - **Next:** Complete PR #256 CI/security review, confirm availability of the OTP transport/tenant binding and durable migration plan, get explicit owner approval for the site merge sequence before production changes.
 - **Actual production:** No merge, no production deploy, no customer or booking mutation.
+
+
+### 2026-11-14 (Africa/Cairo) — OTP Sprint B1 CI passed + B2 security gate
+- **Casher [PR #256](https://github.com/tarek-saad-dev/casher/pull/256)** head `467f78fce1f489d80a4d91d1c4adc11fbbafd952`: [required CI #43540426515](https://github.com/tarek-saad-dev/casher/actions/runs/43540426515) **SUCCESS**, including dedicated OTP/domain tests and production build. Await independent security review; PR remains draft and unmerged.
+- **Casher [Issue #257](https://github.com/tarek-saad-dev/casher/issues/257)** opened for durable rate-limited/atomic OTP challenge + revocable session repository, protected staging migration and tenant identity matching. Blocked on B1 security review and OTP provider/account matching decisions.
+- **Documentation:** Added `RELEASE_CHECKLIST.md` with sequential owner-approval merge order and read-only verification/rollback; linked from README. Latest docs PR #36 exact-head CI and independent review must be rechecked after subsequent tracker updates.
+- **Safety:** No live OTP sends, financial/customer mutations, production database reads, merge or deployment were performed. Parent security [#243](https://github.com/tarek-saad-dev/casher/issues/243) remains OPEN because legacy identifier-based sensitive APIs have not been secured.
