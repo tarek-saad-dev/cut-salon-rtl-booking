@@ -5,6 +5,8 @@ const sizes = [
   { width: 390, height: 844 },
   { width: 768, height: 1024 },
   { width: 1024, height: 768 },
+  { width: 1279, height: 800 },
+  { width: 1280, height: 800 },
   { width: 1440, height: 900 },
 ];
 
@@ -66,22 +68,34 @@ for (const viewport of sizes) {
       await expect(header).toBeVisible();
       const links = header.locator('nav[aria-label] a[role="menuitem"]');
       await expect(links).toHaveCount(8);
-      const actions = header.locator('div[aria-label="إجراءات الحساب والحجز"]');
-      await expect(actions).toBeVisible();
-      const actionsBox = await actions.boundingBox();
-      expect(actionsBox).not.toBeNull();
 
-      for (const link of await links.all()) {
-        await expect(link).toBeInViewport();
-        const box = await link.boundingBox();
-        expect(box).not.toBeNull();
-        if (box && actionsBox) {
-          expect(hasIntersection(box, actionsBox), "desktop menu must not overlap booking/actions").toBe(false);
+      // Check BOTH language widths at the exact first desktop breakpoint,
+      // including overlap with account/booking actions and the brand logo.
+      for (const language of ["ar", "en"] as const) {
+        if (language === "en") {
+          await header.locator('button[aria-label="Switch to English"]').click();
+          await expect(header.getByRole("menuitem", { name: "About CUT CLUB" })).toBeVisible();
+        }
+        const actions = header.locator(
+          language === "ar"
+            ? 'div[aria-label="إجراءات الحساب والحجز"]'
+            : 'div[aria-label="Booking and account actions"]'
+        );
+        await expect(actions).toBeVisible();
+        const actionBox = await actions.boundingBox();
+        const logoBox = await header.locator('a[href="/"]').first().boundingBox();
+        expect(actionBox).not.toBeNull();
+        expect(logoBox).not.toBeNull();
+        for (const link of await links.all()) {
+          await expect(link).toBeInViewport();
+          const linkBox = await link.boundingBox();
+          expect(linkBox).not.toBeNull();
+          if (linkBox && actionBox && logoBox) {
+            expect(hasIntersection(linkBox, actionBox), language + " links must not overlap actions").toBe(false);
+            expect(hasIntersection(linkBox, logoBox), language + " links must not overlap logo").toBe(false);
+          }
         }
       }
-
-      await header.locator('button[aria-label="Switch to English"]').click();
-      await expect(header.getByRole("menuitem", { name: "About CUT CLUB" })).toBeVisible();
     }
     await assertNoHorizontalOverflow(page);
   });
