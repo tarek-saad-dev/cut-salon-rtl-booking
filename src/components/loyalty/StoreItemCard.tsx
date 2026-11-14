@@ -19,17 +19,19 @@ export function StoreItemCard({
   currentBalance,
   onPurchase,
   featured = false,
+  purchaseDisabled = false,
 }: {
   item: StoreItem;
   currentBalance: number;
   onPurchase: () => void;
   featured?: boolean;
+  purchaseDisabled?: boolean;
 }) {
   const status = item.status;
   const canAfford = status?.canAfford ?? currentBalance >= item.priceCoins;
   const isTierLocked = status?.tierLocked ?? false;
   const isOutOfStock = status?.stockStatus === "OUT_OF_STOCK";
-  const canPurchase = canAfford && !isTierLocked && !isOutOfStock;
+  const canPurchase = !purchaseDisabled && canAfford && !isTierLocked && !isOutOfStock;
   const isLocked = !canAfford && !isTierLocked;
   const shortage = item.priceCoins - currentBalance;
 
@@ -118,7 +120,7 @@ export function StoreItemCard({
           </span>
         </div>
 
-        {isLocked && !canAfford && shortage > 0 && (
+        {!purchaseDisabled && isLocked && !canAfford && shortage > 0 && (
           <div className="mb-4">
             <div className="flex items-center justify-between mb-2">
               <span className="text-cut-ivory/40 text-[10px] font-medium">
@@ -141,7 +143,11 @@ export function StoreItemCard({
           </div>
         )}
 
-        {canPurchase ? (
+        {purchaseDisabled ? (
+          <button type="button" disabled aria-label="الشراء غير متاح مؤقتًا" className="w-full cursor-not-allowed rounded-xl border border-white/10 bg-white/[0.04] py-2.5 text-xs font-semibold text-cut-ivory/50">
+            الشراء متوقف لحماية حسابك
+          </button>
+        ) : canPurchase ? (
           <button
             onClick={onPurchase}
             className="w-full rounded-xl bg-gradient-to-b from-cut-gold to-cut-gold/80 py-2.5 text-sm font-black text-cut-black transition-all hover:brightness-110 active:scale-[0.97] shadow-[0_4px_12px_rgba(164,136,121,0.25)]"
