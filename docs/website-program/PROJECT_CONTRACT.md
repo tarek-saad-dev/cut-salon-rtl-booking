@@ -1,6 +1,6 @@
 # CUT Salon Website & CUT CLUB — Project Contract
 
-> Contract ID: CUT-WEB-001 | Version: 1.0 | Recorded: 2026-11-13
+> Contract ID: CUT-WEB-001 | Version: 1.1 candidate | Recorded: 2026-11-13; responsive/security additions 2026-11-14
 > Status: **Working direction agreed in project discussion; implementation gates are binding until explicitly revised.**
 > This is a living product/engineering agreement, not a legal contract. Changes require a recorded decision and linked Issue/PR.
 
@@ -41,6 +41,15 @@
 - Mobile-first، RTL عربي أساسي والإنجليزية مدعومة، روابط مفهومة وCore Web Vitals.
 - الصور تكون واقعية ومرخصة، وندعم lazy-loading خارج أول شاشة وتقليل JavaScript غير الضروري.
 - أي قسم يمكن إخفاؤه إذا لم يوجد محتوى صحيح دون خلق SEO thin pages.
+
+### Responsive implementation rules (PR #38 / #41; not merged yet)
+
+- Public Desktop navigation uses the `xl` layout at **1280px and above**. Under 1280px, use the compact/mobile navigation. Keep its CSS height offsets and any campaign/hero spacing matched to the same breakpoint; avoid mixing `lg` and `xl` for opposing navs.
+- A short-screen bottom-sheet menu MUST provide a bounded internal scrolling region so the final account link remains reachable, including when the page behind it is scroll-locked.
+- Browser acceptance for public navigation at minimum: **360×640, 390×844, 768×1024, 1024×768, 1279×800, 1280×800, 1440×900**. At the desktop boundary, test AR/EN links for overlap with brand/logo and booking actions.
+- The restricted private Club shell uses its own member layout and mobile-friendly five-item nav, but must **never** create verified identity from query `clientId`, phone lookup or editable localStorage.
+- At least one real-browser CI check must verify rendered viewport layout, menu reachability and no horizontal overflow; DOM/unit assertions alone do not demonstrate responsive behavior.
+- Before member data: `/club` is a feature-gated **restricted notice only**. Private response `noindex`/`no-store` must be tested over HTTP and cannot substitute for authorization.
 
 ## 4) CUT CLUB UX Contract
 
