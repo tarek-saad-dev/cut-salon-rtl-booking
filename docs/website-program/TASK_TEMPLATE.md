@@ -67,7 +67,7 @@ What user problem, local-search gap or measurable business goal does this solve?
 - Blockers:
 - Next action:
 - Approval required:
-- TASK_TRACKER updated? 
+- TASK_TRACKER updated?
 - WORK_LOG appended?
 - DECISION_LOG updated if necessary?
 
