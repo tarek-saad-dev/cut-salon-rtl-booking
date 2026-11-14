@@ -134,8 +134,6 @@ export async function fetchStore(
   );
   const data: unknown = await res.json().catch(() => null);
 
-  console.log("[fetchStore] Response:", { status: res.status, data });
-
   if (
     !res.ok ||
     (data !== null &&
@@ -145,54 +143,19 @@ export async function fetchStore(
     throw new Error(getErrorMessage(data, "فشل تحميل المتجر"));
   }
 
-  // Validate items have ids
-  if (data && typeof data === "object" && "items" in data) {
-    const items = (data as StoreResponse).items;
-    console.log("[fetchStore] Items count:", items?.length);
-    if (items && items.length > 0) {
-      console.log("[fetchStore] First item:", items[0]);
-      console.log("[fetchStore] First itemId:", items[0].itemId, "type:", typeof items[0].itemId);
-    }
-  }
-
   return data as StoreResponse;
 }
 
+/**
+ * Legacy client-side purchases are disabled until a verified CUT CLUB customer
+ * session + tenant-authorized Casher mutation API exists (Casher #243/#264).
+ * This is UX defense-in-depth, not an alternative to server auth.
+ */
 export async function purchaseStoreItem(
-  clientId: string | number,
-  itemId: number,
+  _clientId: string | number,
+  _itemId: number,
 ): Promise<PurchaseResponse> {
-  // Validate itemId before sending
-  if (itemId === undefined || itemId === null || Number.isNaN(itemId)) {
-    throw new Error("itemId غير صالح");
-  }
-
-  const body = JSON.stringify({ itemId: Number(itemId) });
-  console.log("[purchaseStoreItem] Sending:", { clientId, itemId, body });
-
-  const res = await fetch(
-    buildUrl(
-      `/api/public/client/store/buy?clientId=${encodeURIComponent(clientId)}`,
-    ),
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body,
-    },
-  );
-
-  const data: unknown = await res.json().catch(() => null);
-  console.log("[purchaseStoreItem] Response:", { status: res.status, data });
-
-  if (
-    !res.ok ||
-    (data !== null &&
-      typeof data === "object" &&
-      (data as Record<string, unknown>).ok === false)
-  ) {
-    throw new Error(getErrorMessage(data, "فشل الشراء"));
-  }
-  return data as PurchaseResponse;
+  throw new Error("الشراء متوقف مؤقتًا لحين تأمين حساب CUT CLUB.");
 }
 
 export async function fetchClientInventory(
