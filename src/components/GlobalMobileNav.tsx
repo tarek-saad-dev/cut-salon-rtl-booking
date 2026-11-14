@@ -84,7 +84,7 @@ export default function GlobalMobileNav() {
   return (
     <>
       <header
-        className={`fixed inset-x-0 z-[55] transition-[background-color,backdrop-filter,border-color] duration-200 lg:hidden ${navBg}`}
+        className={`fixed inset-x-0 z-[55] transition-[background-color,backdrop-filter,border-color] duration-200 xl:hidden ${navBg}`}
         style={{
           top: "var(--cut-campaign-bar-height, 0px)",
           paddingTop: "env(safe-area-inset-top, 0px)",
@@ -136,7 +136,7 @@ export default function GlobalMobileNav() {
       {/* Flow spacer — skipped when a hero pulls content under the fixed bar */}
       {!hasHeroOverlay ? (
         <div
-          className="pointer-events-none shrink-0 lg:hidden"
+          className="pointer-events-none shrink-0 xl:hidden"
           aria-hidden
           style={{ height: "var(--cut-mobile-nav-total, 3.25rem)" }}
         />
