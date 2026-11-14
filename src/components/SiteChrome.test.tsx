@@ -7,12 +7,12 @@ vi.mock("./MainNav", () => ({ default: () => <div>Main navigation</div> }));
 vi.mock("./GlobalMobileNav", () => ({ default: () => <div>Mobile navigation</div> }));
 vi.mock("./campaign/CampCaesarCampaign", () => ({ default: () => <div>Camp Caesar campaign</div> }));
 describe("site chrome", () => {
-  it.each(["/offers/october-333", "/offers/october-333/success", "/offers/another"])('excludes chrome on %s', pathname => {
+  it.each(["/club", "/club/wallet", "/club/me", "/offers/october-333", "/offers/october-333/success", "/offers/another"])('excludes chrome on %s', pathname => {
     route.pathname = pathname;
     const { container } = render(<SiteChrome />);
     expect(container).toBeEmptyDOMElement();
   });
-  it.each(["/", "/book", "/offers-other"])('preserves chrome on %s', pathname => {
+  it.each(["/", "/book", "/client/loyalty", "/club-other", "/offers-other"])('preserves chrome on %s', pathname => {
     route.pathname = pathname;
     render(<SiteChrome />);
     expect(screen.getByText("Main navigation")).toBeInTheDocument();

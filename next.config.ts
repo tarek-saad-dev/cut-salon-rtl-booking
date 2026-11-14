@@ -21,6 +21,13 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
+        source: "/club/:path*",
+        headers: [
+          { key: "Cache-Control", value: "private, no-store, max-age=0, must-revalidate" },
+          { key: "X-Robots-Tag", value: "noindex, nofollow" },
+        ],
+      },
+      {
         // Public booking entry must never be frozen for a year in the CDN/RSC cache.
         source: "/book",
         headers: [
