@@ -17,6 +17,9 @@
 | D-010 | 2026-11-13 | PROPOSED | Modular monolith with events/rules, not early microservices | Fits current Next.js/Casher footprint and operations capacity |
 | D-011 | 2026-11-13 | NEEDS_VERIFICATION | Release candidate PR #32 integrates local pages and font mitigation; #27 is separate | Review/CI/deploy must be checked against exact versions and VPS |
 | D-012 | 2026-11-13 | PROPOSED | No SEO/GEO content generation without real useful content, verified prices and schema matching page | No fabricated claims or search ranking guarantees |
+| D-013 | 2026-11-14 | PROPOSED pending PR #38 merge | Public compact navigation below 1280px; desktop from 1280px; campaign/nav offset CSS matches breakpoint | Prevent 1024px menu crowding and fixed-header clipping; [browser CI](https://github.com/tarek-saad-dev/cut-salon-rtl-booking/actions/runs/43536011993) passed mobile/tablet/desktop including boundary AR/EN |
+| D-014 | 2026-11-14 | PROPOSED pending PR #41 merge | Private /club shell defaults to restricted notice even when flag enabled; noindex/no-store and isolated providers | Prevent inferred auth, fake wallet balances and cross-account leaks; [browser CI](https://github.com/tarek-saad-dev/cut-salon-rtl-booking/actions/runs/43536081160) passed headers/mobile/desktop |
+| D-015 | 2026-11-14 | ACTIVE verification gate | Responsive browser CI and exact-head independent review required for new public/member navigation changes | Component tests alone did not cover mobile sheet scroll/desktop overlap; do not claim deployed without owner merge approval |
 
 ## Unresolved questions / approval gates
 
