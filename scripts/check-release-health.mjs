@@ -1,7 +1,14 @@
 import { pathToFileURL } from 'node:url';
 
 const canonicalOrigin = 'https://cutsaloon.com';
-const publicPaths = ['/', '/prices', '/book', '/offers/november-protein'];
+const phase1PublicPaths = ['/', '/prices', '/book', '/offers/november-protein'];
+const branchPaths = ['/branches/gleem', '/branches/camp-caesar'];
+function isExactCanonicalSitemap(urls, paths) {
+  const expected = paths.map(path => `${canonicalOrigin}${path}`);
+  return urls.length === expected.length &&
+    new Set(urls).size === urls.length &&
+    expected.every(url => urls.includes(url));
+}
 function requireHealthy(condition, message) {
   if (!condition) throw new Error(message);
 }
@@ -24,7 +31,7 @@ export async function checkReleaseHealth(base, { fetchImpl = fetch } = {}) {
     } else if (path === '/sitemap.xml') {
       requireHealthy(/(?:application|text)\/xml/i.test(type) && /<urlset\b[^>]*xmlns=["']http:\/\/www.sitemaps.org\/schemas\/sitemap\/0.9["']/i.test(body) && /<\/urlset>/.test(body), 'sitemap: expected XML sitemap urlset');
       const urls = [...body.matchAll(/<loc>\s*([^<]+)\s*<\/loc>/g)].map(match => match[1].trim());
-      requireHealthy(urls.length === publicPaths.length && publicPaths.every(path => urls.includes(`${canonicalOrigin}${path}`)), 'sitemap: expected exactly the Phase 1 canonical public URLs');
+      requireHealthy(isExactCanonicalSitemap(urls, phase1PublicPaths) || isExactCanonicalSitemap(urls, [...phase1PublicPaths, ...branchPaths]), 'sitemap: expected exactly the Phase 1 four or approved branch-SEO six canonical public URLs');
     } else {
       requireHealthy(/text\/plain/i.test(type) && /^User-agent:\s*\*\s*$/im.test(body) && /^Allow:\s*\/\s*$/im.test(body) && !/^Disallow:[ \t]*[^\s#]/im.test(body) && body.split(/\r?\n/).some(line => line.trim() === `Sitemap: ${canonicalOrigin}/sitemap.xml`), 'robots: expected crawl access and canonical sitemap');
     }
