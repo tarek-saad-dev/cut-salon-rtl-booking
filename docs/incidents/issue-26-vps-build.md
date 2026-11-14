@@ -18,8 +18,9 @@ changed: it is not in this workspace and production access is not authorized.
   not prove network, cache corruption, dependency mismatch or a Phase 1 regression.
 - The publication of the first attempt was rejected for workflow permissions
   ([41975725002](https://github.com/tarek-saad-dev/cut-salon-rtl-booking/actions/runs/41975725002)).
-  This reconstruction changes no `.github/workflows/**` file. The normal control
-  finalizer must publish the patch; this runner must not push or merge.
+  The initial reconstruction changed no `.github/workflows/**` file; later
+  follow-up work added `.github/workflows/cut-font-preview.yml` exclusively for
+  nonproduction CI/browser evidence. The workflow has NO deploy or VPS secrets.
 - Local runner: Node `v22.23.2`, npm `10.9.8`, locked Next `16.2.4`;
   package-lock SHA256 `a29f6183912e175ddc7309d7316d5e18040a5a9e11dd394c922b82bf86652c0e`.
   VPS Node/npm, actual checkout, dependency tree and cache history remain unknown.
@@ -164,7 +165,9 @@ endpoints pass read-only verification. No READY_FOR_TAREK claim is made here.
   blanket robots denial, empty HTML, HTTP/network failures and invalid targets.
 - One-off source check failed before and passed after removal of the Google
   layout import. This proves dependency removal only, not VPS root cause.
-- `git diff --check`: passed. Workflow files and package-lock remain unchanged.
+- The initial `git diff --check` passed; package-lock remained unchanged.
+  A separate later commit added an isolated, PR-only workflow, so the original
+  statement about workflow files no longer applies to the current branch.
 - First post-change build refused an existing lock after the interrupted baseline.
   The generated local `.next` directory was moved to `/tmp/issue26-baseline-next`
   and a fresh build started. This is local runner housekeeping, not evidence
@@ -183,3 +186,25 @@ endpoints pass read-only verification. No READY_FOR_TAREK claim is made here.
 ## 2026-11-14 — Source-level font regression CI gate
 
 Added `src/lib/__tests__/vpsFontBuildGate.test.ts` to CI so the candidate must not reintroduce `next/font/google` Alexandria at build time, while preserving the local display font and UI font fallback. This test exercises **repository source only**, not the actual VPS Node toolchain, protected deploy script, SSH credentials, atomic cutover, recovery or browser font parity. The real production deploy remains **BLOCKED** until independent authorized VPS evidence establishes safe build/rollback and confirms issue #26 is resolved. Do not merge based solely on this source test.
+
+
+## 2026-11-14 — Isolated Linux Chrome rehearsal added (current head)
+
+Current branch includes `.github/workflows/cut-font-preview.yml`,
+`e2e/cut-font-isolated-smoke.spec.ts`, and
+`playwright.font-preview.config.ts`. This is a **new CI workflow** in addition
+to the original source-level mitigation, so historical statements that no
+workflow file changed apply only to the first patch, NOT to this head.
+
+The [isolated Chrome run #43551173607](https://github.com/tarek-saad-dev/cut-salon-rtl-booking/actions/runs/43551173607)
+and [normal CI #43551173705](https://github.com/tarek-saad-dev/cut-salon-rtl-booking/actions/runs/43551173705)
+both passed on head `a3197835c116422e5f70952295c9789716e070bc`. Chrome ran
+six read-only checks at 360/768/1440px for home and pricing while blocking
+all non-local browser requests and preserving screenshots/traces.
+
+This proves **local Linux production-build and browser fallback rendering**,
+not VPS toolchain parity, production rollback safety, loaded Alexandria font
+metrics, or English font equality. Reviewer must visually inspect artifacts
+and compare Arabic/English typography before recommending release. Do not
+merge or deploy until issue #26 is independently resolved with actual VPS
+read-only evidence and owner approval.
