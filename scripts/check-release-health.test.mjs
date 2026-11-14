@@ -22,6 +22,33 @@ test('checks only the three public release endpoints with GET', async () => {
   const results = await checkReleaseHealth('http://127.0.0.1:3000', { fetchImpl: fetchFixture() });
   assert.equal(results.length, 3);
 });
+// Both canonical sitemap shapes are intentional: Phase 1 (four URLs)
+// and branch SEO Phase 3 (six URLs). Partial/extra/duplicate URLs fail closed.
+const phase1Paths = ['/', '/prices', '/book', '/offers/november-protein'];
+const branchPaths = ['/branches/gleem', '/branches/camp-caesar'];
+const sitemapWithPaths = paths =>
+  `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${paths.map(p => `<url><loc>${origin}${p}</loc></url>`).join('')}</urlset>`;
+const fixtureWithSitemap = paths => fetchFixture({ '/sitemap.xml': ['application/xml', sitemapWithPaths(paths)] });
+
+test('accepts the approved six-URL branch SEO sitemap without live requests', async () => {
+  const results = await checkReleaseHealth('http://127.0.0.1:3000', {
+    fetchImpl: fixtureWithSitemap([...phase1Paths, ...branchPaths]),
+  });
+  assert.equal(results.length, 3);
+});
+
+for (const [name, paths] of [
+  ['only one new branch (five URLs)', [...phase1Paths, branchPaths[0]]],
+  ['unexpected sixth URL', [...phase1Paths, branchPaths[0], '/branches/unknown']],
+  ['missing a Phase 1 URL despite six entries', [...phase1Paths.slice(1), ...branchPaths, '/unexpected']],
+  ['duplicate canonical URL', [...phase1Paths, phase1Paths[0]]],
+  ['extra canonical URL', [...phase1Paths, ...branchPaths, '/unexpected']],
+]) test(`rejects noncanonical sitemap: ${name}`, async () => {
+  await assert.rejects(checkReleaseHealth('http://127.0.0.1:3000', {
+    fetchImpl: fixtureWithSitemap(paths),
+  }));
+});
+
 for (const [name, change] of [
   ['HTML error disguised as sitemap', { '/sitemap.xml': ['text/html', '<html>Error</html>'] }],
   ['wrong sitemap origin', { '/sitemap.xml': ['application/xml', fixtures['/sitemap.xml'][1].replaceAll(origin, 'https://wrong.example')] }],
