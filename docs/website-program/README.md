@@ -14,6 +14,7 @@
 | [DECISION_LOG.md](DECISION_LOG.md) | سجل القرارات: لماذا اخترنا هذا الاتجاه؟ | كل قرار مؤثر أو إلغاء قرار |
 | [WORK_LOG.md](WORK_LOG.md) | سجل تسليمات متراكم، ملاحظات الاختبار والـ handoff | عند كل Sprint أو PR أو Deployment |
 | [TASK_TEMPLATE.md](TASK_TEMPLATE.md) | قالب لبدء أي مهمة جديدة بدون غموض | انسخ المحتوى عند فتح Issue جديدة |
+| [RELEASE_CHECKLIST.md](RELEASE_CHECKLIST.md) | ترتيب PRs وخطوات التحقق والرجوع قبل وبعد أي نشر | عند تجهيز Release أو تغيير الاعتماديات |
 
 ## ترتيب مصادر الحقيقة (الأهم عند التعارض)
 
