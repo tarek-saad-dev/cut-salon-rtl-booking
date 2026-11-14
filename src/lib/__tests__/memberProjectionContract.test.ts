@@ -1,3 +1,5 @@
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import {
   MEMBER_NO_STORE_HEADERS,
@@ -128,6 +130,24 @@ describe("CUT CLUB future verified member BFF projection", () => {
     b.wallet.vouchers = Array.from({ length: 101 }, (_, i) => ({ ...source().wallet.vouchers[0], id: "v-" + i }));
     expect(projectAuthorizedMember(b, viewer).ok).toBe(false);
     expect(projectAuthorizedMember({ ...source(), secret: "DO_NOT_EXPOSE_ME" }, viewer).ok).toBe(false);
+  });
+
+  it("preserves labels as text, never injected HTML, in a future React text child", () => {
+    const malicious = "<img src=x onerror=alert(1)>";
+    const s = source();
+    s.member.displayName = malicious;
+    s.wallet.vouchers[0].title = malicious;
+    const result = projectAuthorizedMember(s, viewer);
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw Error("synthetic projection should validate text");
+    // Validation is not HTML sanitization; safe React text rendering escapes it.
+    const html = renderToStaticMarkup(createElement("div", null,
+      result.value.member.displayName,
+      createElement("span", null, result.value.wallet.vouchers?.[0]?.title),
+    ));
+    expect(html).toContain("&lt;img");
+    expect(html).not.toContain("<img");
+    expect(html).toContain("onerror=alert(1)");
   });
 
   it("does not network, write cookies, read localStorage, or fabricate balances", () => {
