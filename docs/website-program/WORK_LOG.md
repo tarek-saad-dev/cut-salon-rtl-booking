@@ -140,3 +140,12 @@ These files do NOT self-update. Each new task/PR must explicitly include documen
 - **Casher customer security [PR #251](https://github.com/tarek-saad-dev/casher/pull/251):** Explicitly added the new negative test file into CI. The [run 43534517841](https://github.com/tarek-saad-dev/casher/actions/runs/43534517841) **SUCCESS**, including targeted session tests and build at `c022568`; later documentation clarification was committed and must be verified separately. No legacy sensitive API access was fixed in this PR.
 - **Documentation [PR #36](https://github.com/tarek-saad-dev/cut-salon-rtl-booking/pull/36):** Independent review found trailing whitespace in TASK_TEMPLATE; corrected. Final exact-head review needed after current tracker updates.
 - **Production:** No merge/deploy. No real user, booking, reward or invoice mutation.
+
+
+### 2026-11-14 (Africa/Cairo) — CUT CLUB release-readiness review and Security Sprint B1
+- **Website PR #36** https://github.com/tarek-saad-dev/cut-salon-rtl-booking/pull/36 (contract + tracker), **#39** (architecture), **#38** (public Club page), **#41** (restricted no-data member shell) each passed independent exact-head review and their required site CI/browser checks as evidenced in their PRs; marked **Ready for Review** on GitHub. They remain unmerged and undeployed, pending owner approval and merge-order rechecks.
+- **Proposed merge order, not executed:** #36 (documentation contract) → #39 (member architecture docs) → #38 (public SEO landing) → #41 (restricted /club shell). After each approved human merge, recheck next PR base/head and conflicts and deploy result; never assume a successful CI run is production verification.
+- **Casher #255 / PR #256:** New independent offline OTP challenge and revocable session domain + negative tests and dedicated CI, on `feat/cut-club-otp-domain-255`. No OTP delivery, DB, login endpoint, member API authorization or customer data. Parent security blocker [#243](https://github.com/tarek-saad-dev/casher/issues/243) remains OPEN.
+- **Casher #251:** Signed subject verifier/audit is still a separate draft requiring security review; no legacy sensitive API is protected by it yet.
+- **Next:** Complete PR #256 CI/security review, confirm availability of the OTP transport/tenant binding and durable migration plan, get explicit owner approval for the site merge sequence before production changes.
+- **Actual production:** No merge, no production deploy, no customer or booking mutation.
