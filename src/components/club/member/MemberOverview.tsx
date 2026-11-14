@@ -1,9 +1,10 @@
+import type { ReactNode } from "react";
 import type { MemberOverviewView, MemberSummary, MemberWallet, UpcomingVisit } from "./memberViewModels";
 import { formatCoins, formatEGPCredit, validProgress } from "./memberViewModels";
 
 const unavailable = "البيانات غير متاحة حاليًا";
 
-function Surface({ children, title }: Readonly<{ children: React.ReactNode; title: string }>) {
+function Surface({ children, title }: Readonly<{ children: ReactNode; title: string }>) {
   return (
     <section aria-label={title} className="rounded-2xl border border-[#a48879]/25 bg-[#170d10] p-5 shadow-[0_12px_32px_#00000022] sm:p-7">
       {children}
