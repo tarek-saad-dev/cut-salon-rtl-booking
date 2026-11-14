@@ -37,13 +37,31 @@ In this system, a human merge to `main` may automatically trigger VPS production
 - A documentation-only PR must be reviewed against its **exact head** even when runtime files are untouched. Revalidate CI, metadata and deployment result after any commit added to retry a flaky preview.
 - A user-approved merge applies to the specified PR and scope only. Subsequent PRs need their own approval, since each merge can trigger a new VPS deploy.
 
+## CUT CLUB 2.0 — retire legacy customer flows (D-017, NOT DEPLOYED)
+
+**Expanded owner decision 2026-11-14:** retire all anonymous legacy CUT CLUB member entrypoints and buy/redeem/Mystery Box actions; build verified OTP/customer-session member APIs. Preserve the ledger, existing Coins and voucher records; no automatic data reset, no staff POS or normal booking shutdown. This is **business/product approval, NOT permission to merge or deploy.**
+
+**New website [Draft PR #51](https://github.com/tarek-saad-dev/cut-salon-rtl-booking/pull/51)** replaces legacy `/client/loyalty` with a static, no-personal-fetch maintenance page + booking link. No `clientId` query/localStorage, customer data or financial controls. This is a **different scope** from [Draft #49](https://github.com/tarek-saad-dev/cut-salon-rtl-booking/pull/49), which only disables the store purchase UI while retaining legacy reads; do **not** blindly merge both. Review any separate Store consumers before deciding whether #49 is needed, or should remain on hold.
+
+**Casher:** [Draft #266](https://github.com/tarek-saad-dev/casher/pull/266) blocks legacy store buy/open-box POST; [Draft #271](https://github.com/tarek-saad-dev/casher/pull/271) blocks legacy reward redeem POST. Owner's expanded retirement decision covers redemption pause *in principle*, but neither Draft is authorized to deploy. [#269](https://github.com/tarek-saad-dev/casher/issues/269) inventories 14 public client routes and identifies private GETs and an unverified-phone profile lookup. Server-side handling must be coordinated; a safe frontend does not secure an exposed API.
+
+New member architecture priority: Casher #243 customer OTP+revocable sessions/tenant subject -> protected GET endpoints for wallet/inventory/vouchers -> new atomic idempotent POST APIs -> website /club BFF and member UI, using synthetic staging only before owner-reviewed rollout. Preserve public package catalog GETs and operational booking/POS. **Do not move customer private data to the new /club page until authorized APIs exist.**
+
+Additional acceptance:
+- [ ] All old CUT CLUB frontend/deep-link entrypoints identified; public booking remains available
+- [ ] Personal GET/phone-profile API risk assessed, protected/quarantined without unexpectedly breaking booking
+- [ ] Synthetic staging tests for deny-on-unverified client, cross-tenant, and zero Coins/voucher mutation
+- [ ] Existing vouchers/ledger/Coins preserved; support procedure documented
+- [ ] VPS #26 atomic build/rollback and exact-head CI/review verified
+- [ ] Separate explicit owner approval for each coordinated production merge
+
 ## CUT CLUB secure purchase maintenance bundle — BUSINESS PAUSE APPROVED, DEPLOY BLOCKED
 
 A staged customer-safety rollout now spans TWO independent repositories:
 
 - **[Website PR #49](https://github.com/tarek-saad-dev/cut-salon-rtl-booking/pull/49)**: catalog-only Store, disabled `شراء الآن` and no browser purchase POST. CI passed.
 - **[Casher PR #266](https://github.com/tarek-saad-dev/casher/pull/266)**: denies anonymous legacy `store/buy` and `store/open-box` POST/OPTIONS unconditionally; no Coins/voucher mutation. CI passed.
-- **[Casher Draft PR #271](https://github.com/tarek-saad-dev/casher/pull/271)**: a **separate** source-level risk discovered at legacy reward `/loyalty/rewards/[rewardId]/redeem` POST (also Coins-debiting); proposed generic fail-closed 403 and negative tests. [Issue #270](https://github.com/tarek-saad-dev/casher/issues/270). Owner's buy/open-box suspension approval does **NOT** cover redeem suspension: seek separate business consent, independent review and exact-head CI before any release. NOT deployed.
+- **[Casher Draft PR #271](https://github.com/tarek-saad-dev/casher/pull/271)**: another Coins-debiting legacy reward `/loyalty/rewards/[rewardId]/redeem` POST; generic fail-closed 403 and negative tests. [Issue #270](https://github.com/tarek-saad-dev/casher/issues/270). Business principle for temporary retirement **now approved** under D-017; exact-head CI/review, customer-impact, staging and a distinct production merge approval remain outstanding. NOT deployed.
 - **Owner decision (2026-11-14):** Temporary suspension of legacy reward purchases and Mystery Box opening is approved *in principle*. **NO PR merge, deployment, live Coins mutation or security bypass was authorized.** A separate exact-PR/head owner go/no-go is required after the VPS and customer-impact review. Ensure support guidance before rollout.
 - **Sequence:** no website merge until real VPS deploy/rollback is verified under #26. Then schedule a **coordinated** owner-approved UI-then-backend rollout (or separately approve a secure replacement first) to avoid a working-looking button against a denied mutation. Read-only smoke must prove both layers while avoiding real customer transactions.
 - **Critical limitation:** None of these PRs secures existing legacy personal GETs. Customer auth parent [Casher #243](https://github.com/tarek-saad-dev/casher/issues/243) and [sensitive GET audit #269](https://github.com/tarek-saad-dev/casher/issues/269) remain OPEN; do not enable /club Wallet or claim full CUT CLUB privacy.
