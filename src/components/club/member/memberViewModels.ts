@@ -12,7 +12,7 @@ export type MemberSummary = Readonly<{
   displayName: string;
   cutId: string;
   tierName: string | null;
-  /** CUT Coins are integer loyalty units, NOT EGP. */
+  /** CUT Coins are distinct from EGP and may contain 2 decimal digits in Casher. */
   coins: number | null;
   /** Values supplied by Casher; never derive reward eligibility in the UI. */
   nextTierProgress: Readonly<{ completed: number; target: number; label: string }> | null;
@@ -61,13 +61,17 @@ export type MemberOverviewView = Readonly<{
 }>;
 
 /**
- * Format only trusted nonnegative integers. A missing or invalid value is
- * unavailable; never fabricate a zero balance.
+ * CUT Coins in legacy Casher may be DECIMAL(10,2), NOT necessarily integers.
+ * Display exact up-to-two-decimal values; refuse larger precision instead of
+ * silently rounding an actual customer balance. null stays unavailable.
  */
 export function formatCoins(value: number | null | undefined): string | null {
-  if (value === null || value === undefined ||
-      !Number.isSafeInteger(value) || value < 0) return null;
-  return new Intl.NumberFormat("ar-EG", { maximumFractionDigits: 0 }).format(value);
+  if (typeof value !== "number" || !Number.isFinite(value) || value < 0 ||
+      value > Number.MAX_SAFE_INTEGER / 100 ||
+      Number(value.toFixed(2)) !== value) return null;
+  return new Intl.NumberFormat("ar-EG", {
+    minimumFractionDigits: 0, maximumFractionDigits: 2,
+  }).format(value);
 }
 
 export function formatEGPCredit(input: VerifiedPromoCredit | null): string | null {
