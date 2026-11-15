@@ -92,3 +92,10 @@ Owner explicitly approved using Production DB as the authoritative schema/data s
 ### Business takeaway
 
 The project has grown from screen mockups to a concrete, testable Casher data projection, scalable policy engine, and first idempotent checkout transaction candidate. **It is still NOT a complete live customer-ready CUT CLUB 2.0**, and neither Production DB nor secure login were used for data access in this execution. All source changes are in open Draft PRs; no release has been performed.
+
+## Latest exact-head validation — 2026-11-15
+- [Casher Draft #299, CI #43672649860](https://github.com/tarek-saad-dev/casher/actions/runs/43672649860) SUCCESS: session-gated Wallet source, member projection, tenant/branch growth rules and production metadata-only SQL template.
+- [Casher Draft #301, CI #43673423035](https://github.com/tarek-saad-dev/casher/actions/runs/43673423035) SUCCESS: SQL SERIALIZABLE reward purchase candidate, synthetic double-submit/rollback tests, reviewed growth persistence schema proposal, full production build. **NO real SQL concurrent test, no schema applied.**
+- [Website Draft #65, CI #43672805842](https://github.com/tarek-saad-dev/cut-salon-rtl-booking/actions/runs/43672805842) SUCCESS: exact-decimal Wallet view adapter, previous responsive/mobile/desktop Chrome suites and Next build.
+
+**Actual production database data access: NOT PERFORMED (no connected SQL Server execution tool).** WhatsApp OTP transport deferred by owner; customer private pages remain inaccessible without a verified session, and old financial operations remain quarantined in unmerged Draft code. All three PRs remain unmerged and not deployed.
