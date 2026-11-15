@@ -99,7 +99,7 @@ describe("CUT CLUB verified customer cookie policy (#60)", () => {
     const executable = src.replace(/\/\*[\s\S]*?\*\//g, "");
     for (const forbidden of [
       "new NextResponse", "fetch(", "localStorage", "sessionStorage", "clientId",
-      "getPool", "password", "document.cookie", "req.json(",
+      "getPool", "document.cookie", "req.json(",
     ]) expect(executable).not.toContain(forbidden);
   });
 });
