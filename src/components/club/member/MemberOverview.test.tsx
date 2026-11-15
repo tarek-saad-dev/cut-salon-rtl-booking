@@ -45,7 +45,9 @@ describe("CUT CLUB authorized-only presentational view models", () => {
     expect(formatCoins(null)).toBeNull();
     expect(formatCoins(undefined)).toBeNull();
     expect(formatCoins(-1)).toBeNull();
-    expect(formatCoins(0.5)).toBeNull();
+    expect(formatCoins(0.5)).not.toBeNull();
+    expect(formatCoins(0.005)).toBeNull();
+    expect(formatCoins(320.5)).not.toBeNull();
     expect(formatCoins(Number.MAX_SAFE_INTEGER + 1)).toBeNull();
     expect(formatCoins(0)).not.toBeNull();
     expect(formatCoins(125)).not.toBeNull();
