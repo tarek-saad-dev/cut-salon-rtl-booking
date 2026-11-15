@@ -63,3 +63,32 @@ The original public BookingModal (even if /client page is retired) used `GET /ap
 PR #296 implements testable SQL code but **does not prove** the live tenant↔customer mapping, run a staging migration, deliver an OTP, or create a real user session. PR #61 contains cookie/security policy, not a connected authentication HTTP endpoint. Claims of “complete CUT CLUB” remain blocked by the full member Wallet API, financially atomic reward settlement, partner/rule engines, synthetic 2-tenant staging, VPS release/rollback and explicit owner release decision.
 
 No merges or live user operations were authorized.
+
+## Owner decision update — 2026-11-15 (Production DB + WhatsApp OTP later)
+
+Owner explicitly approved using Production DB as the authoritative schema/data source to accelerate product development, and explicitly postponed the one-time-code transport to a future **WhatsApp message**. Neither decision approves unverified phone-only account login, cross-customer Wallet access, or skipping secure settlement tests. Previous **NO MERGE / NO DEPLOY until readiness and impact review** remains in force.
+
+**Actual access constraint:** Only GitHub repo code tools were available to this execution — no SQL Server/SSH Production DB connection. No production DB query, staging migration, OTP send, business data read, Coins or voucher mutation has happened. [Casher #299](https://github.com/tarek-saad-dev/casher/pull/299) includes operator-verified DB metadata-only inspection template; it is NOT execution evidence. Real DB name must come from verified operator config, not a repo fallback.
+
+### Current highest integrated development candidates
+
+| Deliverable | PR | Exact state |
+|---|---|---|
+| Safe Casher member Wallet read model bound to a verified revocable session + tenant/customer ownership; real existing table shapes, no PII copy | [Casher Draft #299](https://github.com/tarek-saad-dev/casher/pull/299) | Source+synthetic tests passed CI; DB access remains disabled/not verified |
+| Versioned school, university, medical and company eligibility + deduped visit challenges and referrals | Casher #299, supplemented by scalable staging-only DDL in [#301](https://github.com/tarek-saad-dev/casher/pull/301) | Rule engine/tested, no partner/growth DB tables applied, no financial awards issued |
+| Transactional, idempotent Coins purchase: single atomic stock, loyalty, ledger, voucher and command record | [Casher Draft #301](https://github.com/tarek-saad-dev/casher/pull/301) | SQL code and synthetic concurrency/rollback tests; real SQL staging/Production tests pending; no live checkout |
+| Real account view-model adapter into existing full mobile/desktop member overview, precise two-decimal Coins with no fake voucher/booking/EGP credit | [Website Draft #65](https://github.com/tarek-saad-dev/cut-salon-rtl-booking/pull/65) | Website CI + Chrome suites success; adapter not connected to live /club |
+| Customer session host-only cookie and public guest booking without unauthenticated profile lookup | Website #65 includes #61 and #63 | Not deployed; safe staged browser contract |
+
+### Product completeness / release blockers
+
+- [ ] Actual read-only Production schema inspection and trustworthy tenant UUID ↔ SalonID ↔ legacy customer ownership mapping
+- [ ] WhatsApp OTP provider, durable session installation, phone recovery/consent, cookie/BFF and new member v2 HTTP APIs; private member data stays closed until this identity chain exists
+- [ ] Financial SQL staging migration, real two-session concurrency, voucher and balance reconciliation, safe Mystery Box and old redeem replacement, refunds/reversals
+- [ ] Campus/medical/corporate partnership verification & dynamic benefit policy persistence and rule-management UI; challenges/referrals award settlement + fraud/budget controls
+- [ ] Connect authenticated data to approved mobile/desktop CUT CLUB experience and run customer-journey tests, all branches and POS/booking unaffected
+- [ ] Independent security/design review, VPS build/atomic rollback, staged coordinated release, explicit exact-head owner merge/deploy approval
+
+### Business takeaway
+
+The project has grown from screen mockups to a concrete, testable Casher data projection, scalable policy engine, and first idempotent checkout transaction candidate. **It is still NOT a complete live customer-ready CUT CLUB 2.0**, and neither Production DB nor secure login were used for data access in this execution. All source changes are in open Draft PRs; no release has been performed.
