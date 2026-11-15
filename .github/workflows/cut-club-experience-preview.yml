@@ -1,0 +1,42 @@
+name: CUT CLUB 2.0 Experience Preview Browser Smoke
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - src/app/dev/cut-club-preview/**
+      - src/components/club/experience/**
+      - src/lib/club/experience/**
+      - e2e/cut-club-experience-preview.spec.ts
+      - playwright.cut-club-experience.config.ts
+      - .github/workflows/cut-club-experience-preview.yml
+
+permissions:
+  contents: read
+
+jobs:
+  preview-responsive:
+    name: Synthetic mobile and desktop interaction checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Verify Chrome availability
+        run: google-chrome --version
+      - name: Exercise dev-only synthetic CUT CLUB UX at 5 viewports
+        run: npx playwright test --config playwright.cut-club-experience.config.ts
+      - name: Upload synthetic UI screenshots and traces
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cut-club-ux-preview
+          path: |
+            test-results/club-preview-*.png
+            test-results/**/trace.zip
+          if-no-files-found: ignore

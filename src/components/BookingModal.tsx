@@ -36,8 +36,6 @@ import { useBranch } from "@/context/BranchContext";
 import { getCoreServiceIdSet } from "@/lib/bookingServiceGroups";
 import { useBookingFlow, type BookingUiStep } from "@/hooks/useBookingFlow";
 import { useBookingTranslations } from "@/hooks/useBookingTranslations";
-import { saveClient } from "@/lib/clientStorage";
-import { lookupClientByMobile } from "@/lib/clientWebsiteApi";
 import { getBranchAccent } from "@/lib/branchTheme";
 import { saveBookFlowConfirmation } from "@/lib/book-flow-confirmation";
 import { clearBookFlowDraft } from "@/lib/book-flow-draft";
@@ -67,7 +65,6 @@ import { BookingPricePromoProvider } from "@/context/BookingPricePromoContext";
 import BookingPromoPrice from "@/components/booking/BookingPromoPrice";
 import { formatStaleSlotNotice } from "@/lib/bookingV2/recoverStaleSlot";
 
-type ClientLookupStatus = "idle" | "loading" | "found" | "new";
 
 const FLOW_ERROR_KEYS = new Set([
   "barberIdMissing",
@@ -470,61 +467,8 @@ const BookingModal = ({
 // test
   const [confettiTrigger, setConfettiTrigger] = useState(0);
   const [copied, setCopied] = useState(false);
-  const [lookupStatus, setLookupStatus] = useState<ClientLookupStatus>("idle");
-  const [lookedUpName, setLookedUpName] = useState<string | null>(null);
   /** Local draft for appointment_scope cards before Continue commits via setAvailabilityScope. */
   const [scopeDraft, setScopeDraft] = useState<BarberAvailabilityScope | null>(null);
-
-  // Debounced phone → client name lookup (returning customers).
-  useEffect(() => {
-    if (!open) return;
-    const digits = flow.customerPhone.replace(/\D/g, "");
-    if (digits.length < 8) {
-      setLookupStatus("idle");
-      setLookedUpName(null);
-      return;
-    }
-
-    let cancelled = false;
-    const timer = setTimeout(async () => {
-      setLookupStatus("loading");
-      const controller = new AbortController();
-      const kill = setTimeout(() => controller.abort(), 2500);
-      try {
-        const data = await lookupClientByMobile(digits, {
-          signal: controller.signal,
-        });
-        if (cancelled) return;
-        if (data.ok && data.found && data.client?.name) {
-          const name = String(data.client.name).trim();
-          setLookedUpName(name);
-          flow.setCustomerName(name);
-          setLookupStatus("found");
-          saveClient({
-            id: data.client.id,
-            name,
-            phone: String(data.client.mobile || digits).replace(/\D/g, "") || digits,
-          });
-        } else {
-          setLookedUpName(null);
-          setLookupStatus("new");
-        }
-      } catch {
-        if (!cancelled) {
-          setLookedUpName(null);
-          setLookupStatus("new");
-        }
-      } finally {
-        clearTimeout(kill);
-      }
-    }, 450);
-
-    return () => {
-      cancelled = true;
-      clearTimeout(timer);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, flow.customerPhone]);
 
   // Celebrate once when create lands on success (standalone modal path).
   useEffect(() => {
@@ -1565,34 +1509,17 @@ const BookingModal = ({
                       dir="ltr"
                       autoComplete="tel"
                     />
-                    {lookupStatus === "loading" && (
-                      <Loader2 className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-cut-gold animate-spin" />
-                    )}
-                    {lookupStatus === "found" && (
-                      <UserCheck className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald-600" />
-                    )}
                   </div>
                 </div>
 
-                {lookupStatus === "found" && lookedUpName && (
-                  <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-emerald-50 border border-emerald-200">
-                    <UserCheck className="w-4 h-4 text-emerald-600 flex-shrink-0" />
-                    <span className="text-emerald-800 text-sm font-medium">
-                      {t("details.welcomeBack", { name: lookedUpName })}
-                    </span>
-                  </div>
-                )}
-                {lookupStatus === "new" && (
-                  <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-cut-gold/10 border border-cut-gold/25">
-                    <AlertCircle className="w-4 h-4 text-cut-gold flex-shrink-0" />
-                    <span className="text-cut-black/80 text-sm">{t("details.newCustomer")}</span>
-                  </div>
-                )}
+                <p className="text-xs leading-6 text-cut-black/60" role="note">
+                  {lang === "ar"
+                    ? "اكتب اسمك لإكمال الحجز. خصوصيتك مهمة، ومش بنعرض بيانات عميل بمجرد إدخال رقم تليفونه."
+                    : "Enter your name to book. We never reveal a customer's profile just from a phone number."}
+                </p>
 
-                {/* Name: auto-filled when found; editable otherwise once phone is long enough */}
-                {(lookupStatus === "found" ||
-                  lookupStatus === "new" ||
-                  flow.customerPhone.replace(/\D/g, "").length >= 8) && (
+                {/* Guest booking: manual name, no anonymous profile lookup. */}
+                {flow.customerPhone.replace(/\D/g, "").length >= 8 && (
                   <div>
                     <label className="block text-xs font-medium text-cut-black/70 mb-1" htmlFor="bk-name">
                       {t("details.name")}
@@ -1603,12 +1530,7 @@ const BookingModal = ({
                       value={flow.customerName}
                       onChange={(e) => flow.setCustomerName(e.target.value)}
                       placeholder={t("details.namePlaceholder")}
-                      readOnly={lookupStatus === "found"}
-                      className={
-                        lookupStatus === "found"
-                          ? "cut-input bg-emerald-50/60 border-emerald-200 cursor-default"
-                          : "cut-input"
-                      }
+                      className="cut-input"
                       autoComplete="name"
                     />
                   </div>
