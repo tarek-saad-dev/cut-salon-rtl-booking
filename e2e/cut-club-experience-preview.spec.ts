@@ -37,6 +37,8 @@ for (const size of viewports) {
     await page.goto("/dev/cut-club-preview", { waitUntil: "domcontentloaded" });
     const root = page.getByTestId("club-experience-preview");
     await expect(root).toBeVisible();
+    // Wait for client-side React hydration so clicks cannot be lost pre-hydration.
+    await expect(root).toHaveAttribute("data-preview-hydrated", "true");
     await expect(root.getByText("DEMO / بيانات افتراضية")).toBeVisible();
     await expect(root.getByRole("heading", { name: "كل زيارة ليها حكاية" })).toBeVisible();
 
