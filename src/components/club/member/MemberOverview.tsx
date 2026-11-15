@@ -33,7 +33,7 @@ export function MemberIdentityCard({ member }: Readonly<{ member: MemberSummary 
         <div>
           <p dir="ltr" className="text-xs font-bold tracking-[0.3em] text-[#d2b7a3]">CUT CLUB · MEMBER</p>
           <h2 className="mt-4 text-2xl font-semibold text-[#fcf9ed] sm:text-3xl">{member.displayName}</h2>
-          <p dir="ltr" className="mt-2 text-xs tracking-[0.1em] text-[#c3b4aa]">{member.cutId}</p>
+          {member.cutId ? <p dir="ltr" className="mt-2 text-xs tracking-[0.1em] text-[#c3b4aa]">{member.cutId}</p> : null}
         </div>
         {member.tierName ? (
           <span className="rounded-full border border-[#d2b7a3]/50 px-4 py-2 text-xs font-semibold text-[#e7cab4]">
