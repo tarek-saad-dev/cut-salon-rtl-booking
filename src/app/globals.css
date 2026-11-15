@@ -925,8 +925,8 @@
   }
 }
 
-/* Global mobile sticky nav — tablet/mobile only */
-@media (max-width: 1023px) {
+/* Global compact nav remains active until the xl desktop breakpoint. */
+@media (max-width: 1279px) {
   :root {
     --cut-mobile-nav-height: 3.25rem;
     --cut-mobile-nav-total: calc(
@@ -936,7 +936,7 @@
   }
 }
 
-@media (min-width: 1024px) {
+@media (min-width: 1280px) {
   :root {
     --cut-mobile-nav-height: 0px;
     --cut-mobile-nav-total: 0px;

@@ -1,0 +1,46 @@
+name: CUT CLUB Restricted Shell Browser Smoke
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - src/app/club/**
+      - src/components/club/**
+      - src/components/SiteChrome.tsx
+      - src/components/providers.tsx
+      - src/lib/club/**
+      - next.config.ts
+      - e2e/club-shell.spec.ts
+      - playwright.club.config.ts
+      - .github/workflows/cut-club-shell-smoke.yml
+
+permissions:
+  contents: read
+
+jobs:
+  club-private-shell-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Verify preinstalled Google Chrome
+        run: google-chrome --version
+      - name: Build production application
+        run: npm run build
+      - name: Check private headers, isolated layout and viewport safety
+        run: npx playwright test --config playwright.club.config.ts
+      - name: Preserve browser screenshots and traces
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cut-club-shell-browser-evidence
+          path: |
+            test-results/**
+            playwright-report/**
+          if-no-files-found: ignore
