@@ -44,3 +44,22 @@
 - UX interactive [Draft #57](https://github.com/tarek-saad-dev/cut-salon-rtl-booking/pull/57)
 - Casher auth parent [#243](https://github.com/tarek-saad-dev/casher/issues/243)
 - Website VPS build/rollback [#26](https://github.com/tarek-saad-dev/cut-salon-rtl-booking/issues/26)
+
+## Sprint B2 latest execution evidence — 2026-11-15
+
+| Deliverable | Source candidate | Latest status |
+|---|---|---|
+| SQL-backed OTP challenges, atomic per-tenant rate limits, one-time CAS and revocable 2h session store | [Casher Draft #296](https://github.com/tarek-saad-dev/casher/pull/296) | **CI SUCCESS** ([run #43670493982](https://github.com/tarek-saad-dev/casher/actions/runs/43670493982)); STAGING-ONLY SQL proposal, NOT applied |
+| OTP sender → verified phone → exactly one active tenant customer → durable session orchestration | Included in Casher #296 | Synthetic tests passed; NO approved provider or real customer lookup wired |
+| Host-only secure CUT CLUB cookie, strict same-origin/CSRF BFF policy | [Website Draft #61](https://github.com/tarek-saad-dev/cut-salon-rtl-booking/pull/61) | **CI + 3 browser suites SUCCESS** ([run #43670969310](https://github.com/tarek-saad-dev/cut-salon-rtl-booking/actions/runs/43670969310)); no live auth route |
+| Guest booking privacy/compatibility with legacy phone lookup retirement | [Website Draft #63](https://github.com/tarek-saad-dev/cut-salon-rtl-booking/pull/63) | Removed anonymous phone-to-name lookup and client ID browser persistence; booking remains phone + editable name; exact-head CI/browser and staging booking smoke REQUIRED |
+
+### Newly confirmed deployment blocker
+
+The original public BookingModal (even if /client page is retired) used `GET /api/client/lookup?mobile=` to auto-fill a returning customer's name and stored its unverified client ID in browser storage. Casher Draft #279/#294 would block that endpoint. **Release the browser-side guest-booking fallback (#63) in a coordinated reviewed website/backend bundle before quarantining the lookup on live systems.** Source audit was performed; production traffic and synthetic booking end-to-end have NOT been verified.
+
+### Important distinction
+
+PR #296 implements testable SQL code but **does not prove** the live tenant↔customer mapping, run a staging migration, deliver an OTP, or create a real user session. PR #61 contains cookie/security policy, not a connected authentication HTTP endpoint. Claims of “complete CUT CLUB” remain blocked by the full member Wallet API, financially atomic reward settlement, partner/rule engines, synthetic 2-tenant staging, VPS release/rollback and explicit owner release decision.
+
+No merges or live user operations were authorized.
