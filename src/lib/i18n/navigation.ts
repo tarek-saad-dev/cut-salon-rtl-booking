@@ -7,6 +7,7 @@ export const navigationLabels = {
   barbers: { ar: "الحلاقين", en: "Barbers" },
   branches: { ar: "الفروع", en: "Branches" },
   account: { ar: "حسابي", en: "My Account" },
+  clubAbout: { ar: "عن CUT CLUB", en: "About CUT CLUB" },
   loyalty: { ar: "CUT CLUB", en: "CUT CLUB" },
   loyaltyCta: { ar: "CUT CLUB — انضم دلوقتي", en: "CUT CLUB — Join Now" },
   loyaltyCtaTitle: { ar: "CUT CLUB", en: "CUT CLUB" },

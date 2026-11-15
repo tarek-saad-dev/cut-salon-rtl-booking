@@ -22,6 +22,7 @@ const MENU_LINKS: NavLink[] = [
   { key: "prices", href: "/prices" },
   { key: "barbers", href: "/#barbers" },
   { key: "branches", href: "/#branches" },
+  { key: "clubAbout", href: "/cut-club" },
   { key: "booking", href: "/book" },
   {
     key: "appointments",
@@ -126,7 +127,7 @@ export default function MobileMenuSheet({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="fixed inset-0 z-[56] bg-cut-black/60 lg:hidden"
+            className="fixed inset-0 z-[56] bg-cut-black/60 xl:hidden"
             aria-label={label("closeMenu")}
             onClick={onClose}
           />
@@ -139,7 +140,7 @@ export default function MobileMenuSheet({
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
             transition={{ type: "spring", stiffness: 380, damping: 36 }}
-            className="fixed inset-x-0 bottom-0 z-[57] max-h-[min(85svh,640px)] overflow-hidden rounded-t-[1.25rem] border border-cut-bronze/20 bg-[#1a1716] shadow-[0_-20px_60px_rgba(0,0,0,0.45)] lg:hidden"
+            className="fixed inset-x-0 bottom-0 z-[57] flex max-h-[min(85svh,640px)] flex-col overflow-hidden rounded-t-[1.25rem] border border-cut-bronze/20 bg-[#1a1716] shadow-[0_-20px_60px_rgba(0,0,0,0.45)] xl:hidden"
             dir={dir}
           >
             <div className="flex justify-center pt-2.5 pb-1" aria-hidden>
@@ -161,7 +162,7 @@ export default function MobileMenuSheet({
             </div>
 
             <nav
-              className="overflow-y-auto px-3 pb-[max(1rem,env(safe-area-inset-bottom))] pt-2"
+              className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 pb-[max(1rem,env(safe-area-inset-bottom))] pt-2"
               aria-label={lang === "ar" ? "قائمة التنقل" : "Navigation menu"}
             >
               <Link
