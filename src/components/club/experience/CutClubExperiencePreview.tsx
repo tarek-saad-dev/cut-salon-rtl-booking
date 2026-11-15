@@ -7,7 +7,7 @@
  * Navigation and reward inspection are UI-only; transactions are disabled.
  * Parent route refuses all production requests irrespective of environment.
  */
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
 import {
@@ -450,6 +450,8 @@ export default function CutClubExperiencePreview() {
   const [area, setArea] = useState<ClubArea>("home");
   const [persona, setPersona] = useState<PreviewPersona>("regular");
   const [selectedReward, setSelectedReward] = useState<string | null>(null);
+  const [isHydrated, setIsHydrated] = useState(false);
+  useEffect(() => { setIsHydrated(true); }, []);
   const member = DEMO_MEMBERS[persona];
 
   const navigate = (next: ClubArea) => {
@@ -468,6 +470,7 @@ export default function CutClubExperiencePreview() {
 
   return (
     <div dir="rtl" lang="ar" data-testid="club-experience-preview"
+      data-preview-hydrated={isHydrated ? "true" : "false"}
       className="fixed inset-0 z-[9999] flex overflow-hidden bg-[#0a080a] text-[#fcf9ed] selection:bg-[#d6ae96]/40">
       <a href="#club-preview-content" className="sr-only focus:not-sr-only focus:absolute focus:right-3 focus:top-3 focus:z-[60] focus:rounded-xl focus:bg-white focus:px-4 focus:py-3 focus:text-black">انتقل إلى محتوى CUT CLUB</a>
 
