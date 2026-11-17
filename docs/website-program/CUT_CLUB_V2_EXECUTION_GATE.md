@@ -99,3 +99,30 @@ The project has grown from screen mockups to a concrete, testable Casher data pr
 - [Website Draft #65, CI #43672805842](https://github.com/tarek-saad-dev/cut-salon-rtl-booking/actions/runs/43672805842) SUCCESS: exact-decimal Wallet view adapter, previous responsive/mobile/desktop Chrome suites and Next build.
 
 **Actual production database data access: NOT PERFORMED (no connected SQL Server execution tool).** WhatsApp OTP transport deferred by owner; customer private pages remain inaccessible without a verified session, and old financial operations remain quarantined in unmerged Draft code. All three PRs remain unmerged and not deployed.
+
+## Client + cashier synchronized voucher workflow (2026-11-17)
+
+The owner requested CUT CLUB be ready for **customers and cashiers**. Development progressed on both channels in coordinated, **unmerged Draft PRs**:
+
+| Journey | New candidate | Status / scope |
+|---|---|---|
+| Customer dashboard responsive layout, Coins and member information | [Website #65](https://github.com/tarek-saad-dev/cut-salon-rtl-booking/pull/65) | CI + browser passed, data adapter isolated; real account auth still OFF |
+| Customer-owned voucher proof presentation | [Website #67](https://github.com/tarek-saad-dev/cut-salon-rtl-booking/pull/67) | UI and CI/browser tests passed; explicit show/hide/copy only after verified callback, no code in initial HTML; real BFF/WhatsApp login still OFF |
+| Customer voucher-code owner proof in Casher | [Casher #305](https://github.com/tarek-saad-dev/casher/pull/305) | Strict revocable session+TenantId+ClientID+inventory match, reject USED/expired/foreign; no HTTP route and no live login |
+| Cashier voucher scan and free-service confirmation | [Casher #303](https://github.com/tarek-saad-dev/casher/pull/303) | Authenticated staff+operable branch, invoice/client/branch matching, 1-transaction conditional ACTIVE->USED, replay-safe usage log; feature flags default OFF |
+| Cashier old one-click modal | Casher #303 | Existing workflow formerly marked voucher used before invoice save. Draft removes optimistic consumption and links cashier to the verified process; old unsafe POST returns 410. Requires coordinated rollout to avoid interrupting current staff |
+| Rewards finance | [Casher #301](https://github.com/tarek-saad-dev/casher/pull/301) | Stock/Coins/ledger/voucher atomic settlement candidate + growth tables, synthetic tests, NOT live |
+| School/medical/corporate and visit/referral rules | [Casher #299](https://github.com/tarek-saad-dev/casher/pull/299), #301 | Versioned rule evaluators and schema draft; actual settlement/partner enrollment not live |
+
+### Real end-to-end acceptance steps still mandatory
+
+- [ ] **Verified client sign-in via WhatsApp one-time code**, durable revocable sessions and cookie/BFF; owner asked to defer transport temporarily but NOT to expose financial private accounts by phone alone.
+- [ ] Direct SQL Server Production **metadata-only read** with operator connection, schema/key/tenant/branch mapping and owner-approved migration. GitHub access so far DID NOT connect or query Production DB, despite owner's permission.
+- [ ] Authoritative **legacy SalonID versus BranchID mapping** and route-family tenant scoping, particularly GLEEM vs CAMP SHIZAR.
+- [ ] Real SQL Server concurrency / refund / reversal / voucher reuse tests and preservation/reconciliation of existing Coins+vouchers. Current test suites are simulated and static; production financial effect is OFF.
+- [ ] **Customer personal wallet BFF and code reveal endpoint** connected to Casher session+ownership; member /club page currently safely inaccessible.
+- [ ] All cashier reward types, discount/service/product/bonus/Mystery Box, must have proven invoice effects and not charge customers twice. New cashier V2 currently only proves FREE_SERVICE after a zero-priced saved invoice service line.
+- [ ] Cross-device staff cashier UX test with actual barcode/typed voucher code, verified invoice and branch, failed network retry, old current users support.
+- [ ] Public booking, booking changes and POS unaffected by legacy quarantine; coordinated website+Casher release plan, rollback, security review, explicit exact-head owner merge/deploy approval.
+
+**Latest release verdict: NO GO.** Green source tests and UI tests are not a substitute for verified identity, live SQL schema authority, accounting reconciliation and end-to-end on a controlled environment. **No PRs merged/deployed in this work**.
