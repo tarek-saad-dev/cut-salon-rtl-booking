@@ -126,3 +126,7 @@ The owner requested CUT CLUB be ready for **customers and cashiers**. Developmen
 - [ ] Public booking, booking changes and POS unaffected by legacy quarantine; coordinated website+Casher release plan, rollback, security review, explicit exact-head owner merge/deploy approval.
 
 **Latest release verdict: NO GO.** Green source tests and UI tests are not a substitute for verified identity, live SQL schema authority, accounting reconciliation and end-to-end on a controlled environment. **No PRs merged/deployed in this work**.
+
+### Additional cashier tenant mapping gate (2026-11-17)
+
+Review of Casher checkout revealed that a legacy reward item's `SalonID` is NOT proven to equal a session `BranchID`. Using the same integer would create a potential privacy/eligibility error across branches. [Casher integrated Draft #305](https://github.com/tarek-saad-dev/casher/pull/305) now resolves legacy SalonID from an explicitly configured trusted TenantId + BranchID mapping (no arbitrary browser override) and **fails closed** when mapping is unverified. All V2 cashier GET/POST plus legacy voucher GET require this guard. The real mapping must be read and confirmed from actual production schema by an authorized operator before flags are enabled. All checkout/voucher flags remain off, and no production DB access/deployment was made.
