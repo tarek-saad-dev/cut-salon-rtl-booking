@@ -162,3 +162,22 @@ New integrated [Casher Draft #307](https://github.com/tarek-saad-dev/casher/pull
 The new adapter does NOT automatically turn WhatsApp into secure customer login. Three material elements remain absent: operator-verified Production schema/ownership mapping + applied durable session/OTP DB, live API/Website BFF with HttpOnly cookie, and actual financial reconciliation/staging invoice tests across branches. We must NOT expose a private account by trusting only a typed phone number, nor flip cashier redemption flags before SQL transaction proof. Actual production database access was NOT performed by GitHub source tools despite owner permission. No merge, deploy, send or client financial mutation.
 
 **Next implementation critical path:** production metadata check by connected operator; secure customer session BFF and private Wallet APIs; actual multi-account/multi-branch SQL fixture tests; supported reward types and staff workflows; final joint customer/cashier acceptance, production rollback and owner exact-head go/no-go.
+
+## 2026-11-17 late evening — final live reward/service and legacy invoice history audit
+
+Operator-run **READ-ONLY** production `last132` output confirms four existing active global `FREE_SERVICE` items 15/16/17/18 lack `ServiceID` and `Value`; current 14 ACTIVE customer vouchers and 60 USED. All **60 USED** have `TblClientInventory.UsedInvID=NULL` **and** no `TblInventoryUsageLog.InvID` or `BookingID`. There are exactly 60 distinct legacy used vouchers recorded as `ActionType='USED'`. Do not assert service not delivered; there is no authoritative invoice linkage in these recorded columns. `TblinvServHead` status-like metadata only `invDate` and `ReservDate` seen, reversal proof must be traced separately.
+
+| Reward ItemID | Label | Coins | ACTIVE | USED | Candidate real active TblPro |
+|---|---|---:|---:|---:|---|
+| 15 | Face Mask / ماسك وجه | 30 | 4 | 17 | 39 Face Mask, but 2092 Care Mask separate: owner approval required |
+| 16 | Hair Oil Treatment / حمام زيت | 50 | 4 | 14 | 22 Hair Oil Treatment, not 1090 Advanced |
+| 17 | Basic SkinCare | 90 | 4 | 23 | **UNRESOLVED**: 11 Fresh Skin Care or 29 Classic Skin Care |
+| 18 | Hair Cut | 220 | 2 | 6 | 9 active Hair Cut, not deleted 1053 |
+
+New stacked **[Casher Draft #317](https://github.com/tarek-saad-dev/casher/pull/317)**, based on #315, adds:
+- Strict server-only `CUT_CLUB_REVIEWED_REWARD_SERVICE_MAP_JSON` approval. No default, no name inference, no auto-population on VPS, verifies actual active same-tenant `dbo.TblPro`. No client IDs used to infer service.
+- Cashier voucher read and redeemed service must match independently approved mapping. If no approval → unavailable.
+- **Financial proof hardening:** zero-priced sale alone is insufficient; a serializable voucher use now requires exact voucher-to-invoice `CutClubVoucherInvoiceClaim` with matching Tenant/Inventory/Client/Branch/Invoice/Service and APPLIED status before using. Table **does not exist in production** and invoice hook/cancellation hooks **are not implemented**. This intentionally FAILS CLOSED even if flags are accidentally enabled. Staging-only guarded SQL contract in #317; DO NOT run on last132.
+- Added tests for missing/cross-tenant/corrupt mappings, ambiguous Basic SkinCare, absent/deleted services and missing invoice claim.
+
+**Owner decisions needed:** approve exact service for all four rewards, especially Basic SkinCare 11 vs 29; confirm branch applicability and historical active-voucher honoring policy. Then implement invoice-transaction claim+reversal hook, stage financial/replay/rollback testing, verify WhatsApp-login/secure website BFF, review production backup, and get explicit launch go/no-go. No production DML/DDL, merge/deploy, OTP sends or changes to 74 existing entitlements in this work. Entire system remains NOT READY for clients/cashiers until these are proven.
