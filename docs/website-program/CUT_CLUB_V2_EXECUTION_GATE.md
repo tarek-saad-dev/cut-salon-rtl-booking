@@ -148,3 +148,17 @@ New integrated [Casher Draft #307](https://github.com/tarek-saad-dev/casher/pull
 - [ ] Production browser/real cashier-device E2E rehearsal for Gleem and Camp Shizar, rollbacks and explicit exact-head owner launch authorization
 
 **Current status: DRAFT / NO-GO. No merge, deployment, or customer financial write was carried out.** Owner Production DB permission acknowledged but this tool execution has GitHub access only. Metadata code is a deployment candidate, NOT production inspection evidence.
+
+## 2026-11-17 — new client + cashier integration candidates
+
+- **[Casher Draft #307](https://github.com/tarek-saad-dev/casher/pull/307)**: admin-only metadata read preflight, trusted BranchID-to-SalonID scoping for existing POS voucher lists, multi-quantity voucher safety, usage-log compatibility. CI #44139313217 **SUCCESS**, production build passed. No Production SQL called.
+- **[Casher Draft #309](https://github.com/tarek-saad-dev/casher/pull/309)**: WhatsApp delivery adapter through the existing tenant-owned messaging stack, double activation gate default OFF; no actual OTP sent. CI #44140723146 **SUCCESS**.
+- **[Casher Draft #311](https://github.com/tarek-saad-dev/casher/pull/311)**: server-only, read-only tenant/customer authority and Egyptian E.164 lookup, designed **only after a committed, single-use OTP**. Rejects duplicate/shared phone, wrong tenant, inactive loyalty and foreign data; never exposes phone/name/balance. Metadata preflight now includes client, loyalty, tier and point ledger contracts. PR #311 is stacked on #309 and #307; do NOT merge independently. Exact-head CI / build evidence must be checked separately.
+- **[Website Draft #67](https://github.com/tarek-saad-dev/cut-salon-rtl-booking/pull/67)**: client-facing Wallet voucher list and explicit show/hide code UI, designed for future owner-verified BFF. Website CI and browser suites PASS, but private /club is intentionally closed.
+- **[Casher Draft #305](https://github.com/tarek-saad-dev/casher/pull/305)**: cashier scan/receive code, limited invoice-verified FREE_SERVICE consume; all other voucher effect types remain blocked. This is a SOURCE CANDIDATE only.
+
+### Why release is still NO GO
+
+The new adapter does NOT automatically turn WhatsApp into secure customer login. Three material elements remain absent: operator-verified Production schema/ownership mapping + applied durable session/OTP DB, live API/Website BFF with HttpOnly cookie, and actual financial reconciliation/staging invoice tests across branches. We must NOT expose a private account by trusting only a typed phone number, nor flip cashier redemption flags before SQL transaction proof. Actual production database access was NOT performed by GitHub source tools despite owner permission. No merge, deploy, send or client financial mutation.
+
+**Next implementation critical path:** production metadata check by connected operator; secure customer session BFF and private Wallet APIs; actual multi-account/multi-branch SQL fixture tests; supported reward types and staff workflows; final joint customer/cashier acceptance, production rollback and owner exact-head go/no-go.
