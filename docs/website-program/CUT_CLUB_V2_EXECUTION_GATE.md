@@ -130,3 +130,21 @@ The owner requested CUT CLUB be ready for **customers and cashiers**. Developmen
 ### Additional cashier tenant mapping gate (2026-11-17)
 
 Review of Casher checkout revealed that a legacy reward item's `SalonID` is NOT proven to equal a session `BranchID`. Using the same integer would create a potential privacy/eligibility error across branches. [Casher integrated Draft #305](https://github.com/tarek-saad-dev/casher/pull/305) now resolves legacy SalonID from an explicitly configured trusted TenantId + BranchID mapping (no arbitrary browser override) and **fails closed** when mapping is unverified. All V2 cashier GET/POST plus legacy voucher GET require this guard. The real mapping must be read and confirmed from actual production schema by an authorized operator before flags are enabled. All checkout/voucher flags remain off, and no production DB access/deployment was made.
+
+## Production DB metadata and cashier voucher compatibility implementation — Nov 17, 2026
+
+New integrated [Casher Draft #307](https://github.com/tarek-saad-dev/casher/pull/307), stacked after #305 (which stacks after #303/#301/#299):
+
+- Manager-only `/admin/cut-club-readiness` displays non-misleading launch blockers. Operator-controlled `GET /api/admin/cut-club/readiness` reads SQL Server **sys metadata only** if explicitly enabled; it checks expected DB name in the query itself and lists missing columns, without customer rows/PII or writes. This route was **not run on Production** in this execution.
+- Existing cashier POS voucher listing by customer ID or phone now requires operable staff branch, client tenant ownership and operator-reviewed **BranchID→legacy SalonID** mapping, applied in the SQL SELECT before returning vouchers. No wildcard private CORS.
+- V2 cashier voucher confirmation now checks `Quantity=1` before marking used, because multi-quantity bundles could otherwise be consumed as one unit. Legacy `TblInventoryUsageLog` matches exact usage log columns, including `BookingID` NULL. Changing the voucher code clears a stale invoice ID.
+- New synthetic metadata/schema checks and POS branch-scope tests are gated in CI, along with existing cashier/client security suites and build.
+
+### Still required for *actual* client/cashier readiness
+- [ ] A real Production DB read-only metadata pass via approved operator connection, expected DB name and complete legacy SalonID/BranchID mapping
+- [ ] Verified WhatsApp customer identity and revocable session, authorized Wallet BFF API, real private member experience wired to UI; current /club remains locked
+- [ ] Real SQL two-connection concurrency + invoice benefit/sale/cancellation/reversal tests, per-customer voucher ownership and correct financial ledger, production-independent staging fixtures
+- [ ] Full customer reward types and Mystery Box safe transactions, affiliate/medical/school programs persistence and operations
+- [ ] Production browser/real cashier-device E2E rehearsal for Gleem and Camp Shizar, rollbacks and explicit exact-head owner launch authorization
+
+**Current status: DRAFT / NO-GO. No merge, deployment, or customer financial write was carried out.** Owner Production DB permission acknowledged but this tool execution has GitHub access only. Metadata code is a deployment candidate, NOT production inspection evidence.
