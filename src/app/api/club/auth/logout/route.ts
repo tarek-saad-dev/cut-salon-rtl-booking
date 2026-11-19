@@ -30,7 +30,7 @@ export async function POST(req:NextRequest){
     catch(err){return fail(err);} // Never claim logout complete while upstream token remains valid.
   }
   const answer=response({ok:true});
-  answer.cookies.delete(clubCookieNames.session);
-  answer.cookies.delete(clubCookieNames.pending);
+  answer.cookies.set(clubCookieNames.session,'',{...cookieOptions,maxAge:0});
+  answer.cookies.set(clubCookieNames.pending,'',{...cookieOptions,maxAge:0});
   return answer;
 }
