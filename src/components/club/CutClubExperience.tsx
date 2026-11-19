@@ -57,7 +57,7 @@ const surface = "rounded-[1.65rem] border border-[#d2b49d]/[.16] bg-[#1b1217] p-
 const eyebrow = "text-[10px] font-bold tracking-[.22em] text-[#dec7b4]";
 
 function numberOrNull(value: number | null | undefined): string | null {
-  return value !== null && value !== undefined && Number.isSafeInteger(value) && value >= 0
+  return value !== null && value !== undefined && Number.isFinite(value) && value >= 0 && value <= Number.MAX_SAFE_INTEGER && Math.round(value * 100) / 100 === value
     ? new Intl.NumberFormat("ar-EG").format(value) : null;
 }
 function creditOrNull(value: number | null | undefined): string | null {
