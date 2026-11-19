@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import CutClubExperience from "@/components/club/CutClubExperience";
+import CutClubMemberGateway from "@/components/club/CutClubMemberGateway";
 
 /**
  * Private member destination. A verified Casher session projection will be
@@ -16,5 +16,5 @@ export const metadata: Metadata = {
 };
 
 export default function ClubMemberPage() {
-  return <CutClubExperience member={null} privateMode />;
+  return <CutClubMemberGateway />;
 }
