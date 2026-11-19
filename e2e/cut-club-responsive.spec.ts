@@ -43,7 +43,9 @@ for (const viewport of sizes) {
       await expect(dialog).toBeVisible();
       await expect(trigger).toHaveAttribute("aria-expanded", "true");
 
-      const clubLink = dialog.locator('a[href="/cut-club"]');
+      const clubLinks = dialog.locator('a[href="/cut-club"]');
+      await expect(clubLinks).toHaveCount(2);
+      const clubLink = clubLinks.first();
       await clubLink.scrollIntoViewIfNeeded();
       await expect(clubLink).toBeInViewport();
 
@@ -100,3 +102,26 @@ for (const viewport of sizes) {
     await assertNoHorizontalOverflow(page);
   });
 }
+
+
+test("CUT CLUB primary navigation and old bookmark use the new public page", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+  await page.getByRole("menuitem", { name: "CUT CLUB", exact: true }).click();
+  await expect(page).toHaveURL(/\/cut-club$/);
+  await expect(page.locator("main h1")).toContainText("CUT CLUB");
+
+  await page.goto("/client/loyalty?clientId=123456&phone=01000000000", { waitUntil: "domcontentloaded" });
+  await expect(page).toHaveURL(/\/cut-club$/);
+  await expect(page.locator("main h1")).toContainText("CUT CLUB");
+  await expect(page.locator('main input')).toHaveCount(0);
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+  const trigger = page.locator('[data-global-mobile-nav] button[aria-controls="global-mobile-navigation"]');
+  await trigger.click();
+  const mobileCta = page.locator('#global-mobile-navigation a[href="/cut-club"]').last();
+  await expect(mobileCta).toBeVisible();
+  await mobileCta.click();
+  await expect(page).toHaveURL(/\/cut-club$/);
+});
