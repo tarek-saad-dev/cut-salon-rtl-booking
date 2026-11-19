@@ -6,6 +6,11 @@ import { readCutClubMember } from "@/lib/club/serverCasher";
 export default async function CutClubMemberGateway({area="wallet",privateMode=true}:{
   area?:ClubArea;privateMode?:boolean
 }){
+  // Deploy the new authentication screens without turning on a broken login
+  // before Casher schema + tenant + secret have been configured.
+  if (process.env.CUT_CLUB_WEBSITE_AUTH_ENABLED !== "true") {
+    return <CutClubExperience member={null} privateMode={privateMode} initialArea={area}/>;
+  }
   const member=await readCutClubMember();
   if(!member)return <CutClubAuth/>;
   const activated=member.linkStatus==="ACTIVE";
