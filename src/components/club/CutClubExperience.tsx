@@ -6,7 +6,7 @@
  * No phone/localStorage/clientId lookup and no purchase/redemption side effects.
  * A verified, server-authorized member projection can be supplied later.
  */
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
 import {
@@ -16,7 +16,8 @@ import {
   Trophy, UserRound, Users, Wallet,
 } from "lucide-react";
 
-type Area = "home" | "wallet" | "rewards" | "memberships" | "challenges" | "referrals" | "profile";
+export type ClubArea = "home" | "wallet" | "rewards" | "memberships" | "challenges" | "referrals" | "profile";
+type Area = ClubArea;
 type Voucher = Readonly<{
   id: string;
   title: string;
@@ -302,11 +303,31 @@ function ProfileScreen() {
   </>;
 }
 
-export default function CutClubExperience({ member = null }: { member?: VerifiedClubMember | null }) {
-  const [area, setArea] = useState<Area>("wallet");
+export default function CutClubExperience({ member = null, initialArea = "wallet", privateMode = false }: {
+  member?: VerifiedClubMember | null;
+  initialArea?: ClubArea;
+  privateMode?: boolean;
+}) {
+  const [area, setArea] = useState<Area>(initialArea);
+  useEffect(() => {
+    if (!privateMode) return;
+    const onPopState = () => {
+      const section = window.location.pathname.split("/")[2] as Area | undefined;
+      setArea(nav.some(n => n.id === section) ? section! : "wallet");
+    };
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, [privateMode]);
+  const navigate = (next: Area) => {
+    setArea(next);
+    if (privateMode && typeof window !== "undefined") {
+      const path = next === "wallet" ? "/club" : "/club/" + next;
+      if (window.location.pathname !== path) window.history.pushState(null, "", path);
+    }
+  };
   const selected = nav.find(item => item.id === area) ?? nav[1];
   let content: ReactNode;
-  if (area === "wallet") content = <WalletScreen member={member} go={setArea} />;
+  if (area === "wallet") content = <WalletScreen member={member} go={navigate} />;
   else if (area === "home") content = <HomeScreen member={member} go={setArea} />;
   else if (area === "rewards") content = <RewardsScreen />;
   else if (area === "memberships") content = <MembershipsScreen />;
@@ -330,7 +351,7 @@ export default function CutClubExperience({ member = null }: { member?: Verified
           {nav.map(item => {
             const Icon = item.icon;
             const active = area === item.id;
-            return <button type="button" key={item.id} aria-current={active ? "page" : undefined} onClick={() => setArea(item.id)}
+            return <button type="button" key={item.id} aria-current={active ? "page" : undefined} onClick={() => navigate(item.id)}
               className={"flex min-h-11 w-full items-center gap-3 rounded-xl px-4 text-right text-sm font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#ecc9ad] " +
                 (active ? "bg-[#e1c6af] text-[#2c121a]" : "text-[#d0bbb0] hover:bg-white/[.055] hover:text-white")}>
               <Icon aria-hidden="true" className="h-4.5 w-4.5 shrink-0" />{item.title}
@@ -342,7 +363,7 @@ export default function CutClubExperience({ member = null }: { member?: Verified
       </aside>
       <div className="min-w-0 flex-1">
         <header className="flex min-h-[84px] items-center justify-between gap-4 border-b border-[#e6c5a5]/10 px-5 py-5 md:px-8 lg:px-10">
-          <div><p className={eyebrow} lang="en" dir="ltr">THE CUT CLUB</p><p className="mt-1 text-sm font-bold text-[#faeee2]">{selected.title}</p></div>
+          <a href="/" aria-label="العودة لموقع CUT Salon"><p className={eyebrow} lang="en" dir="ltr">THE CUT CLUB</p><p className="mt-1 text-sm font-bold text-[#faeee2]">{selected.title}</p></a>
           <div className="flex items-center gap-2">
             <a href="/prices" className="hidden min-h-10 items-center rounded-xl border border-[#c8a990]/30 px-4 text-xs font-bold text-[#dcc2ae] hover:bg-white/5 sm:inline-flex">الأسعار</a>
             <a href="/book" className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#ebd7c1] px-4 text-sm font-bold text-[#30151c] hover:bg-white"><CalendarDays className="h-4 w-4" aria-hidden="true" /> احجز الآن</a>
@@ -352,7 +373,7 @@ export default function CutClubExperience({ member = null }: { member?: Verified
           {(["challenges", "referrals", "profile"] as const).map(id => {
             const item = nav.find(n => n.id === id)!;
             const Icon = item.icon;
-            return <button type="button" key={id} onClick={() => setArea(id)}
+            return <button type="button" key={id} onClick={() => navigate(id)}
               aria-pressed={area === id}
               className={"inline-flex min-h-10 shrink-0 items-center gap-2 rounded-full border px-4 text-xs font-bold transition " +
                 (area === id ? "border-[#dfc0a2] bg-[#ead3ba] text-[#32161f]" : "border-[#c6a790]/20 text-[#cbb6a7] hover:bg-white/5")}>
