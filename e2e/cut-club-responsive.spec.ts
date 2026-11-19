@@ -68,3 +68,20 @@ test("legacy /client/loyalty bookmark safely enters the new wallet interface", a
   await expect(page).toHaveURL(/\/cut-club$/);
   await expect(page.locator("#cut-club-content h1")).toContainText("محفظتك");
 });
+
+test("all member deep links are private, navigable and reloadable", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/club/wallet", { waitUntil: "domcontentloaded" });
+  await expect(page.locator("#cut-club-content h1")).toContainText("محفظتك");
+  const nav = page.getByRole("navigation", { name: "أقسام CUT CLUB" });
+  await nav.getByRole("button", { name: "المكافآت" }).click();
+  await expect(page).toHaveURL(/\/club\/rewards$/);
+  await expect(page.locator("#cut-club-content h1")).toContainText("المكافآت");
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await expect(page.locator("#cut-club-content h1")).toContainText("المكافآت");
+  await nav.getByRole("button", { name: "الرئيسية" }).click();
+  await expect(page).toHaveURL(/\/club\/home$/);
+  await expect(page.locator("#cut-club-content h1")).toContainText("كل زيارة");
+  await page.goto("/club/invalid-area");
+  await expect(page.getByText(/404|not found/i)).toBeVisible();
+});
