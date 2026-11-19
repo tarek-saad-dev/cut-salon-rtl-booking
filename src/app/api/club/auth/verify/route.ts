@@ -7,7 +7,11 @@ const noCache={'Cache-Control':'private, no-store, max-age=0','X-Robots-Tag':'no
 const response=(body:unknown,status=200)=>NextResponse.json(body,{status,headers:noCache});
 const authOrigin=(req:NextRequest)=>{
   const origin=req.headers.get('origin');
-  return origin===req.nextUrl.origin && req.headers.get('content-type')?.startsWith('application/json')===true;
+  // VPS may proxy Next on localhost: do NOT derive the public trust boundary
+  // from Host/X-Forwarded-Host supplied by a remote browser.
+  const expected=process.env.CUT_CLUB_PUBLIC_ORIGIN ||
+    (process.env.NODE_ENV==='production'?'https://cutsaloon.com':req.nextUrl.origin);
+  return origin===expected && req.headers.get('content-type')?.startsWith('application/json')===true;
 };
 const cookieOptions={httpOnly:true,secure:process.env.NODE_ENV==='production',sameSite:'lax' as const,path:'/'};
 function fail(error:unknown){
