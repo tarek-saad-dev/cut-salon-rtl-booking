@@ -19,7 +19,7 @@ const DESKTOP_NAV_LINKS: {
   { label: "branches", href: "/#branches" },
   { label: "clubAbout", href: "/cut-club" },
   { label: "account", href: "/client" },
-  { label: "loyalty", href: "/cut-club", isClub: true },
+  { label: "loyalty", href: "/club", isClub: true },
 ];
 
 function LanguageToggle({ className = "" }: { className?: string }) {
