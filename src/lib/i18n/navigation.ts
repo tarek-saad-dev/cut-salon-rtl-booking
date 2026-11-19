@@ -11,7 +11,7 @@ export const navigationLabels = {
   loyalty: { ar: "CUT CLUB", en: "CUT CLUB" },
   loyaltyCta: { ar: "CUT CLUB — انضم دلوقتي", en: "CUT CLUB — Join Now" },
   loyaltyCtaTitle: { ar: "CUT CLUB", en: "CUT CLUB" },
-  loyaltyCtaJoin: { ar: "انضم دلوقتي", en: "Join Now" },
+  loyaltyCtaJoin: { ar: "اكتشف CUT CLUB", en: "Explore CUT CLUB" },
   loyaltyCtaHint: {
     ar: "نقاط · جوايز · هدايا مع كل زيارة",
     en: "Points · Rewards · Gifts with every visit",
