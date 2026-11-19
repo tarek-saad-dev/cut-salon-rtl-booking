@@ -35,7 +35,7 @@ export async function POST(req:NextRequest){
       return response({ok:false,code:'CUT_CLUB_UNAVAILABLE'},503);
     const answer=response({ok:true,status:result.status});
     answer.cookies.set(clubCookieNames.session,result.sessionToken,{...cookieOptions,maxAge:7200});
-    answer.cookies.delete(clubCookieNames.pending);
+    answer.cookies.set(clubCookieNames.pending,'',{...cookieOptions,maxAge:0});
     return answer;
   }catch(err){return fail(err);}
 }
