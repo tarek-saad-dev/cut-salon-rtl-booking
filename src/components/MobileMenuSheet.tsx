@@ -200,7 +200,7 @@ export default function MobileMenuSheet({
               </ul>
 
               <Link
-                href="/cut-club"
+                href="/club"
                 onClick={onClose}
                 className="relative mt-4 block overflow-hidden rounded-xl border border-cut-burgundy/25 bg-gradient-to-br from-cut-ivory/95 to-cut-warm-paper/90 p-3.5"
               >
