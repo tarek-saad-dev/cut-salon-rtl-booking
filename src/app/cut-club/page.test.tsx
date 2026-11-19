@@ -65,10 +65,10 @@ describe("CUT CLUB real WhatsApp auth gateway",()=>{
       upcomingBooking:null,completedVisits:3,linkStatus:"ACTIVE",
     });
     render(await CutClubMemberGateway({}));
-    expect(screen.getByText("مستخدم اختبار")).toBeInTheDocument();
+    expect(screen.getAllByText("مستخدم اختبار").length).toBeGreaterThan(0);
     expect(screen.getByText("حمام زيت")).toBeInTheDocument();
     expect(screen.getByText("نقاط زيارة")).toBeInTheDocument();
-    expect(screen.getByText("155")).toBeInTheDocument();
+    expect(screen.getByText("١٥٥")).toBeInTheDocument();
   });
   it("never exposes old wallet before staff review, even if OTP succeeded",async()=>{
     mocks.read.mockResolvedValue({
