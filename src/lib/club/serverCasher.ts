@@ -36,6 +36,8 @@ export class UpstreamClubError extends Error {
   constructor(public status:number,public code:string){super(code);}
 }
 function config() {
+  if (process.env.CUT_CLUB_WEBSITE_AUTH_ENABLED !== "true")
+    throw new UpstreamClubError(503,"CUT_CLUB_NOT_ENABLED");
   const base=process.env.CUT_CLUB_CASHER_ORIGIN?.trim();
   const key=process.env.CUT_CLUB_BFF_SHARED_KEY;
   if(!base||!key||key.length<32)throw new UpstreamClubError(503,'CUT_CLUB_NOT_CONFIGURED');
