@@ -11,7 +11,7 @@ describe("CUT CLUB wallet-first public member experience", () => {
     expect(html).toContain("قسائمي ومكافآتي");
     expect(html).toContain("سجل حركة النقاط");
     expect(html).toContain("رصيد ترويجي");
-    expect(html).not.toMatch(/<form|<input|clientId|CUT-20491|DEMO|1240/);
+    expect(html).not.toMatch(/<form|<input|clientId|CUT-20491|DEMO|رصيد تجريبي/);
     render(<CutClubPage />);
     expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
     expect(screen.getByTestId("cut-club-experience")).toHaveAttribute("dir", "rtl");
