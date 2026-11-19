@@ -16,7 +16,7 @@ export const clubWalletResponse=z.object({
     displayName:z.string().max(100),
     memberCode:z.string().max(80),
     tier:z.string().nullable(),
-    coins:z.number().int().nonnegative().safe().nullable(),
+    coins:z.number().finite().nonnegative().max(Number.MAX_SAFE_INTEGER).nullable(),
     promoCreditMinor:z.number().int().nonnegative().safe().nullable(),
     ownedVouchers:z.array(voucher).max(50).nullable(),
     movements:z.array(movement).max(30).nullable(),
