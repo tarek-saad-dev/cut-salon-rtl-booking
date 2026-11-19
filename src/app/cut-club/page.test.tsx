@@ -15,6 +15,13 @@ describe("CUT CLUB real WhatsApp auth gateway",()=>{
     mocks.read.mockResolvedValue(null);
   });
   afterEach(()=>vi.unstubAllEnvs());
+  it("keeps existing public wallet-first landing when the production OTP flag is off",async()=>{
+    vi.stubEnv("CUT_CLUB_WEBSITE_AUTH_ENABLED","false");
+    render(await CutClubMemberGateway({privateMode:false}));
+    expect(screen.getByText("سجل حركة النقاط")).toBeInTheDocument();
+    expect(screen.queryByRole("button",{name:"استمرار عبر واتساب"})).not.toBeInTheDocument();
+    expect(mocks.read).not.toHaveBeenCalled();
+  });
   it("renders welcome/phone sign-in for anonymous visitor, no wallet data",async()=>{
     const page=await CutClubMemberGateway({privateMode:false});
     render(page);
