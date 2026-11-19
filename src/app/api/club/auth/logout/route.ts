@@ -27,7 +27,7 @@ export async function POST(req:NextRequest){
   const token=req.cookies.get(clubCookieNames.session)?.value;
   if(token&&/^[A-Za-z0-9_-]{43}$/.test(token)){
     try{await casherMemberRequest('/auth/logout',{method:'POST',body:{sessionToken:token}});}
-    catch{/* Browser cookie is cleared regardless; DB token expires or gets revoked. */}
+    catch(err){return fail(err);} // Never claim logout complete while upstream token remains valid.
   }
   const answer=response({ok:true});
   answer.cookies.delete(clubCookieNames.session);
