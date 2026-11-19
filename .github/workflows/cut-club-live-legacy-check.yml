@@ -1,0 +1,38 @@
+name: CUT CLUB Live Legacy Redirect Smoke
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - .github/workflows/cut-club-live-legacy-check.yml
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verify live old route redirects without leaking clientId, and nav points to new CUT CLUB
+        shell: bash
+        run: |
+          set -euo pipefail
+          site="https://cutsaloon.com"
+          old="${site}/client/loyalty?clientId=123456&phone=01000000000"
+          curl -sS -L --max-time 30 --max-redirs 5 \
+            -D /tmp/cutclub-redirect-headers.txt \
+            -o /tmp/cutclub-landing.html "$old"
+          grep -Eq '^HTTP/[^ ]+ 30[78]' /tmp/cutclub-redirect-headers.txt
+          grep -Eq '^HTTP/[^ ]+ 200' /tmp/cutclub-redirect-headers.txt
+          grep -Ei '^location:' /tmp/cutclub-redirect-headers.txt | grep -Fq '/cut-club'
+          if grep -Ei '^location:' /tmp/cutclub-redirect-headers.txt | grep -Eq 'clientId|phone='; then
+            echo "SECURITY_FAIL: personal parameters leaked through redirect"; exit 21
+          fi
+          grep -Fq 'ما هو CUT CLUB؟' /tmp/cutclub-landing.html
+          ! grep -Fq 'Loyalty Program' /tmp/cutclub-landing.html
+          curl --fail --silent --show-error --max-time 30 \
+            -o /tmp/cutclub-home.html "${site}/"
+          grep -Fq 'href="/cut-club"' /tmp/cutclub-home.html
+          ! grep -Fq 'href="/client/loyalty"' /tmp/cutclub-home.html
+          echo 'LIVE CUT CLUB REDIRECT & NAV CHECK: PASS'
