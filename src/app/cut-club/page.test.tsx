@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import CutClubPage, { metadata } from "./page";
 import CutClubMemberGateway from "@/components/club/CutClubMemberGateway";
 import CutClubAuth from "@/components/club/CutClubAuth";
@@ -10,9 +10,11 @@ vi.mock("next/navigation",()=>({useRouter:()=>({replace:mocks.replace,refresh:mo
 
 describe("CUT CLUB real WhatsApp auth gateway",()=>{
   beforeEach(()=>{
+    vi.stubEnv("CUT_CLUB_WEBSITE_AUTH_ENABLED","true");
     vi.clearAllMocks();
     mocks.read.mockResolvedValue(null);
   });
+  afterEach(()=>vi.unstubAllEnvs());
   it("renders welcome/phone sign-in for anonymous visitor, no wallet data",async()=>{
     const page=await CutClubMemberGateway({privateMode:false});
     render(page);
