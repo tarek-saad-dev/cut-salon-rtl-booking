@@ -16,5 +16,5 @@ export const metadata: Metadata = {
 };
 
 export default function ClubMemberPage() {
-  return <CutClubExperience member={null} />;
+  return <CutClubExperience member={null} privateMode />;
 }
