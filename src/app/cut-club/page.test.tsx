@@ -1,60 +1,97 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
-import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import CutClubPage, { metadata } from "./page";
+import CutClubMemberGateway from "@/components/club/CutClubMemberGateway";
+import CutClubAuth from "@/components/club/CutClubAuth";
 
-describe("CUT CLUB wallet-first public member experience", () => {
-  it("renders the actual wallet UI in Arabic before hydration, never invented customer data", () => {
-    const html = renderToStaticMarkup(<CutClubPage />);
-    expect(html).toContain("محفظتك. كل حاجة في مكانها.");
-    expect(html).toContain("CUT Coins");
-    expect(html).toContain("قسائمي ومكافآتي");
-    expect(html).toContain("سجل حركة النقاط");
-    expect(html).toContain("رصيد ترويجي");
-    expect(html).not.toMatch(/<form|<input|clientId|CUT-20491|DEMO|رصيد تجريبي/);
-    render(<CutClubPage />);
-    expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
-    expect(screen.getByTestId("cut-club-experience")).toHaveAttribute("dir", "rtl");
-    expect(screen.getByTestId("cut-club-experience")).toHaveAttribute("lang", "ar");
-    expect(screen.getByRole("navigation", { name: "أقسام CUT CLUB" })).toBeInTheDocument();
-    expect(screen.getByRole("navigation", { name: "CUT CLUB الموبايل" })).toBeInTheDocument();
-    expect(screen.getByText("البيانات الخاصة لا تظهر للزائر")).toBeInTheDocument();
+const mocks=vi.hoisted(()=>({read:vi.fn(),replace:vi.fn(),refresh:vi.fn()}));
+vi.mock("@/lib/club/serverCasher",()=>({readCutClubMember:mocks.read}));
+vi.mock("next/navigation",()=>({useRouter:()=>({replace:mocks.replace,refresh:mocks.refresh})}));
+
+describe("CUT CLUB real WhatsApp auth gateway",()=>{
+  beforeEach(()=>{
+    vi.stubEnv("CUT_CLUB_WEBSITE_AUTH_ENABLED","true");
+    vi.clearAllMocks();
+    mocks.read.mockResolvedValue(null);
   });
-
-  it("navigates all member areas including rewards, partnerships and referrals without server requests", () => {
-    render(<CutClubPage />);
-    const nav = screen.getByRole("navigation", { name: "أقسام CUT CLUB" });
-    fireEvent.click(within(nav).getByRole("button", { name: "المكافآت" }));
-    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("المكافآت اللي تستاهل زيارتك");
-    expect(screen.getAllByRole("button", { name: "تفاصيل الخدمة" })).toHaveLength(4);
-    fireEvent.click(within(nav).getByRole("button", { name: "العضويات" }));
-    expect(screen.getByText("المدارس والجامعات")).toBeInTheDocument();
-    expect(screen.getByText("الأطباء")).toBeInTheDocument();
-    fireEvent.click(within(nav).getByRole("button", { name: "الإحالات" }));
-    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("شارك تجربة CUT");
-    fireEvent.click(within(nav).getByRole("button", { name: "حسابي" }));
-    expect(screen.getByText("مفيش جلسة عضو موثقة")).toBeInTheDocument();
-    fireEvent.click(within(nav).getByRole("button", { name: "محفظتي" }));
-    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("محفظتك");
+  afterEach(()=>vi.unstubAllEnvs());
+  it("keeps existing public wallet-first landing when the production OTP flag is off",async()=>{
+    vi.stubEnv("CUT_CLUB_WEBSITE_AUTH_ENABLED","false");
+    render(await CutClubMemberGateway({privateMode:false}));
+    expect(screen.getByText("سجل حركة النقاط")).toBeInTheDocument();
+    expect(screen.queryByRole("button",{name:"استمرار عبر واتساب"})).not.toBeInTheDocument();
+    expect(mocks.read).not.toHaveBeenCalled();
   });
-
-  it("provides functional public booking/pricing while withholding private wallet data", () => {
-    render(<CutClubPage />);
-    const links = screen.getAllByRole("link");
-    expect(links.some(l => l.getAttribute("href") === "/book")).toBe(true);
-    expect(links.some(l => l.getAttribute("href") === "/prices")).toBe(true);
-    expect(links.every(l => ["/", "/book", "/prices", "#cut-club-content"].includes(l.getAttribute("href")!))).toBe(true);
-    expect(screen.getAllByText(/يظهر بعد التحقق من الحساب/).length).toBeGreaterThan(0);
+  it("renders welcome/phone sign-in for anonymous visitor, no wallet data",async()=>{
+    const page=await CutClubMemberGateway({privateMode:false});
+    render(page);
+    expect(screen.getByRole("heading",{name:/مكافآتك/})).toBeInTheDocument();
+    expect(screen.getByRole("button",{name:"استمرار عبر واتساب"})).toBeInTheDocument();
+    expect(screen.getByRole("button",{name:"تسجيل الدخول"})).toHaveAttribute("aria-pressed","true");
+    expect(screen.queryByText("سجل حركة النقاط")).not.toBeInTheDocument();
+    expect(screen.queryByText(/CUT-12345/)).not.toBeInTheDocument();
   });
-
-  it("preserves public canonical and social metadata", () => {
-    expect(metadata.alternates).toEqual({ canonical: "/cut-club" });
-    expect(metadata.openGraph).toMatchObject({
-      url: "/cut-club",
-      description: metadata.description,
-      title: "CUT CLUB | محفظتك وعضويتك في CUT Salon",
+  it("allows choosing signup purpose, never sends OTP from the browser",async()=>{
+    const fetchMock=vi.fn().mockResolvedValue({ok:true,json:async()=>({ok:true,resendAfterSec:60})});
+    vi.stubGlobal("fetch",fetchMock);
+    try{
+      render(<CutClubAuth/>);
+      fireEvent.click(screen.getByRole("button",{name:"حساب جديد"}));
+      fireEvent.change(screen.getByLabelText("رقم الموبايل"),{target:{value:"01557994946"}});
+      fireEvent.click(screen.getByRole("button",{name:"استمرار عبر واتساب"}));
+      await waitFor(()=>expect(screen.getByLabelText("كود التحقق المكوّن من 6 أرقام")).toBeInTheDocument());
+      expect(fetchMock).toHaveBeenCalledWith("/api/club/auth/start",expect.objectContaining({
+        method:"POST",credentials:"same-origin",
+        body:JSON.stringify({phone:"01557994946",purpose:"CUT_CLUB_SIGNUP"}),
+      }));
+      expect(screen.getByText(/إعادة الإرسال خلال/)).toBeInTheDocument();
+      expect(screen.getByRole("button",{name:"إرسال كود جديد"})).toBeDisabled();
+    }finally{vi.unstubAllGlobals();}
+  });
+  it("submits only six digits to verification, without a clientId or frontend trust flag",async()=>{
+    const fetchMock=vi.fn().mockResolvedValue({ok:true,json:async()=>({ok:true,resendAfterSec:60})});
+    vi.stubGlobal("fetch",fetchMock);
+    try{
+      render(<CutClubAuth/>);
+      fireEvent.change(screen.getByLabelText("رقم الموبايل"),{target:{value:"01557994946"}});
+      fireEvent.click(screen.getByRole("button",{name:"استمرار عبر واتساب"}));
+      await waitFor(()=>expect(screen.getByLabelText("كود التحقق المكوّن من 6 أرقام")).toBeInTheDocument());
+      fireEvent.change(screen.getByLabelText("كود التحقق المكوّن من 6 أرقام"),{target:{value:"123456"}});
+      fireEvent.click(screen.getByRole("button",{name:"تأكيد ودخول"}));
+      await waitFor(()=>expect(mocks.replace).toHaveBeenCalledWith("/club"));
+      const call=fetchMock.mock.calls.find(x=>x[0]==="/api/club/auth/verify");
+      expect(call?.[1].body).toBe(JSON.stringify({code:"123456"}));
+      expect(call?.[1].body).not.toContain("clientId");
+      expect(call?.[1].body).not.toContain("verified");
+    }finally{vi.unstubAllGlobals();}
+  });
+  it("projects actual signed-in customer wallet values, vouchers and ledger from backend DTO",async()=>{
+    mocks.read.mockResolvedValue({
+      displayName:"مستخدم اختبار",memberCode:"CC-000007",tier:"Gold",coins:155,
+      promoCreditMinor:null,
+      ownedVouchers:[{id:"inv-1",title:"حمام زيت",status:"active",expiryLabel:null}],
+      movements:[{id:"l-1",title:"نقاط زيارة",occurredAtLabel:"2026-11-19",coinsDelta:20}],
+      upcomingBooking:null,completedVisits:3,linkStatus:"ACTIVE",
     });
-    expect(metadata.twitter).toMatchObject({ title: "CUT CLUB | محفظتك وعضويتك في CUT Salon" });
-    expect(metadata.robots).toBeUndefined();
+    render(await CutClubMemberGateway({}));
+    expect(screen.getAllByText("مستخدم اختبار").length).toBeGreaterThan(0);
+    expect(screen.getByText("حمام زيت")).toBeInTheDocument();
+    expect(screen.getByText("نقاط زيارة")).toBeInTheDocument();
+    expect(screen.getAllByText("١٥٥").length).toBeGreaterThan(0);
+  });
+  it("never exposes old wallet before staff review, even if OTP succeeded",async()=>{
+    mocks.read.mockResolvedValue({
+      displayName:"عضو CUT CLUB",memberCode:"حساب موثّق",tier:null,coins:null,
+      promoCreditMinor:null,ownedVouchers:null,movements:null,upcomingBooking:null,
+      completedVisits:null,linkStatus:"REVIEW_REQUIRED",
+    });
+    render(await CutClubMemberGateway({}));
+    expect(screen.getByText("تأكيد ربط العضوية مطلوب")).toBeInTheDocument();
+    expect(screen.getAllByText("البيانات الخاصة لا تظهر للزائر").length).toBeGreaterThan(0);
+    expect(screen.queryByText("155")).not.toBeInTheDocument();
+  });
+  it("preserves public SEO metadata",()=>{
+    expect(metadata.alternates).toEqual({canonical:"/cut-club"});
+    expect(metadata.openGraph).toMatchObject({url:"/cut-club",title:"CUT CLUB | محفظتك وعضويتك في CUT Salon"});
   });
 });

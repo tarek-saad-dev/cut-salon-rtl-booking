@@ -1,5 +1,10 @@
 import { publicPageMetadata } from "@/lib/seo";
-import CutClubExperience from "@/components/club/CutClubExperience";
+import CutClubMemberGateway from "@/components/club/CutClubMemberGateway";
+
+// Public entry can render a signed-in member. It must NEVER enter the CDN cache.
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+export const fetchCache = "force-no-store";
 
 export const metadata = publicPageMetadata("/cut-club",
   "CUT CLUB | محفظتك وعضويتك في CUT Salon",
@@ -8,5 +13,5 @@ export const metadata = publicPageMetadata("/cut-club",
 
 /** Public entry to the actual member experience, with NO fake member data. */
 export default function CutClubPage() {
-  return <CutClubExperience />;
+  return <CutClubMemberGateway privateMode={false} />;
 }

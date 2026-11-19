@@ -7,6 +7,7 @@
  * A verified, server-authorized member projection can be supplied later.
  */
 import { useEffect, useState } from "react";
+import CutClubLogout from "./CutClubLogout";
 import type { ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
 import {
@@ -56,7 +57,7 @@ const surface = "rounded-[1.65rem] border border-[#d2b49d]/[.16] bg-[#1b1217] p-
 const eyebrow = "text-[10px] font-bold tracking-[.22em] text-[#dec7b4]";
 
 function numberOrNull(value: number | null | undefined): string | null {
-  return value !== null && value !== undefined && Number.isSafeInteger(value) && value >= 0
+  return value !== null && value !== undefined && Number.isFinite(value) && value >= 0 && value <= Number.MAX_SAFE_INTEGER && Math.round(value * 100) / 100 === value
     ? new Intl.NumberFormat("ar-EG").format(value) : null;
 }
 function creditOrNull(value: number | null | undefined): string | null {
@@ -367,6 +368,7 @@ export default function CutClubExperience({ member = null, initialArea = "wallet
           <div className="flex items-center gap-2">
             <a href="/prices" className="hidden min-h-10 items-center rounded-xl border border-[#c8a990]/30 px-4 text-xs font-bold text-[#dcc2ae] hover:bg-white/5 sm:inline-flex">الأسعار</a>
             <a href="/book" className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#ebd7c1] px-4 text-sm font-bold text-[#30151c] hover:bg-white"><CalendarDays className="h-4 w-4" aria-hidden="true" /> احجز الآن</a>
+            {member && <CutClubLogout />}
           </div>
         </header>
         <nav aria-label="الوصول السريع" className="flex gap-2 overflow-x-auto px-5 pt-4 md:px-8 lg:px-10">

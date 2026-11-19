@@ -30,6 +30,10 @@ jobs:
       - name: Verify preinstalled Chrome
         run: google-chrome --version
       - name: Build CUT Salon site
+        env:
+          CUT_CLUB_WEBSITE_AUTH_ENABLED: 'true'
         run: npm run build
       - name: Check mobile, tablet and desktop in browser
+        env:
+          CUT_CLUB_WEBSITE_AUTH_ENABLED: 'true'
         run: npx playwright test --config playwright.cut-club.config.ts
