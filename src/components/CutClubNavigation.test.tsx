@@ -8,12 +8,12 @@ vi.mock("next/navigation", () => ({ usePathname: () => "/cut-club", useRouter: (
 vi.mock("./ClientProfileWidget", () => ({ default: () => null }));
 
 describe("CUT CLUB navigation", () => {
-  it.each(["ar", "en"])("routes both desktop CUT CLUB links to the public landing in %s", lang => {
+  it.each(["ar", "en"])("routes public About and private wallet entry correctly in %s", lang => {
     language.lang = lang;
     language.dir = lang === "ar" ? "rtl" : "ltr";
     render(<MainNav />);
     expect(screen.getByRole("menuitem", { name: lang === "ar" ? "عن CUT CLUB" : "About CUT CLUB" })).toHaveAttribute("href", "/cut-club");
-    expect(screen.getByRole("menuitem", { name: "CUT CLUB" })).toHaveAttribute("href", "/cut-club");
+    expect(screen.getByRole("menuitem", { name: "CUT CLUB" })).toHaveAttribute("href", "/club");
   });
 
   it.each(["ar", "en"])("opens public Club from mobile and closes the sheet in %s", lang => {
@@ -24,7 +24,7 @@ describe("CUT CLUB navigation", () => {
     const link = screen.getByRole("link", { name: lang === "ar" ? "عن CUT CLUB" : "About CUT CLUB" });
     expect(link).toHaveAttribute("href", "/cut-club");
     expect(document.querySelector('a[href="/client/loyalty"]')).not.toBeInTheDocument();
-    expect(document.querySelectorAll('a[href="/cut-club"]').length).toBeGreaterThanOrEqual(2);
+    expect(document.querySelectorAll('a[href="/club"]').length).toBeGreaterThanOrEqual(1);
     link.addEventListener("click", event => event.preventDefault());
     fireEvent.click(link);
     expect(onClose).toHaveBeenCalledOnce();

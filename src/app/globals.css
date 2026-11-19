@@ -184,7 +184,7 @@
     max-width: 100%;
     position: relative;
     /* Re-resolve stacks here: next/font sets --*-loaded on <body> */
-    --font-alexandria: var(--font-alexandria-loaded), "Alexandria", sans-serif;
+    --font-alexandria: "Alexandria", Tahoma, sans-serif;
     --font-laxr: var(--font-laxr-loaded), "LAXR", sans-serif;
     --font-display: var(--font-laxr), var(--font-alexandria);
     --font-ui: var(--font-alexandria);

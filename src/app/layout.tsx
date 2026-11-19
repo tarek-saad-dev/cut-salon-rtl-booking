@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { CANONICAL_ORIGIN, SITE_TITLE, SITE_DESCRIPTION } from "@/lib/seo";
 import type { CSSProperties } from "react";
-import { Alexandria } from "next/font/google";
 import localFont from "next/font/local";
 import "./globals.css";
 import { Providers } from "@/components/providers";
@@ -10,13 +9,6 @@ import {
   CAMPAIGN_ANNOUNCEMENT_BAR_HEIGHT_PX,
   getActiveCampaign,
 } from "@/config/campaigns";
-
-const alexandria = Alexandria({
-  variable: "--font-alexandria-loaded",
-  subsets: ["latin", "arabic"],
-  weight: ["400", "500", "600", "700", "900"],
-  display: "swap",
-});
 
 /** Local Arabic display face — used only for hero / section display headings. */
 const laxr = localFont({
@@ -92,7 +84,7 @@ export default function RootLayout({
         } as CSSProperties
       }
     >
-      <body className={`${alexandria.variable} ${laxr.variable} antialiased`}>
+      <body className={`${laxr.variable} antialiased`}>
         <Providers>
           <SiteChrome />
           {children}

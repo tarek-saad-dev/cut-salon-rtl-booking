@@ -7,7 +7,7 @@ vi.mock("./MainNav", () => ({ default: () => <div>Main navigation</div> }));
 vi.mock("./GlobalMobileNav", () => ({ default: () => <div>Mobile navigation</div> }));
 vi.mock("./campaign/CampCaesarCampaign", () => ({ default: () => <div>Camp Caesar campaign</div> }));
 describe("site chrome", () => {
-  it.each(["/offers/october-333", "/offers/october-333/success", "/offers/another"])('excludes chrome on %s', pathname => {
+  it.each(["/offers/october-333", "/offers/october-333/success", "/offers/another", "/cut-club", "/club", "/club/wallet"])('excludes chrome on %s', pathname => {
     route.pathname = pathname;
     const { container } = render(<SiteChrome />);
     expect(container).toBeEmptyDOMElement();

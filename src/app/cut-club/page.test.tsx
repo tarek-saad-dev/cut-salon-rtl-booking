@@ -3,39 +3,58 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import CutClubPage, { metadata } from "./page";
 
-describe("public CUT CLUB landing", () => {
-  it("renders useful Arabic content and a single H1 before hydration", () => {
+describe("CUT CLUB wallet-first public member experience", () => {
+  it("renders the actual wallet UI in Arabic before hydration, never invented customer data", () => {
     const html = renderToStaticMarkup(<CutClubPage />);
-    expect(html).toContain("ما هو CUT CLUB؟");
-    expect(html).toContain("النقاط");
-    expect(html).toContain("المستوى");
-    expect(html).not.toMatch(/<form|<input|clientId|CUT-20491|1240/);
+    expect(html).toContain("محفظتك. كل حاجة في مكانها.");
+    expect(html).toContain("CUT Coins");
+    expect(html).toContain("قسائمي ومكافآتي");
+    expect(html).toContain("سجل حركة النقاط");
+    expect(html).toContain("رصيد ترويجي");
+    expect(html).not.toMatch(/<form|<input|clientId|CUT-20491|DEMO|رصيد تجريبي/);
     render(<CutClubPage />);
     expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
-    expect(screen.getByRole("main")).toHaveAttribute("dir", "rtl");
-    expect(screen.getByRole("main")).toHaveAttribute("lang", "ar");
-    expect(screen.getAllByRole("region").length).toBeGreaterThanOrEqual(4);
-    expect(screen.getByRole("list", { name: "رحلتك مع CUT CLUB" }).tagName).toBe("OL");
+    expect(screen.getByTestId("cut-club-experience")).toHaveAttribute("dir", "rtl");
+    expect(screen.getByTestId("cut-club-experience")).toHaveAttribute("lang", "ar");
+    expect(screen.getByRole("navigation", { name: "أقسام CUT CLUB" })).toBeInTheDocument();
+    expect(screen.getByRole("navigation", { name: "CUT CLUB الموبايل" })).toBeInTheDocument();
+    expect(screen.getByText("البيانات الخاصة لا تظهر للزائر")).toBeInTheDocument();
   });
 
-  it("offers real public destinations and FAQs without a wallet or signup", () => {
+  it("navigates all member areas including rewards, partnerships and referrals without server requests", () => {
     render(<CutClubPage />);
-    const main = screen.getByRole("main");
-    const links = within(main).getAllByRole("link");
-    expect(links.some(link => link.getAttribute("href") === "/book")).toBe(true);
-    expect(links.some(link => link.getAttribute("href") === "/prices")).toBe(true);
-    expect(links.every(link => ["/book", "/prices", "#rewards"].includes(link.getAttribute("href")!))).toBe(true);
-    expect(main.querySelectorAll("details").length).toBeGreaterThanOrEqual(4);
-    fireEvent.click(screen.getByText("هل كل زيارة تمنحني مكافأة؟"));
-    fireEvent.click(screen.getByText("هل أستطيع إدارة حسابي من هذه الصفحة؟"));
-    expect(screen.getByText(/لا تضمن كل زيارة/)).toBeVisible();
-    expect(screen.getByText(/لا تعرض رصيدًا شخصيًا/)).toBeVisible();
+    const nav = screen.getByRole("navigation", { name: "أقسام CUT CLUB" });
+    fireEvent.click(within(nav).getByRole("button", { name: "المكافآت" }));
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("المكافآت اللي تستاهل زيارتك");
+    expect(screen.getAllByRole("button", { name: "تفاصيل الخدمة" })).toHaveLength(4);
+    fireEvent.click(within(nav).getByRole("button", { name: "العضويات" }));
+    expect(screen.getByText("المدارس والجامعات")).toBeInTheDocument();
+    expect(screen.getByText("الأطباء")).toBeInTheDocument();
+    fireEvent.click(within(nav).getByRole("button", { name: "الإحالات" }));
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("شارك تجربة CUT");
+    fireEvent.click(within(nav).getByRole("button", { name: "حسابي" }));
+    expect(screen.getByText("مفيش جلسة عضو موثقة")).toBeInTheDocument();
+    fireEvent.click(within(nav).getByRole("button", { name: "محفظتي" }));
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("محفظتك");
   });
 
-  it("exports route-specific canonical and matching social metadata", () => {
+  it("provides functional public booking/pricing while withholding private wallet data", () => {
+    render(<CutClubPage />);
+    const links = screen.getAllByRole("link");
+    expect(links.some(l => l.getAttribute("href") === "/book")).toBe(true);
+    expect(links.some(l => l.getAttribute("href") === "/prices")).toBe(true);
+    expect(links.every(l => ["/", "/book", "/prices", "#cut-club-content"].includes(l.getAttribute("href")!))).toBe(true);
+    expect(screen.getAllByText(/يظهر بعد التحقق من الحساب/).length).toBeGreaterThan(0);
+  });
+
+  it("preserves public canonical and social metadata", () => {
     expect(metadata.alternates).toEqual({ canonical: "/cut-club" });
-    expect(metadata.openGraph).toMatchObject({ url: "/cut-club", description: metadata.description, title: "CUT CLUB | تعرّف على برنامج الولاء في CUT Salon" });
-    expect(metadata.twitter).toMatchObject({ description: metadata.description, title: "CUT CLUB | تعرّف على برنامج الولاء في CUT Salon" });
+    expect(metadata.openGraph).toMatchObject({
+      url: "/cut-club",
+      description: metadata.description,
+      title: "CUT CLUB | محفظتك وعضويتك في CUT Salon",
+    });
+    expect(metadata.twitter).toMatchObject({ title: "CUT CLUB | محفظتك وعضويتك في CUT Salon" });
     expect(metadata.robots).toBeUndefined();
   });
 });
