@@ -1,0 +1,44 @@
+name: CUT CLUB Wallet UX Live HTTP Verification
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - .github/workflows/cut-club-wallet-live-verification.yml
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verify new dashboard, private route and navigation (no DB access)
+        shell: bash
+        run: |
+          set -euo pipefail
+          site="https://cutsaloon.com"
+          curl --fail --silent --show-error --location --max-time 30 -o /tmp/club.html "$site/cut-club"
+          grep -Fq 'محفظتك. كل حاجة في مكانها.' /tmp/club.html
+          grep -Fq 'سجل حركة النقاط' /tmp/club.html
+          grep -Fq 'قسائمي ومكافآتي' /tmp/club.html
+          ! grep -Fq 'ما هو CUT CLUB؟' /tmp/club.html
+          curl --fail --silent --show-error --location --max-time 30 -o /tmp/private.html "$site/club"
+          grep -Fq 'محفظتك. كل حاجة في مكانها.' /tmp/private.html
+          grep -Fq 'noindex' /tmp/private.html
+          grep -Fq 'البيانات الخاصة لا تظهر للزائر' /tmp/private.html
+          for area in wallet rewards memberships; do
+            curl --fail --silent --show-error --location --max-time 30 -o "/tmp/club-$area.html" "$site/club/$area"
+            grep -Fq 'CUT CLUB' "/tmp/club-$area.html"
+            grep -Fq 'noindex' "/tmp/club-$area.html"
+          done
+          curl --fail --silent --show-error --location --max-time 30 -o /tmp/home.html "$site/"
+          grep -Fq 'href="/club"' /tmp/home.html
+          curl --fail --silent --show-error --location --max-time 30 \
+            -D /tmp/old-headers.txt -o /tmp/old.html \
+            "$site/client/loyalty?clientId=12345"
+          grep -Eq '^HTTP/[^ ]+ 30[78]' /tmp/old-headers.txt
+          grep -Ei '^location:' /tmp/old-headers.txt | grep -Fq '/cut-club'
+          ! grep -Ei '^location:' /tmp/old-headers.txt | grep -q 'clientId'
+          echo 'LIVE CUT CLUB WALLET-FIRST EXPERIENCE: VERIFIED'
