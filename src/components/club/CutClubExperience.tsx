@@ -8,6 +8,7 @@
  */
 import { useEffect, useState } from "react";
 import CutClubLogout from "./CutClubLogout";
+import MovementHistory from "./MovementHistory";
 import type { ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
 import {
@@ -159,10 +160,7 @@ function WalletScreen({ member, go }: { member: VerifiedClubMember | null; go: (
           ? <Empty title="سجلك المالي خاص بيك" description="هنا تشوف الإضافات والخصومات والتواريخ من السجل الحقيقي بعد التحقق." icon={History} />
           : movements.length === 0
             ? <Empty title="مفيش حركات مسجلة" description="حركات النقاط هتظهر في المكان ده." icon={History} />
-            : <ul className="mt-5 divide-y divide-white/10">{movements.map(m => <li key={m.id} className="flex items-center justify-between gap-3 py-4">
-              <div><p className="text-sm font-semibold">{m.title}</p><p className="mt-1 text-xs text-[#b9a396]">{m.occurredAtLabel}</p></div>
-              <span dir="ltr" className="text-sm font-bold text-[#e9cbb0]">{m.coinsDelta > 0 ? "+" : ""}{m.coinsDelta} CC</span>
-            </li>)}</ul>}
+            : <MovementHistory initial={movements} />}
       </div>
     </div>
     <div className="mt-5 grid gap-4 md:grid-cols-[1fr_auto] md:items-center">
