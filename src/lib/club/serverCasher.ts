@@ -26,6 +26,15 @@ export const clubWalletResponse=z.object({
   }).strict(),
 }).strict();
 export type CasherMember = z.infer<typeof clubWalletResponse>['member'];
+export const clubActivityResponse=z.object({
+  ok:z.literal(true),
+  items:z.array(z.object({
+    id:z.string().max(60),type:z.string().max(50),title:z.string().max(200),
+    occurredAt:z.string().max(40),coinsDelta:z.number().finite(),
+  }).strict()).max(50),
+  nextCursor:z.string().max(120).nullable(),
+}).strict();
+export type CasherActivityPage = Omit<z.infer<typeof clubActivityResponse>,'ok'>;
 
 const cookiesByEnv=()=>process.env.NODE_ENV==='production'
   ? {pending:'__Host-cutclub_pending',session:'__Host-cutclub_session'}
@@ -48,7 +57,7 @@ function config() {
   return {url:url.origin,key};
 }
 export async function casherMemberRequest(
-  path:'/auth/start'|'/auth/verify'|'/auth/logout'|'/wallet',
+  path:'/auth/start'|'/auth/verify'|'/auth/logout'|'/wallet'|`/wallet/activity?${string}`,
   options:{method?:'GET'|'POST';body?:unknown;sessionToken?:string}={},
 ):Promise<unknown>{
   const {url,key}=config();
@@ -83,4 +92,17 @@ export async function readCutClubMember():Promise<CasherMember|null> {
     const checked=clubWalletResponse.safeParse(raw);
     return checked.success?checked.data.member:null;
   }catch{return null;}
+}
+
+/** Paginated coins history for the cookie session owner. null = no/invalid session. */
+export async function readCutClubActivity(opts:{cursor?:string|null;type?:string|null}):Promise<CasherActivityPage|null>{
+  const token=(await cookies()).get(clubCookieNames.session)?.value;
+  if(!token||!/^[A-Za-z0-9_-]{43}$/.test(token))return null;
+  const q=new URLSearchParams({limit:'20'});
+  if(opts.cursor)q.set('cursor',opts.cursor);
+  if(opts.type)q.set('type',opts.type);
+  const raw=await casherMemberRequest(`/wallet/activity?${q.toString()}`,{sessionToken:token});
+  const checked=clubActivityResponse.safeParse(raw);
+  if(!checked.success)throw new UpstreamClubError(502,'UPSTREAM_INVALID');
+  return {items:checked.data.items,nextCursor:checked.data.nextCursor};
 }
