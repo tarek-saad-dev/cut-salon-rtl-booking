@@ -259,13 +259,24 @@ function ReferralsScreen() {
     </div>
   </>;
 }
-function ProfileScreen() {
+function ProfileScreen({member}:{member:VerifiedClubMember|null}) {
   return <>
     <Head en="CUT CLUB / MY ACCOUNT" title="مساحتك، وخصوصيتك"
-      subtitle="ملف العميل وعضوياته ووسائل التواصل والتفضيلات، من غير ما تختار عميل تاني بمجرد رقم الهاتف." />
+      subtitle="بيانات عضويتك الموثّقة من Casher، من غير إظهار بيانات عميل آخر بمجرد رقم الموبايل." />
     <div className="grid gap-4 lg:grid-cols-2">
-      <div className={surface}><CardTitle icon={UserRound}>بيانات العضو</CardTitle><Empty title="مفيش جلسة عضو موثقة" description="ملف العضوية والبيانات الشخصية مش بيتعرضوا لزائر غير موثّق." /></div>
-      <div className={surface}><CardTitle icon={ShieldCheck}>حماية محفظتك</CardTitle><p className="mt-5 text-sm leading-8 text-[#c8b5a6]">الاسم ورقم العضوية والأرصدة والقسائم لا تظهر إلا لصاحب الحساب. واجهة CUT CLUB جاهزة للتوصيل بقناة إثبات ملكية آمنة؛ الهاتف وحده مش كفاية.</p><a className="mt-5 inline-flex min-h-11 items-center text-sm font-bold text-[#e7c7ab] underline underline-offset-4" href="/">العودة لموقع CUT Salon</a></div>
+      <div className={surface}>
+        <CardTitle icon={UserRound}>بيانات العضو</CardTitle>
+        {member?<dl className="mt-6 space-y-5">
+          <div className="border-b border-white/10 pb-4"><dt className="text-xs text-[#ad9888]">اسم العميل</dt><dd className="mt-2 text-lg font-black">{member.displayName}</dd></div>
+          <div className="border-b border-white/10 pb-4"><dt className="text-xs text-[#ad9888]">رقم العضوية</dt><dd className="mt-2 text-base font-bold" dir="ltr">{member.memberCode}</dd></div>
+          <div><dt className="text-xs text-[#ad9888]">مستوى العضوية</dt><dd className="mt-2 text-base font-bold">{member.tier||"غير محدد بعد"}</dd></div>
+        </dl>:<Empty title="ملف العضوية غير متاح" description="سجّل دخولك وتأكد من ربط حسابك قبل عرض البيانات الخاصة." />}
+      </div>
+      <div className={surface}>
+        <CardTitle icon={ShieldCheck}>حماية محفظتك</CardTitle>
+        <p className="mt-5 text-sm leading-8 text-[#c8b5a6]">اسمك ورقم عضويتك ورصيدك بيتعرضوا فقط بعد التحقق من جلسة CUT CLUB وربطها بسجل Casher. تغيير البيانات الشخصية هيحتاج تحقق منفصل قبل التفعيل.</p>
+        <a className="mt-5 inline-flex min-h-11 items-center text-sm font-bold text-[#e7c7ab] underline underline-offset-4" href="/">العودة لموقع CUT Salon</a>
+      </div>
     </div>
   </>;
 }
@@ -300,7 +311,7 @@ export default function CutClubExperience({ member = null, initialArea = "wallet
   else if (area === "memberships") content = <MembershipsScreen />;
   else if (area === "challenges") content = <ChallengesScreen />;
   else if (area === "referrals") content = <ReferralsScreen />;
-  else content = <ProfileScreen />;
+  else content = <ProfileScreen member={member} />;
 
   return <div dir="rtl" lang="ar" data-testid="cut-club-experience"
     className="relative min-h-dvh bg-[#0d0a0e] font-body text-[#fff8f0] selection:bg-[#c9a58b]/30">
