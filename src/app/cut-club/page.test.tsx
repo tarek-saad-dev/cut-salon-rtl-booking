@@ -90,6 +90,17 @@ describe("CUT CLUB real WhatsApp auth gateway",()=>{
     expect(screen.getAllByText("البيانات الخاصة لا تظهر للزائر").length).toBeGreaterThan(0);
     expect(screen.queryByText("155")).not.toBeInTheDocument();
   });
+  it("shows only verified member identity on the real Profile page",async()=>{
+    mocks.read.mockResolvedValue({
+      displayName:"مستخدم اختبار",memberCode:"CC-000007",tier:"Gold",coins:155,
+      promoCreditMinor:null,ownedVouchers:[],movements:[],upcomingBooking:null,
+      completedVisits:3,linkStatus:"ACTIVE",
+    });
+    render(await CutClubMemberGateway({area:"profile"}));
+    expect(screen.getAllByText("مستخدم اختبار").length).toBeGreaterThan(0);
+    expect(screen.getByText("CC-000007")).toBeInTheDocument();
+    expect(screen.getByText("Gold")).toBeInTheDocument();
+  });
   it("preserves public SEO metadata",()=>{
     expect(metadata.alternates).toEqual({canonical:"/cut-club"});
     expect(metadata.openGraph).toMatchObject({url:"/cut-club",title:"CUT CLUB | محفظتك وعضويتك في CUT Salon"});
