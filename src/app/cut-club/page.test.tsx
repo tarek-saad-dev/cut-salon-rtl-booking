@@ -99,7 +99,7 @@ describe("CUT CLUB real WhatsApp auth gateway",()=>{
     render(await CutClubMemberGateway({area:"profile"}));
     expect(screen.getAllByText("مستخدم اختبار").length).toBeGreaterThan(0);
     expect(screen.getByText("CC-000007")).toBeInTheDocument();
-    expect(screen.getByText("Gold")).toBeInTheDocument();
+    expect(screen.getAllByText("Gold").length).toBeGreaterThan(0);
   });
   it("preserves public SEO metadata",()=>{
     expect(metadata.alternates).toEqual({canonical:"/cut-club"});
