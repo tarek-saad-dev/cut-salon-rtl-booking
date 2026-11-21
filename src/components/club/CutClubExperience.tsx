@@ -9,6 +9,7 @@
 import { useEffect, useState } from "react";
 import CutClubLogout from "./CutClubLogout";
 import MovementHistory from "./MovementHistory";
+import RewardsMarketplace from "./RewardsMarketplace";
 import type { ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
 import {
@@ -206,40 +207,7 @@ function HomeScreen({ member, go }: { member: VerifiedClubMember | null; go: (ar
   </>;
 }
 
-const categories = [
-  { id: "hair", name: "Hair Cut", ar: "حلاقة الشعر", note: "الإتاحة والسعر بالنقاط حسب كتالوج النادي المعتمد", icon: Scissors },
-  { id: "mask", name: "Face Mask", ar: "ماسك الوجه", note: "تخضع لشروط المكافأة والفرع والخدمة", icon: Sparkles },
-  { id: "care", name: "Basic SkinCare", ar: "العناية بالبشرة", note: "تُعرض الشروط الفعلية عند إتاحة الاستبدال", icon: Gift },
-  { id: "oil", name: "Oil Bath", ar: "حمام الزيت", note: "نوع الخدمة والأهلية من بيانات CUT Salon", icon: Crown },
-];
-function RewardsScreen() {
-  const [selected, setSelected] = useState<string | null>(null);
-  const chosen = categories.find(c => c.id === selected);
-  return <>
-    <Head en="CUT CLUB / THE REWARD ROOM" title="المكافآت اللي تستاهل زيارتك"
-      subtitle="استكشف أقسام المكافآت. الأسعار والتوفر والاستبدال مش متاحين قبل ربط الكتالوج بحسابك الموثّق." />
-    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-      {categories.map((item, index) => {
-        const Icon = item.icon;
-        return <article key={item.id} className="overflow-hidden rounded-[1.6rem] border border-[#d2b49d]/20 bg-[#1b1217]">
-          <div className="relative flex h-40 items-center justify-center bg-gradient-to-br from-[#5e1e2b] via-[#351623] to-[#1b1116]">
-            <Icon aria-hidden="true" className="h-12 w-12 text-[#edcfb5]" />
-            <span className="absolute bottom-3 left-4 text-4xl font-black text-white/10">0{index + 1}</span>
-          </div>
-          <div className="p-5"><p dir="ltr" className={eyebrow}>{item.name}</p><h2 className="mt-2 text-lg font-bold">{item.ar}</h2>
-            <p className="mt-3 min-h-12 text-xs leading-6 text-[#c4b1a2]">{item.note}</p>
-            <button type="button" onClick={() => setSelected(selected === item.id ? null : item.id)}
-              aria-expanded={selected === item.id} className="mt-3 flex min-h-11 w-full items-center justify-center rounded-xl border border-[#d5bca6]/40 text-sm font-bold text-[#f1d8c3] hover:bg-white/5">تفاصيل الخدمة</button>
-          </div>
-        </article>;
-      })}
-    </div>
-    {chosen && <div role="region" aria-label="تفاصيل المكافأة" className={surface + " mt-5"}>
-      <CardTitle icon={Gift}>{chosen.ar}</CardTitle><p className="mt-4 text-sm leading-7 text-[#cdb9aa]">{chosen.note}. لا يوجد سعر Coins أو حجز مكافأة فعلي مفعّل من الصفحة العامة.</p>
-    </div>}
-    <div className="mt-5"><PrivateNotice compact /></div>
-  </>;
-}
+function RewardsScreen(){return <RewardsMarketplace/>;}
 function MembershipsScreen() {
   return <>
     <Head en="CUT CLUB / MEMBERSHIP" title="عضوية على مقاسك"
