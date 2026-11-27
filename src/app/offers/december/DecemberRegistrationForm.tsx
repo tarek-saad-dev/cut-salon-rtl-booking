@@ -27,6 +27,7 @@ export default function DecemberRegistrationForm({enabled,initialReferral=""}:{e
       if(!response.ok||result.ok!==true||typeof result.referralCode!=='string'){
         setError(result.code==='REGISTRATION_REVIEW_REQUIRED'?'راجع الاستقبال لاستكمال التسجيل بأمان.'
           :result.code==='INVALID_REFERRAL_CODE'?'راجع كود الدعوة أو احذفه للمتابعة.'
+          :result.code==='REGISTRATION_BUSY'?'التسجيل مشغول دلوقتي. جرّب بعد دقيقة.'
           :result.code==='INVALID_REGISTRATION'?'راجع رقم الموبايل والبيانات المطلوبة.':'التسجيل غير متاح حاليًا. حاول مرة أخرى.');
         return;
       }
