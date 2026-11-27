@@ -16,6 +16,7 @@ export default async function DecemberExamPreview({searchParams}:{searchParams:P
   const initialReferral=typeof ref==="string" && /^CUT-[A-F0-9]{16}$/i.test(ref)?ref.toUpperCase():"";
   const [rates,suggestions]=await Promise.all([readDecemberRates(),readEducationSuggestions()]);
   const registrationEnabled=rates!==null;
+  const launched=registrationEnabled&&process.env.DECEMBER_EXAM_PUBLIC_LAUNCH_ENABLED==='true';
   const questions=[{label:"دي أول زيارة ليك؟",rate:rates?.firstVisit},{label:"إنت طالب؟",rate:rates?.student},{label:"عضو في CUT CLUB؟",rate:rates?.club},{label:"هتعمل خدمتين أو أكتر؟",rate:rates?.multiService}];
   return (
     <main dir="rtl" className="min-h-screen bg-[#0C0C0C] text-[#F2F0E9] px-5 py-14 md:py-24">
@@ -28,7 +29,7 @@ export default async function DecemberExamPreview({searchParams}:{searchParams:P
             <p className="mt-6 text-xl leading-relaxed">صاحبك المرة دي هيوفرلك فلوس!</p>
             <p className="mt-3 text-neutral-400 leading-relaxed">سجّل، لمّ صحابك الجداد، واعرف الخصم اللي تستحقه.</p>
             <a href="#december-register" className="inline-block mt-6 rounded-md bg-[#CF252B] px-6 py-3 font-bold text-white">ابدأ الامتحان</a>
-            <p className="mt-8 text-sm border border-neutral-700 rounded-lg p-4" role="status">معاينة داخلية — الحملة لم تُطلق للعملاء بعد.</p>
+            {!launched&&<p className="mt-8 text-sm border border-neutral-700 rounded-lg p-4" role="status">معاينة داخلية — الحملة لم تُطلق للعملاء بعد.</p>}
           </section>
           <section className="bg-[#F2F0E9] text-[#0C0C0C] rounded-sm p-6 md:p-9 shadow-xl">
             <header className="flex items-center justify-between border-b border-neutral-400 pb-5">
