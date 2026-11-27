@@ -8,6 +8,10 @@ import { resolve } from 'node:path';
 if (process.env.NODE_ENV === 'production' || ['.env','.env.local','.env.development','.env.development.local','.env.production','.env.production.local'].some(existsSync)) {
   throw Error('Use a fresh checkout without any .env files; local synthetic preview only.');
 }
+const rawPort=process.env.CUT_CLUB_PREVIEW_PORT||'3105';
+if(!/^\d{4,5}$/.test(rawPort)||Number(rawPort)<1024||Number(rawPort)>65535)throw Error('Invalid CUT_CLUB_PREVIEW_PORT');
+const port=Number(rawPort);
+const origin='http://127.0.0.1:'+port;
 const next = resolve('node_modules/next/dist/bin/next');
 if (!existsSync(next)) throw Error('Run npm ci first.');
 const key = randomBytes(32).toString('hex');
@@ -71,10 +75,10 @@ server.listen(0,'localhost',()=>{
  if(!addr||typeof addr==='string')throw Error('LOCAL_LISTENER_FAILED');
  const env={};
  for(const k of ['PATH','Path','HOME','USERPROFILE','SystemRoot','SYSTEMROOT','TEMP','TMP','APPDATA','LOCALAPPDATA','ComSpec','PATHEXT','LANG','TERM'])if(process.env[k])env[k]=process.env[k];
- Object.assign(env,{NODE_ENV:'development',NEXT_TELEMETRY_DISABLED:'1',CUT_CLUB_WEBSITE_AUTH_ENABLED:'true',CUT_CLUB_WEBSITE_MEMBERSHIP_TRIAL_ENABLED:'true',CUT_CLUB_WEBSITE_MEMBERSHIP_APPLICATION_ENABLED:'true',CUT_CLUB_CASHER_ORIGIN:'http://localhost:'+addr.port,CUT_CLUB_BFF_SHARED_KEY:key,CUT_CLUB_PUBLIC_ORIGIN:'http://127.0.0.1:3100',CUT_CLUB_WEBSITE_PUBLIC_ORIGIN:'http://127.0.0.1:3100'});
- console.log('SYNTHETIC PREVIEW ONLY — http://127.0.0.1:3100/club');
+ Object.assign(env,{NODE_ENV:'development',NEXT_TELEMETRY_DISABLED:'1',CUT_CLUB_WEBSITE_AUTH_ENABLED:'true',CUT_CLUB_WEBSITE_MEMBERSHIP_TRIAL_ENABLED:'true',CUT_CLUB_WEBSITE_MEMBERSHIP_APPLICATION_ENABLED:'true',CUT_CLUB_CASHER_ORIGIN:'http://localhost:'+addr.port,CUT_CLUB_BFF_SHARED_KEY:key,CUT_CLUB_PUBLIC_ORIGIN:origin,CUT_CLUB_WEBSITE_PUBLIC_ORIGIN:origin});
+ console.log('SYNTHETIC PREVIEW ONLY — '+origin+'/club');
  console.log('Local fake phones: 01000000000 active, 01000000001 review, 01000000002 suspended, 01000000003 unlinked. Local fixture code: 123456. No WhatsApp is sent.');
- const child=spawn(process.execPath,[next,'dev','--hostname','127.0.0.1','--port','3100'],{env,stdio:'inherit'});
+ const child=spawn(process.execPath,[next,'dev','--hostname','127.0.0.1','--port',String(port)],{env,stdio:'inherit'});
  let stopping=false;
  const stop=()=>{if(stopping)return;stopping=true;child.kill();server.close();};
  process.on('SIGINT',stop);process.on('SIGTERM',stop);
