@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import DecemberRegistrationForm from "./DecemberRegistrationForm";
 import DecemberMyExam from "./DecemberMyExam";
 import {readDecemberRates} from "@/lib/december/rates";
+import {readEducationSuggestions} from "@/lib/december/education";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
@@ -13,7 +14,7 @@ export default async function DecemberExamPreview({searchParams}:{searchParams:P
   if (process.env.DECEMBER_EXAM_PREVIEW !== "true") notFound();
   const {ref}=await searchParams;
   const initialReferral=typeof ref==="string" && /^CUT-[A-F0-9]{16}$/i.test(ref)?ref.toUpperCase():"";
-  const rates=await readDecemberRates();
+  const [rates,suggestions]=await Promise.all([readDecemberRates(),readEducationSuggestions()]);
   const registrationEnabled=rates!==null;
   const questions=[{label:"دي أول زيارة ليك؟",rate:rates?.firstVisit},{label:"إنت طالب؟",rate:rates?.student},{label:"عضو في CUT CLUB؟",rate:rates?.club},{label:"هتعمل خدمتين أو أكتر؟",rate:rates?.multiService}];
   return (
@@ -46,7 +47,7 @@ export default async function DecemberExamPreview({searchParams}:{searchParams:P
             <p className="border-t border-neutral-400 pt-4 text-sm leading-relaxed">العرض مرة واحدة للعميل. الدعوات تتأكد بعد إتمام أول زيارة للصاحب. إجمالي الخصم لا يتجاوز 100%. الخصم النهائي بعد التحقق في الفرع.</p>
           </section>
         </div>
-        <div id="december-register" className="mt-12 max-w-2xl mx-auto scroll-mt-8"><DecemberRegistrationForm enabled={registrationEnabled} initialReferral={initialReferral}/>{registrationEnabled&&<div className="mt-6"><DecemberMyExam rates={rates!}/></div>}</div>
+        <div id="december-register" className="mt-12 max-w-2xl mx-auto scroll-mt-8"><DecemberRegistrationForm enabled={registrationEnabled} initialReferral={initialReferral} suggestions={suggestions}/>{registrationEnabled&&<div className="mt-6"><DecemberMyExam rates={rates!}/></div>}</div>
         <section className="mt-12 border-t border-neutral-700 pt-8 max-w-2xl mx-auto space-y-4"><h2 className="font-bold text-2xl">جاهز لزيارتك؟</h2><p className="text-neutral-300">سجل أولًا، وخلي صحابك يستخدموا لينك دعوتك. احجز من نظام الحجز الحالي أو زور الفرع. الحجز وحده مش تأكيد للخصم.</p><div className="flex gap-3 flex-wrap"><Link href="/book" className="rounded bg-[#F2F0E9] text-[#0C0C0C] px-5 py-3 font-bold">احجز زيارتك</Link><Link href="/club" className="border rounded px-5 py-3">CUT CLUB</Link><Link href="/offers/december/terms" className="underline px-2 py-3">الشروط</Link></div></section>
       </div>
     </main>
