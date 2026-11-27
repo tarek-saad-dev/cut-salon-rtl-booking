@@ -5,7 +5,7 @@ import { vi } from "vitest";
 // Booking V2 integration tests opt in via vi.stubEnv in their own beforeEach.
 vi.stubEnv("NEXT_PUBLIC_BOOKING_V2_CLIENT", "false");
 
-Object.defineProperty(window, "matchMedia", {
+if (typeof window !== "undefined") Object.defineProperty(window, "matchMedia", {
   writable: true,
   value: (query: string) => ({
     matches: false,
