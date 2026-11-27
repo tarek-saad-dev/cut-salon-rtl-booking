@@ -1,5 +1,6 @@
 "use client";
 import {useEffect,useState} from 'react';
+import MembershipPrograms from './MembershipPrograms';
 import {Crown,GraduationCap,Stethoscope,BriefcaseBusiness,RefreshCw,ShieldCheck,LockKeyhole} from 'lucide-react';
 import {membershipTrialResponse,type MembershipTrialResponse} from '@/lib/club/membershipTrialContract';
 const types={GENERAL:{label:'عضوية عامة',icon:Crown},STUDENT:{label:'عضوية الطلاب',icon:GraduationCap},DOCTOR:{label:'عضوية الأطباء',icon:Stethoscope},COMPANY:{label:'عضوية الشركات',icon:BriefcaseBusiness}};
@@ -27,6 +28,7 @@ export default function MembershipStatus(){
  {status==='error'&&<div role="alert" className={panel}>تعذر تحميل العضويات. جرّب التحديث.</div>}
  {status==='ready'&&data&&<><div className="rounded-xl border border-[#dec1a8]/20 p-4 text-sm text-[#dec1a8]">عرض تجريبي فقط. لا تمنح هذه السجلات خصومات أو مزايا مالية، والتسجيل الجديد غير متاح.</div>
  {data.accountStatus!=='ACTIVE'?<div role="status" className={panel}>{scope[data.accountStatus]}</div>:data.items.length===0?<div className={panel}><Crown className="mb-3"/><p>لا توجد عضويات تجريبية مسجلة لحسابك.</p></div>:<div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{data.items.map(item=>{const Icon=types[item.kind].icon;return <article key={item.code} className={panel}><Icon className="mb-4 text-[#dec1a8]" size={28}/><p className="text-xs text-[#c4b1a2]">{types[item.kind].label}</p><h2 className="mt-2 text-lg font-bold">{item.title}</h2><p className="mt-3 text-sm font-semibold">{states[item.status]}</p><p className="mt-2 text-xs text-[#c4b1a2]">الفرع: {item.branchId===1?'جليم':'كامب شيزار'}</p><p className="mt-1 text-xs text-[#c4b1a2]">الصلاحية: {new Date(item.expiresAt).toLocaleDateString('ar-EG',{timeZone:'Africa/Cairo'})}</p></article>})}</div>}</>}
+ <MembershipPrograms/>
  <div className="flex items-start gap-2 rounded-xl border border-[#d9bca4]/15 p-4 text-xs leading-6 text-[#c9b7a8]"><ShieldCheck size={18} className="shrink-0"/>بيانات العضوية لا تظهر إلا لصاحب الحساب الموثق.</div>
  </section>;
 }
