@@ -86,9 +86,34 @@ describe("CUT CLUB real WhatsApp auth gateway",()=>{
       completedVisits:null,linkStatus:"REVIEW_REQUIRED",
     });
     render(await CutClubMemberGateway({}));
-    expect(screen.getByText("تأكيد ربط العضوية مطلوب")).toBeInTheDocument();
-    expect(screen.getAllByText("البيانات الخاصة لا تظهر للزائر").length).toBeGreaterThan(0);
+    expect(screen.getByRole("heading",{name:"عضويتك تحت المراجعة"})).toBeInTheDocument();
+    expect(screen.getByTestId("cut-club-account-status")).toBeInTheDocument();
     expect(screen.queryByText("155")).not.toBeInTheDocument();
+  });
+  it("shows suspended account status without exposing any financial wallet information",async()=>{
+    mocks.read.mockResolvedValue({
+      displayName:"اسم خاص",memberCode:"CC-000007",tier:"Gold",coins:990,
+      promoCreditMinor:null,ownedVouchers:[{id:"1",title:"قسيمة خاصة",status:"active",expiryLabel:null}],
+      movements:[{id:"1",title:"شراء خدمة",occurredAtLabel:"2026-11-20",coinsDelta:50}],
+      upcomingBooking:null,completedVisits:3,linkStatus:"SUSPENDED",
+    });
+    render(await CutClubMemberGateway({area:"home"}));
+    expect(screen.getByRole("heading",{name:"عضويتك موقوفة مؤقتًا"})).toBeInTheDocument();
+    expect(screen.getByTestId("cut-club-account-status")).toBeInTheDocument();
+    expect(screen.queryByText("اسم خاص")).not.toBeInTheDocument();
+    expect(screen.queryByText("990")).not.toBeInTheDocument();
+    expect(screen.queryByText("قسيمة خاصة")).not.toBeInTheDocument();
+  });
+  it("shows only verified member identity on the real Profile page",async()=>{
+    mocks.read.mockResolvedValue({
+      displayName:"مستخدم اختبار",memberCode:"CC-000007",tier:"Gold",coins:155,
+      promoCreditMinor:null,ownedVouchers:[],movements:[],upcomingBooking:null,
+      completedVisits:3,linkStatus:"ACTIVE",
+    });
+    render(await CutClubMemberGateway({area:"profile"}));
+    expect(screen.getAllByText("مستخدم اختبار").length).toBeGreaterThan(0);
+    expect(screen.getByText("CC-000007")).toBeInTheDocument();
+    expect(screen.getAllByText("Gold").length).toBeGreaterThan(0);
   });
   it("preserves public SEO metadata",()=>{
     expect(metadata.alternates).toEqual({canonical:"/cut-club"});
