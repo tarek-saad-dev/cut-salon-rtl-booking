@@ -17,11 +17,15 @@ export default function RewardsMarketplace(){
   useEffect(()=>{
     const controller=new AbortController();
     setStatus("loading");
+    setCatalog(null);
+    setSelected(null);
     fetch("/api/club/rewards",{credentials:"same-origin",cache:"no-store",signal:controller.signal})
       .then(async r=>{
+        if(controller.signal.aborted)return;
         if(r.status===401||r.status===403){setStatus("sign-in");return;}
         if(!r.ok)throw Error("CATALOG_UNAVAILABLE");
         const data=await r.json() as Catalog;
+        if(controller.signal.aborted)return;
         if(!data.ok||!Array.isArray(data.items))throw Error("CATALOG_INVALID");
         setCatalog(data);setStatus("ready");
       }).catch(e=>{if(!controller.signal.aborted)setStatus("error");});
@@ -32,7 +36,7 @@ export default function RewardsMarketplace(){
       <div>
         <p dir="ltr" lang="en" className="text-xs font-black tracking-[.22em] text-[#dec1a8]">CUT CLUB / REWARDS</p>
         <h1 className="mt-2 text-2xl font-black sm:text-3xl">مكافآتك تستنى زيارتك</h1>
-        <p className="mt-3 text-sm leading-7 text-[#c4b1a2]">مكافآت CUT CLUB وأسعارها الحقيقية من الكاشير. شراء النقاط والاستبدال هيتاحوا بعد اكتمال الربط المالي.</p>
+        <p className="mt-3 text-sm leading-7 text-[#c4b1a2]">مكافآت CUT CLUB وأسعارها الحقيقية من الكاشير. استبدال النقاط بمكافآت هيتاح بعد اكتمال الربط المالي.</p>
       </div>
       <button type="button" onClick={()=>setReload(n=>n+1)}
         className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[#d5bba3]/25 px-4 text-sm font-bold text-[#ebd0b5] hover:bg-white/5">
