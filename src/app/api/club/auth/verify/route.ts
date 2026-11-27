@@ -31,7 +31,7 @@ export async function POST(req:NextRequest){
     if(typeof body?.code!=='string'||!/^\d{6}$/.test(body.code))return response({ok:false,code:'INVALID_OTP'},400);
     const result=await casherMemberRequest('/auth/verify',{method:'POST',body:{pendingToken:pending,code:body.code}}) as Record<string,unknown>;
     if(result?.ok!==true || typeof result.sessionToken!=='string'||!/^[A-Za-z0-9_-]{43}$/.test(result.sessionToken) ||
-      !['ACTIVE','UNLINKED','REVIEW_REQUIRED'].includes(String(result.status)))
+      !['ACTIVE','UNLINKED','REVIEW_REQUIRED','SUSPENDED'].includes(String(result.status)))
       return response({ok:false,code:'CUT_CLUB_UNAVAILABLE'},503);
     const answer=response({ok:true,status:result.status});
     answer.cookies.set(clubCookieNames.session,result.sessionToken,{...cookieOptions,maxAge:7200});
