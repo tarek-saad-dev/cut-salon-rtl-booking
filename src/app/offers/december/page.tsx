@@ -17,7 +17,7 @@ export default async function DecemberExamPreview({searchParams}:{searchParams:P
   const [rates,suggestions]=await Promise.all([readDecemberRates(),readEducationSuggestions()]);
   const registrationEnabled=rates!==null;
   const launched=registrationEnabled&&process.env.DECEMBER_EXAM_PUBLIC_LAUNCH_ENABLED==='true';
-  const questions=[{label:"دي أول زيارة ليك؟",rate:rates?.firstVisit},{label:"إنت طالب؟",rate:rates?.student},{label:"عضو في CUT CLUB؟",rate:rates?.club},{label:"هتعمل خدمتين أو أكتر؟",rate:rates?.multiService}];
+  const questions=[{label:"دي أول زيارة ليك؟",rate:rates?.firstVisit},{label:"إنت طالب؟",rate:rates?.student},{label:"عضو في CUT CLUB؟",rate:rates?.club},{label:"هتعمل خدمتين مؤهلتين أو أكتر؟",rate:rates?.multiService}];
   return (
     <main dir="rtl" className="min-h-screen bg-[#0C0C0C] text-[#F2F0E9] px-5 py-14 md:py-24">
       <div className="mx-auto max-w-5xl">
@@ -27,7 +27,7 @@ export default async function DecemberExamPreview({searchParams}:{searchParams:P
             <p className="text-sm text-neutral-400">THE DECEMBER EXAM</p>
             <h1 className="text-5xl md:text-7xl font-black leading-tight mt-4">امتحان<br/><span className="text-[#e76c70]">ديسمبر.</span></h1>
             <p className="mt-6 text-xl leading-relaxed">صاحبك المرة دي هيوفرلك فلوس!</p>
-            <p className="mt-3 text-neutral-400 leading-relaxed">سجّل، لمّ صحابك الجداد، واعرف الخصم اللي تستحقه.</p>
+            <p className="mt-3 text-neutral-400 leading-relaxed">سجّل، لمّ صحابك الجداد، واعرف الخصم اللي تستحقه على حلاقة الشعر والدقن فقط.</p>
             <a href="#december-register" className="inline-block mt-6 rounded-md bg-[#CF252B] px-6 py-3 font-bold text-white">ابدأ الامتحان</a>
             {!launched&&<p className="mt-8 text-sm border border-neutral-700 rounded-lg p-4" role="status">معاينة داخلية — الحملة لم تُطلق للعملاء بعد.</p>}
           </section>
