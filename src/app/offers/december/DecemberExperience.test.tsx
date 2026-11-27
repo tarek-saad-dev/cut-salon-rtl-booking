@@ -38,4 +38,12 @@ describe('December customer journey',()=>{
   expect(screen.getByText('75%')).toBeInTheDocument();
   expect(screen.getByText(/ليست ضمانًا/)).toBeInTheDocument();
  });
+ it('shows consumption and stops sharing after redemption',async()=>{
+  vi.stubGlobal('fetch',vi.fn().mockResolvedValue({ok:true,status:200,json:async()=>({ok:true,referralCode:'CUT-ABCDEF1234567890',campaignStatus:'ACTIVE',redeemed:true,counts:{confirmed:2,pending:1,rejected:0}})}));
+  render(<DecemberMyExam rates={rates}/>);
+  expect(await screen.findByText(/تم استخدام عرض ديسمبر/)).toBeInTheDocument();
+  expect(screen.queryByRole('button',{name:'شارك على واتساب'})).not.toBeInTheDocument();
+  expect(screen.queryByText('75%')).not.toBeInTheDocument();
+ });
+
 });
