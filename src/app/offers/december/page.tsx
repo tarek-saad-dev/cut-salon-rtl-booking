@@ -1,13 +1,16 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import DecemberRegistrationForm from "./DecemberRegistrationForm";
+import DecemberMyExam from "./DecemberMyExam";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = {title:"امتحان ديسمبر", robots:{index:false,follow:false}};
 
 /** Internal preview only. Public registration is deliberately unavailable until the POS contract is live. */
-export default function DecemberExamPreview() {
+export default async function DecemberExamPreview({searchParams}:{searchParams:Promise<{ref?:string|string[]}>}) {
   if (process.env.DECEMBER_EXAM_PREVIEW !== "true") notFound();
+  const {ref}=await searchParams;
+  const initialReferral=typeof ref==="string" && /^CUT-[A-F0-9]{16}$/i.test(ref)?ref.toUpperCase():"";
   const registrationEnabled=process.env.DECEMBER_EXAM_INTERNAL_REGISTRATION_ENABLED==="true";
   return (
     <main dir="rtl" className="min-h-screen bg-[#0C0C0C] text-[#F2F0E9] px-5 py-14 md:py-24">
@@ -36,7 +39,7 @@ export default function DecemberExamPreview() {
             <p className="border-t border-neutral-400 pt-4 text-sm leading-relaxed">العرض مرة واحدة للعميل. الدعوات تتأكد بعد إتمام أول زيارة للصاحب. النسب تُعرض بعد اعتماد الحملة.</p>
           </section>
         </div>
-        <div className="mt-12 max-w-2xl mx-auto"><DecemberRegistrationForm enabled={registrationEnabled}/></div>
+        <div className="mt-12 max-w-2xl mx-auto"><DecemberRegistrationForm enabled={registrationEnabled} initialReferral={initialReferral}/>{registrationEnabled&&<div className="mt-6"><DecemberMyExam/></div>}</div>
       </div>
     </main>
   );
