@@ -12,7 +12,7 @@ export default function DecemberMyExam(){
    setSession(d);setState('ready');
   }catch{setSession(null);setState('error');}
  },[]);
- useEffect(()=>{void load();},[load]);
+ useEffect(()=>{const refresh=()=>{void load();};refresh();window.addEventListener('december-registration-complete',refresh);return()=>window.removeEventListener('december-registration-complete',refresh);},[load]);
  async function copy(){
   if(!session)return;
   const link=new URL('/offers/december',window.location.origin);link.searchParams.set('ref',session.referralCode);
