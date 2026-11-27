@@ -33,6 +33,7 @@ export async function POST(req:NextRequest){
     if(!upstream.ok){
       const code=typeof data?.code==='string'?data.code:'CAMPAIGN_UNAVAILABLE';
       if(upstream.status===400&&['INVALID_REGISTRATION','INVALID_REFERRAL_CODE','INVALID_REQUEST'].includes(code))return reply({ok:false,code},400);
+      if(upstream.status===429)return reply({ok:false,code:'REGISTRATION_BUSY'},429);
       if(upstream.status===409)return reply({ok:false,code:'REGISTRATION_REVIEW_REQUIRED'},409);
       return reply({ok:false,code:'CAMPAIGN_UNAVAILABLE'},503);
     }
