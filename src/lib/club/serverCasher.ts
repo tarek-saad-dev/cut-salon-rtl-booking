@@ -22,7 +22,7 @@ export const clubWalletResponse=z.object({
     movements:z.array(movement).max(30).nullable(),
     upcomingBooking:z.object({service:z.string(),date:z.string(),branch:z.string()}).nullable(),
     completedVisits:z.number().int().nonnegative().safe().nullable(),
-    linkStatus:z.enum(['ACTIVE','UNLINKED','REVIEW_REQUIRED']),
+    linkStatus:z.enum(['ACTIVE','UNLINKED','REVIEW_REQUIRED','SUSPENDED']),
   }).strict(),
 }).strict();
 export type CasherMember = z.infer<typeof clubWalletResponse>['member'];
