@@ -7,5 +7,5 @@ export const metadata = publicPageMetadata("/", SITE_TITLE, SITE_DESCRIPTION);
 
 export default async function Home() {
   const rates=process.env.DECEMBER_EXAM_HOME_PREVIEW_ENABLED==='true'?await readDecemberRates():null;
-  return <HomePageClient campaignPromo={rates?<DecemberHomePromo rates={rates}/>:undefined} />;
+  return <HomePageClient campaignPromo={rates?<DecemberHomePromo rates={rates} launched={process.env.DECEMBER_EXAM_PUBLIC_LAUNCH_ENABLED==='true'}/>:undefined} />;
 }
