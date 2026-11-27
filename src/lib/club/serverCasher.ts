@@ -22,7 +22,7 @@ export const clubWalletResponse=z.object({
     movements:z.array(movement).max(30).nullable(),
     upcomingBooking:z.object({service:z.string(),date:z.string(),branch:z.string()}).nullable(),
     completedVisits:z.number().int().nonnegative().safe().nullable(),
-    linkStatus:z.enum(['ACTIVE','UNLINKED','REVIEW_REQUIRED']),
+    linkStatus:z.enum(['ACTIVE','UNLINKED','REVIEW_REQUIRED','SUSPENDED']),
   }).strict(),
 }).strict();
 export type CasherMember = z.infer<typeof clubWalletResponse>['member'];
@@ -35,6 +35,23 @@ export const clubActivityResponse=z.object({
   nextCursor:z.string().max(120).nullable(),
 }).strict();
 export type CasherActivityPage = Omit<z.infer<typeof clubActivityResponse>,'ok'>;
+export const clubRewardCatalogResponse=z.object({
+  ok:z.literal(true),balance:z.number().finite().nonnegative().nullable(),
+  purchaseEnabled:z.literal(false),
+  items:z.array(z.object({
+    id:z.number().int().positive(),
+    nameAr:z.string().max(100),nameEn:z.string().max(100),
+    description:z.string().max(350),
+    priceCoins:z.number().finite().nonnegative(),
+    serviceId:z.number().int().positive().nullable(),
+    stockState:z.enum(['available','out_of_stock']),
+    expiresAfterDays:z.number().int().positive().nullable(),
+    canAfford:z.boolean().nullable(),serviceMappingReady:z.boolean(),
+    purchaseAvailable:z.literal(false),
+  }).strict()).max(4),
+}).strict();
+export type CasherRewardCatalog=Omit<z.infer<typeof clubRewardCatalogResponse>,'ok'>;
+
 
 const cookiesByEnv=()=>process.env.NODE_ENV==='production'
   ? {pending:'__Host-cutclub_pending',session:'__Host-cutclub_session'}
@@ -57,7 +74,7 @@ function config() {
   return {url:url.origin,key};
 }
 export async function casherMemberRequest(
-  path:'/auth/start'|'/auth/verify'|'/auth/logout'|'/wallet'|`/wallet/activity?${string}`,
+  path:'/auth/start'|'/auth/verify'|'/auth/logout'|'/wallet'|'/rewards'|`/wallet/activity?${string}`,
   options:{method?:'GET'|'POST';body?:unknown;sessionToken?:string}={},
 ):Promise<unknown>{
   const {url,key}=config();
