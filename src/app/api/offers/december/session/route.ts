@@ -5,7 +5,7 @@ export const dynamic='force-dynamic';
 const reply=(body:unknown,status=200)=>NextResponse.json(body,{status,headers:{'Cache-Control':'private, no-store','X-Robots-Tag':'noindex'}});
 const count=z.number().int().nonnegative().safe();
 const result=z.object({ok:z.literal(true),referralCode:z.string().regex(/^CUT-[A-F0-9]{16}$/),
- campaignStatus:z.enum(['ACTIVE','UNAVAILABLE']),counts:z.object({pending:count,confirmed:count,rejected:count}).strict()}).strict();
+ campaignStatus:z.enum(['ACTIVE','UNAVAILABLE']),redeemed:z.boolean().optional(),counts:z.object({pending:count,confirmed:count,rejected:count}).strict()}).strict();
 export async function GET(req:NextRequest){
  if(process.env.DECEMBER_EXAM_PREVIEW!=='true'||process.env.DECEMBER_EXAM_INTERNAL_REGISTRATION_ENABLED!=='true')
   return reply({ok:false,code:'CAMPAIGN_UNAVAILABLE'},503);
