@@ -57,7 +57,7 @@ function config() {
   return {url:url.origin,key};
 }
 export async function casherMemberRequest(
-  path:'/auth/start'|'/auth/verify'|'/auth/logout'|'/wallet'|`/wallet/activity?${string}`,
+  path:'/auth/start'|'/auth/verify'|'/auth/logout'|'/wallet'|'/memberships'|`/wallet/activity?${string}`,
   options:{method?:'GET'|'POST';body?:unknown;sessionToken?:string}={},
 ):Promise<unknown>{
   const {url,key}=config();
