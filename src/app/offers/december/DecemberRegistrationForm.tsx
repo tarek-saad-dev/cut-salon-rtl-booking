@@ -3,7 +3,7 @@ import { useState } from 'react';
 import type { FormEvent } from 'react';
 
 const fieldClass='w-full rounded-md border border-neutral-400 bg-white px-3 py-3 text-[#0C0C0C]';
-export default function DecemberRegistrationForm({enabled}:{enabled:boolean}){
+export default function DecemberRegistrationForm({enabled,initialReferral=""}:{enabled:boolean;initialReferral?:string}){
   const [student,setStudent]=useState(false);
   const [education,setEducation]=useState('UNIVERSITY');
   const [pending,setPending]=useState(false);
@@ -30,7 +30,7 @@ export default function DecemberRegistrationForm({enabled}:{enabled:boolean}){
           :result.code==='INVALID_REGISTRATION'?'راجع رقم الموبايل والبيانات المطلوبة.':'التسجيل غير متاح حاليًا. حاول مرة أخرى.');
         return;
       }
-      setCode(result.referralCode);
+      setCode(result.referralCode);window.dispatchEvent(new Event("december-registration-complete"));
     }catch{setError('تعذر الاتصال. حاول مرة أخرى.');}finally{setPending(false);}
   }
   if(code)return <section dir="rtl" className="rounded-md bg-[#F2F0E9] text-[#0C0C0C] p-6 space-y-4">
@@ -52,7 +52,7 @@ export default function DecemberRegistrationForm({enabled}:{enabled:boolean}){
         {education!=='SCHOOL'&&<label className="block space-y-1">{education==='UNIVERSITY'?'اسم الكلية':'التخصص'}<input required key={education+'-faculty'} name="faculty" maxLength={120} className={fieldClass}/></label>}
         <label className="block space-y-1">الفرقة أو المرحلة (اختياري)<input name="year" maxLength={60} className={fieldClass}/></label>
       </div>}
-      <label className="block space-y-1">كود صاحبك (اختياري)<input name="referralCode" maxLength={32} dir="ltr" className={fieldClass}/></label>
+      <label className="block space-y-1">كود صاحبك (اختياري)<input name="referralCode" defaultValue={initialReferral} maxLength={32} dir="ltr" className={fieldClass}/></label>
       <label className="flex gap-2 items-start text-sm"><input name="marketingConsent" type="checkbox" className="mt-1"/> أوافق على استقبال عروض CUT SALON (اختياري)</label>
       <button type="submit" className="w-full bg-[#CF252B] text-white rounded-md py-3 font-bold">{pending?'جاري التسجيل…':'سجّل في الامتحان'}</button>
     </fieldset>
