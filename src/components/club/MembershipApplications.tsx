@@ -3,7 +3,7 @@ import {useEffect,useState} from 'react';
 import {applicationsResponse,applicationCreated,type MemberApplication} from '@/lib/club/membershipApplicationContract';
 import type {MembershipProgramsResponse} from '@/lib/club/membershipProgramsContract';
 const api='/api/club/membership-applications';
-const labels={PENDING:'بانتظار المراجعة',ACCEPTED_FOR_REVIEW:'مقبول لمراجعة الإثبات — لم يتم تفعيل العضوية',REJECTED:'مرفوض',PROGRAM_CHANGED:'البرنامج اتغير أو توقف'};
+const labels={PENDING:'بانتظار المراجعة',ACCEPTED_FOR_REVIEW:'مقبول لمراجعة الإثبات — لم يتم تفعيل العضوية',REJECTED:'مرفوض',PROGRAM_CHANGED:'البرنامج اتغير أو توقف',TRIAL_ISSUED:'تم إصدار سجل تجريبي — راجع عضوياتي لمعرفة صلاحيته'};
 const branches={1:'جليم',3:'كامب شيزار'};
 export default function MembershipApplications({programs}:{programs:MembershipProgramsResponse['items']}){
  const [rows,setRows]=useState<MemberApplication[]>([]),[state,setState]=useState<'loading'|'ready'|'closed'|'error'>('loading'),[reload,setReload]=useState(0),[busy,setBusy]=useState(false),[code,setCode]=useState(''),[branch,setBranch]=useState<1|3|0>(0),[notice,setNotice]=useState(''),[error,setError]=useState('');
