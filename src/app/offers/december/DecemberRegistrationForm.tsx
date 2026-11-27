@@ -1,11 +1,16 @@
 'use client';
 import { useState } from 'react';
 import type { FormEvent } from 'react';
+import type {EducationSuggestion} from '@/lib/december/education';
 
 const fieldClass='w-full rounded-md border border-neutral-400 bg-white px-3 py-3 text-[#0C0C0C]';
-export default function DecemberRegistrationForm({enabled,initialReferral=""}:{enabled:boolean;initialReferral?:string}){
+export default function DecemberRegistrationForm({enabled,initialReferral="",suggestions=[]}:{enabled:boolean;initialReferral?:string;suggestions?:EducationSuggestion[]}){
   const [student,setStudent]=useState(false);
   const [education,setEducation]=useState('UNIVERSITY');
+  const [institution,setInstitution]=useState('');
+  const [faculty,setFaculty]=useState('');
+  const institutions=[...new Set(suggestions.filter(s=>s.type===education).map(s=>s.institution))];
+  const faculties=[...new Set(suggestions.filter(s=>s.type===education&&s.institution===institution&&s.faculty).map(s=>s.faculty))];
   const [pending,setPending]=useState(false);
   const [error,setError]=useState('');
   const [code,setCode]=useState('');
@@ -48,9 +53,10 @@ export default function DecemberRegistrationForm({enabled,initialReferral=""}:{e
       <label className="block space-y-1">رقم الموبايل<input required name="phone" type="tel" autoComplete="tel" maxLength={32} dir="ltr" className={fieldClass}/></label>
       <label className="flex gap-2 items-center"><input type="checkbox" checked={student} onChange={e=>setStudent(e.target.checked)}/> أنا طالب</label>
       {student&&<div className="space-y-4">
-        <label className="block space-y-1">نوع المؤسسة<select value={education} onChange={e=>setEducation(e.target.value)} className={fieldClass}><option value="UNIVERSITY">جامعة</option><option value="SCHOOL">مدرسة</option><option value="INSTITUTE">معهد</option></select></label>
-        <label className="block space-y-1">{education==='UNIVERSITY'?'اسم الجامعة':education==='SCHOOL'?'اسم المدرسة':'اسم المعهد'}<input required key={education} name="institution" maxLength={120} className={fieldClass}/></label>
-        {education!=='SCHOOL'&&<label className="block space-y-1">{education==='UNIVERSITY'?'اسم الكلية':'التخصص'}<input required key={education+'-faculty'} name="faculty" maxLength={120} className={fieldClass}/></label>}
+        <label className="block space-y-1">نوع المؤسسة<select value={education} onChange={e=>{setEducation(e.target.value);setInstitution('');setFaculty('');}} className={fieldClass}><option value="UNIVERSITY">جامعة</option><option value="SCHOOL">مدرسة</option><option value="INSTITUTE">معهد</option></select></label>
+        <label className="block space-y-1">{education==='UNIVERSITY'?'اسم الجامعة':education==='SCHOOL'?'اسم المدرسة':'اسم المعهد'}<input required key={education} name="institution" list="december-institutions" value={institution} onChange={e=>{setInstitution(e.target.value);setFaculty("");}} maxLength={120} className={fieldClass}/></label>
+        {education!=='SCHOOL'&&<label className="block space-y-1">{education==='UNIVERSITY'?'اسم الكلية':'التخصص'}<input required key={education+'-faculty'} name="faculty" list="december-faculties" value={faculty} onChange={e=>setFaculty(e.target.value)} maxLength={120} className={fieldClass}/></label>}
+        <datalist id="december-institutions">{institutions.map(n=><option key={n} value={n}/>)}</datalist><datalist id="december-faculties">{faculties.map(n=><option key={n} value={n}/>)}</datalist><p className="text-xs">لو مؤسستك أو تخصصك مش موجود، اكتبه عادي.</p>
         <label className="block space-y-1">الفرقة أو المرحلة (اختياري)<input name="year" maxLength={60} className={fieldClass}/></label>
       </div>}
       <label className="block space-y-1">كود صاحبك (اختياري)<input name="referralCode" defaultValue={initialReferral} maxLength={32} dir="ltr" className={fieldClass}/></label>
