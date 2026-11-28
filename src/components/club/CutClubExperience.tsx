@@ -9,12 +9,13 @@
 import { useEffect, useState } from "react";
 import CutClubLogout from "./CutClubLogout";
 import MovementHistory from "./MovementHistory";
+import MembershipStatus from "./MembershipStatus";
 import type { ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
 import {
-  ArrowLeft, ArrowUpRight, BriefcaseBusiness, CalendarDays, CheckCircle2,
-  ChevronLeft, Coins, Crown, Gift, GraduationCap, History, House,
-  LockKeyhole, Scissors, ShieldCheck, Sparkles, Stethoscope, Ticket,
+  ArrowLeft, ArrowUpRight, CalendarDays, CheckCircle2,
+  ChevronLeft, Coins, Crown, Gift, History, House,
+  LockKeyhole, Scissors, ShieldCheck, Sparkles, Ticket,
   Trophy, UserRound, Users, Wallet,
 } from "lucide-react";
 
@@ -240,31 +241,7 @@ function RewardsScreen() {
     <div className="mt-5"><PrivateNotice compact /></div>
   </>;
 }
-function MembershipsScreen() {
-  return <>
-    <Head en="CUT CLUB / MEMBERSHIP" title="عضوية على مقاسك"
-      subtitle="مستويات ولاء قابلة للتوسع، واتفاقيات مخصصة للمدارس والجامعات والأطباء والشركات." />
-    <div className="grid gap-4 md:grid-cols-3">
-      {["Guest", "Silver", "Gold"].map((tier, i) => <div key={tier} className={surface}>
-        <Crown className="h-6 w-6 text-[#e4c1a2]" aria-hidden="true" />
-        <p className="mt-9 text-2xl font-black tracking-[.14em]">{tier.toUpperCase()}</p>
-        <p className="mt-2 text-xs text-[#bcab9d]">{i === 0 ? "بداية التجربة" : i === 1 ? "مستوى ولاء متقدم" : "مستوى أعلى"}</p>
-        <p className="mt-5 text-xs leading-6 text-[#d9bfaa]">الشروط والمزايا تُحدد من قواعد العضوية الفعلية.</p>
-      </div>)}
-    </div>
-    <h2 className="mb-5 mt-10 text-2xl font-bold">عضويات واتفاقيات خاصة</h2>
-    <div className="grid gap-4 sm:grid-cols-3">
-      {([
-        { title: "المدارس والجامعات", icon: GraduationCap, en: "EDUCATION", desc: "ربط جهتك التعليمية بعضويتك وفق اتفاقيات معتمدة." },
-        { title: "الأطباء", icon: Stethoscope, en: "MEDICAL", desc: "مسار للعضويات والاتفاقيات الطبية، خاصة فرع كامب شيزار." },
-        { title: "الشركات", icon: BriefcaseBusiness, en: "PARTNERS", desc: "مزايا خاصة بالجهات الشريكة حسب الاتفاقيات." },
-      ]).map(item => {
-        const Icon = item.icon;
-        return <div key={item.en} className={surface}><Icon className="h-7 w-7 text-[#e7c5a5]" aria-hidden="true" /><p className={"mt-5 " + eyebrow} dir="ltr">{item.en}</p><h3 className="mt-2 text-lg font-bold">{item.title}</h3><p className="mt-3 text-sm leading-7 text-[#c1ae9f]">{item.desc}</p></div>;
-      })}
-    </div>
-  </>;
-}
+function MembershipsScreen(){return <MembershipStatus/>;}
 function ChallengesScreen() {
   return <>
     <Head en="CUT CLUB / YOUR JOURNEY" title="كل زيارة بتقرّبك"
